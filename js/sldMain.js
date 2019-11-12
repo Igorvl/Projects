@@ -27,7 +27,7 @@ $(function() {
 	$('.btn-prev').click(prevSlide);
 
 
-	
+	// function nextSlide
 	function nextSlide() {
 		if (slideNow == slideCount || slideNow <=0 || slideNow > slideCount) {
 			$('.sliderwprapper').css({
