@@ -47,7 +47,7 @@ $(function() {
 		}
 	}
 	function prevSlide() {
-		if (slideNow == 1 || slideNow <=0 || slideNow > slideCount) {
+		if (slideNow === 1 || slideNow <=0 || slideNow > slideCount) {
 			var translateWidth = -$('.viewport').width() * (slideCount - 1);
 			$('.sliderwprapper').css({
 				'transform': 'translate('+translateWidth+'px,0)',
