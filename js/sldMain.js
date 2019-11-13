@@ -63,6 +63,7 @@ $(function() {
 				'-webkit-transform': 'translate('+translateWidth+'px,0)'
 			});	
 			slideNow--;
+			
 		}
 	}
 });	
