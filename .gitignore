@@ -1,0 +1,11 @@
+# Игнорирование всех файлов и папок в ЛЮБЫХ директориях с указанным именем
+# Например /images/user.jpg, /core/images/user.jpg
+# images/*
+models/*
+node_modules/*
+# Игнорирование файла во ВСЕХ директориях
+# Например /params/db/config.php, /config.php
+gulpfile.js
+package.json
+package-lock.json
+#.gitignore
