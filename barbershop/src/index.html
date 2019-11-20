@@ -3,116 +3,130 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Barbershop</title>
+  <title>Borodoff barbershop</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-  <header class="main-header">
-    <nav class="main-navigation">
-      <a href="#" class="main-header-logo"><img src="img/aminenko.jpg" alt="Логотип барбершопа 'Бородинский'"></a>
-      <ul class="site-navigation">
-        <li><a href="info.html">Информация</a></li>
-        <li><a href="news.html">Новости</a></li>
-        <li><a href="price.html">Прайс-лист</a></li>
-        <li><a href="catalog.html">Магазин</a></li>
-        <li><a href="contacts.html">Контакты</a></li>
-      </ul>
-      <ul class="user-navigation">
-        <li class="login-link">Вход</li>
-      </ul>
-    </nav>
-  </header>
-  <main class="container">
-    <h1 class="visually-hidden">Барбершоп "Бородинский"</h1>
-    <section class="features">
-      <h2 class="visually-hidden">Преимущества</h2>
-      <ul class="features-list">
-        <li class="feature-item">
-          <h3>Быстро</h3>
-          <p>Мы делаем свою работу быстро! Два часа пролетят незаметно и вы — счастливый обладатель стильной стрижки-минутки</p>
-        </li>
-        <li class="feature-item">
-          <h3>Круто</h3>
-          <p>Забудьте, как вы стриглись раньше. Мы сделаем из вас звезду футбола или кино.
-            Во всяком случае внешне.
-          </p>
-        </li>
-        <li class="feature-item">
-          <h3>Дорого</h3>
-          <p>Наши мастера — профессионалы своего делаи не могут стоить дёшево. К тому же, разве цена не даёт определённый статус?</p>
-        </li>
-      </ul>
-    </section>
-    <section class="news">
-      <h2></h2>
-      <ul class="news-list">
-        <li class="news-item">
-          <p>Нам наконец завезли Ягермайстер! Теперь вы можете пропусить стаканчик во время стрижки.</p>
-          <time datetime="2019-09-29">29 сентября</time>
-        </li>
-        <!-- /.news-item -->
-        <li class="news-item">
-          <p>В нашей команде пополнение, Борис «Бритва» Стригунец, пополнил наши стройные ряды. Спешите записаться!</p>
-          <time datetime="2019-09-19">19 сентября</time>
-        </li>
-        <!-- /.news-item -->
-      </ul>
-      <!-- /.news-list -->
-    </section>
-    <!-- /.news -->
-    <section class="gallery">
-      <h2>Фотогалерея</h2>
-      <figure class="gallery-content"><a href=""><img src="" alt="Интерьер" width="286" height="164"></a></figure>
-      <!-- /.gallery-content -->
-      <span class="button gallery-button gallery-button-back">Назад</span>
-      <span class="button gallery-button gallery-button-next">Вперед</span>
-    </section>
-    <!-- /.gallery -->
-    <section class="contacts">
-      <h2>Контактная информация</h2>
-      <p>Барбершоп Бородинский <br>г. Санкт-Петербург, ул. Большая Конюшенная 19/8 <br> Тел.: +7 (812) 555-66-66</p>
-      <p>Время работы</p>
-      <a href="map.html" class="button">Как проехать</a>
-      <a href="contacts.html" class="button">Обратная связь</a>
-    </section>
-    <!-- /.contacts -->
-    <section class="appointment">
-      <h2>Записаться</h2>
-      <p class="appointment-info">Укажите удобную дату и время и мы...</p>
-      <!-- /.appointment-info -->
-    </section>
-    <!-- /.appointment -->
-    <footer class="main-footer">
-      <p class="footer-contacts">Барбершоп Бородинский <br>г. Санкт-Петербург, ул. Большая Конюшенная 19/8 <br> Тел.: +7 (812) 555-66-66<a href="map.html">Как нас найти</a></p>
-      <!-- /.footer-contacts -->
-      <div class="footer-social">
-        <b>Давайте дружить!</b>
-        <ul>
-          <li><a href="#" class="social-button">ВКонтакте</a></li>
-          <li><a href="#" class="social-button">Фейсбук</a></li>
-          <li><a href="#" class="social-button">Инстаграм</a></li>
-        </ul>
-      </div>
-      <!-- /.footer-social -->
-      <p>Разработано:</p>
-      <a href="https://ya.ru" class="button">RMS Studio</a>
-    </footer>
-    <!-- /.main-footer -->
-    <section class="modal modal-login">
-      <h2>Личный кабинет</h2>
-      <p>Введите свой логин и пароль</p>
-      <span class="modal-close">X</span>
-    </section>
-    <!-- /.modal modal-login -->
-    <section class="modal modal-map">
-      <h2 class="visually-hidden">Как до нас добраться</h2>
-      <!-- /.visually-hidden -->
-      <span class="modal-close">X</span>
-    </section>
-    <!-- /.modal modal-map -->
-  </main>
-  <!-- <script src="http://code.jquery.com/jquery-4.3.1.min.js"></script> -->
+<header class="main-header">
+	<nav class="main-navigation">
+		<a href="#" class="main-header-logo">
+			<img src="img/logo.png" alt="Borodoff logo">
+		</a>
+		<ul class="site-navigation">
+			<li><a href="">Главная</a></li>
+			<li><a href="">Наши работы</a></li>
+			<li><a href="">Записаться</a></li>
+			<li><a href="">Контакты</a></li>
+			<li><a href="">Borodoff</a></li>
+		</ul>
+		<!-- /.site-navigation -->
+		<ul class="user-navigation">
+			<li class="login-link">ВОЙТИ</li>
+			<!-- /.login-link -->
+		</ul>
+		<!-- /.user-navigation -->
+	</nav>
+	<!-- /.main-navigation -->
+</header>
+<!-- /.main-header -->
+<main class="container">
+	<h1 class="visualy-hidden">Borodoff barbershop</h1>
+	<!-- /.visualy-hidden -->
+	<ul class="features-list">
+		<li class="feature-item">
+			<h3 class="feature-item-title">БЫСТРО</h3>
+			<!-- /.feature-item-title -->
+			<p class="feature-item-txt">Мы делаем свою работу быстро! Два часа пролетят незаметно и вы — счастливый обладатель стильной стрижки-минутки</p>
+			<!-- /.feature-item-txt -->
+		</li>
+		<!-- /.feature-item -->
+		<li class="feature-item">
+			<h3 class="feature-item-title">КРУТО</h3>
+			<!-- /.feature-item-title -->
+			<p class="feature-item-txt">Забудьте, как вы стриглись раньше. Мы сделаем из вас звезду футбола или кино. Во всяком случае внешне.
+</p>
+			<!-- /.feature-item-txt -->
+		</li>
+		<!-- /.feature-item -->
+		<li class="feature-item">
+			<h3 class="feature-item-title">ДОРОГО</h3>
+			<!-- /.feature-item-title -->
+			<p class="feature-item-txt">Наши мастера — профессионалы своего делаи не могут стоить дёшево. К тому же, разве цена не даёт определённый статус?</p>
+			<!-- /.feature-item-txt -->
+		</li>
+		<!-- /.feature-item -->
+	</ul>
+	<!-- /.features-list -->
+
+	<section class="news">
+		<h2 class="news-header">Новости</h2>
+		<!-- /.news-header -->
+		<ul class="news-items">
+			<li class="news-item">
+				<p>НАМ НАКОНЕЦ ЗАВЕЗЛИ ЯГЕРМАЙСТЕР! ТЕПЕРЬ ВЫ МОЖЕТЕ ПРОПУСТИТЬ СТАКАНЧИК ВО ВРЕМЯ СТРИЖКИ</p>
+				<time datetime="2020.01.11">11 января</time>
+			</li>
+			<!-- /.news-item -->
+			<li class="news-item">
+				<p>В НАШЕЙ КОМАНДЕ ПОПОЛНЕНИЕ, БОРИС «БРИТВА» СТРИГУНЕЦ, ОБЛАДAТЕЛЬ МНОЖЕСТВА ТИТУЛОВ И НАГРАД ПОПОЛНИЛ НАШИ СТРОЙНЫЕ РЯДЫ</p>
+				<time datetime="2020.01.18">18 января</time>
+			</li>
+			<!-- /.news-item -->
+		</ul>
+		<!-- /.news-items -->
+		<a href="" class="news-all-items">ВСЕ НОВОСТИ</a>
+	</section>
+	<!-- /.news -->
+	<section class="gallery">
+		<h2>ФОТОГАЛЕРЕЯ</h2>
+		<div class="gallery-content"><a href=""><img src="img/Layer 21.png" alt=""></a></div>
+		<!-- /.gallery-content -->
+		<span class="button gallery-button gallery-button-back">Назад</span>
+		<span class="button gallery-button gallery-button-next">Вперед</span>
+	</section>
+	<!-- /.gallery -->
+	<section class="contacts">
+		<h2 class="contacts-header">КОНТАКТНАЯ ИНФОРМАЦИЯ</h2>
+		<!-- /.contacts-header -->
+		<p class="contacts-addr">БАРБЕРШОП «Borodoff» <br> АДРЕС: г. Калининград, улица Маршала Борзова, 1 <br>ТЕЛЕФОН:  +7 (963) 297-09-09</p>
+		<!-- /.contacts-addr -->
+		<p class="contacts-wtime">ВРЕМЯ РАБОТЫ: <br>ПН—ПТ: С 10:00 ДО 22:00 <br>СБ—ВС: С 10:00 ДО 19:00</p>
+		<!-- /.contacts-wtime -->
+		<a href="#" class="button">КАК ПРОЕХАТЬ</a>
+		<a href="#" class="button">ОБРАТНАЯ СВЯЗЬ</a>
+	</section>
+	<!-- /.contacts -->
+	<section class="appointment">
+		<h2 class="appointment-header">ЗАПИСАТЬСЯ</h2>
+		<!-- /.appointment-header -->
+		<p class="appointment-info">УКАЖИТЕ ЖЕЛАЕМУЮ ДАТУ И ВРЕМЯ И МЫ СВЯЖЕМСЯ С ВАМИ ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ</p>
+		<!-- /.appointment-info -->
+		<button class="button">ОТПРАВИТЬ</button>
+	</section>
+	<!-- /.appointment -->
+<footer class="main-footer">
+	<p class="footer-contacts">БАРБЕРШОП «Borodoff» <br> АДРЕС: г. Калининград, улица Маршала Борзова, 1 <br><a href="#">КАК НАС НАЙТИ?</a><br> ТЕЛЕФОН: +7 (963) 297-09-09</p>
+	<!-- /.footer-contacts -->
+	<p>ДАВАЙТЕ ДРУЖИТЬ!</p>
+	<ul class="footer-friends">
+		<li class="footer-friend"><a href="#"><img src="" alt=""></a></li>
+		<!-- /.footer-friend -->
+		<li class="footer-friend"><a href="#"><img src="" alt=""></a></li>
+		<!-- /.footer-friend -->
+		<li class="footer-friend"><a href="#"><img src="" alt=""></a></li>
+		<!-- /.footer-friend -->
+	</ul>
+	<!-- /.footer-friends -->
+	<p class="footer-developed">РАЗРАБОТАНО:</p>
+	<!-- /.footer-developed -->
+	<a href="" class="button">RMS Studio</a>
+</footer>
+<!-- /.main-footer -->
+</main>
+<!-- /.container -->
+  <script src="http://code.jquery.com/jquery-4.3.1.min.js"></script>
+
 </body>
 
 </html>
