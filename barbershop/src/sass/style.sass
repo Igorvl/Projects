@@ -36,7 +36,21 @@ li
 
 h2
   font-size: 30px
+  font-weight: 700
 
+.btn
+  padding: 16px 0px
+  display: block
+  width: 140px
+  min-height: 44px
+  background-color: black
+  box-sizing: border-box
+  text-align: center
+  border: none
+  font-weight: 700
+  &:focus,
+  &:hover
+    cursor: pointer
 
 .container
   margin: 0 auto  
@@ -46,10 +60,8 @@ h2
 .main-nav
   margin: 0
   padding: 0
-  // min-height: 172px
   color: white  
   font-style: 16px
-
   &-wrapper
     margin: 0
     padding: 0
@@ -57,7 +69,6 @@ h2
     background-color: #000
     min-height: 72px
     text-align: center
-
     .container
       display: flex
       justify-content: space-between
@@ -143,6 +154,62 @@ h2
         width: 20px
         height: 20px
         background-color: white
+
+.news
+  display: inline-block 
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 77px 0px 0px 0px
+  padding: 23px 40px 23px 82px
+  width: 470px
+  min-height: 419px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  &::after
+
+  h2
+    display: block
+    margin-bottom: 25px
+  &-list
+    margin: 0
+    padding: 0
+    .btn-news
+      margin-top: 27px
+  &-item
+    margin: 0
+    margin-bottom: 20px
+    padding: 0
+    font-size: 14px
+    font-weight: 700
+    line-height: 24px
+    letter-spacing: 0.1px
+    p
+      margin: 0
+      padding: 0
+
+.gallery
+  display: inline-block
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 77px 0px 0px -3px
+  padding: 23px 80px 23px 90px
+  width: 470px
+  min-height: 419px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  &-slider
+    margin: 0
+    padding: 0
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    button
+      color: white
+      margin-top: 36px
+    img
+      width: 300px
+      border: 8px solid white
+
 
 
 
