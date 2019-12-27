@@ -1,12 +1,124 @@
 body
   margin: 0
   padding: 0
-  background-position: top center
+  background-position: top 40px center
   background-repeat: no-repeat
   background-image: url("../img/main-background.jpg")
   background-color: #070707
   color: white
   font-family: 'PT Sans Narrow',Arial, sans-serif
+  font-size: 14px
+
+.visually-hidden:not(:focus):not(:active),
+input[type="checkbox"].visually-hidden,
+input[type="radio"].visually-hidden
+  position: absolute
+
+  width: 1px
+  height: 1px
+  margin: -1px
+  border: 0
+  padding: 0
+  white-space: nowrap
+  clip-path: inset(100%)
+  clip: rect(0 0 0 0)
+  overflow: hidden
+  
+a
+  text-decoration: none
+  color: white
+
+img
+  max-width: 100%
+
+li
+  list-style: none
 
 .container
+  margin: 0 auto  
+  padding: 0  
   width: 940px
+
+.main-nav
+  margin: 0
+  padding: 0
+  // min-height: 172px
+  color: white  
+  font-style: 16px
+
+  &-wrapper
+    margin: 0
+    padding: 0
+    width: 100%
+    background-color: #000
+    min-height: 72px
+    text-align: center
+
+    .container
+      display: flex
+      justify-content: space-between
+      align-items: center
+      min-height: 72px
+
+  &-container
+    display: flex
+    flex-wrap: nowrap
+    flex-direction: column
+    align-items: center
+    a      
+      order: 2
+      margin-top: 60px
+    a > img
+      width: 160px
+
+  &-menu
+    margin: 0
+    padding: 0
+    display: flex
+    flex-wrap: wrap
+    width: 620px
+    list-style: none
+    li a
+      font-size: 16px
+      padding: 26px 21px 26px 21px
+      &:hover, 
+      &:focus
+        background-color: #242424
+        // border-bottom: 4px solid white
+
+  &-login
+    margin: 0
+    padding: 0
+    width: 140px
+    text-align: left
+    li a
+      padding: 26px 21px 26px 21px
+      margin-left: 32px
+      font-size: 16px
+      &:hover, 
+      &:focus,
+      &:active
+        background-color: #242424    
+        // border-bottom: 4px solid white
+        svg path 
+          fill: white
+      svg
+        width: 14px
+        margin-right: 15px
+        path 
+          fill: #4d4d4d
+
+.benefit
+  &-list
+    display: flex
+    justify-content: space-between
+  &-item
+    width: 285px
+    text-align: center
+
+
+
+
+
+
+    
