@@ -39,6 +39,10 @@ li {
   list-style: none;
 }
 
+h2 {
+  font-size: 30px;
+}
+
 .container {
   margin: 0 auto;
   padding: 0;
@@ -166,18 +170,53 @@ li {
   fill: #4d4d4d;
 }
 
+.benefit {
+  margin: 0;
+  padding: 0;
+  margin-top: 40px;
+}
+
 .benefit-list {
+  margin: 0;
+  padding: 0;
   display: -webkit-box;
   display: -webkit-flex;
   display: -ms-flexbox;
   display: flex;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
 }
 
 .benefit-item {
-  width: 285px;
+  width: 280px;
   text-align: center;
+}
+
+.benefit-item:nth-child(2) {
+  padding: 0 40px;
+}
+
+.benefit-item p {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  margin-top: 65px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.benefit-item p::before {
+  position: absolute;
+  top: -48px;
+  left: 131px;
+  -webkit-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+  content: "";
+  width: 20px;
+  height: 20px;
+  background-color: white;
 }

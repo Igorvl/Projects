@@ -34,6 +34,10 @@ img
 li
   list-style: none
 
+h2
+  font-size: 30px
+
+
 .container
   margin: 0 auto  
   padding: 0  
@@ -109,12 +113,36 @@ li
           fill: #4d4d4d
 
 .benefit
+  margin: 0
+  padding: 0
+  margin-top: 40px
   &-list
+    margin: 0
+    padding: 0
     display: flex
-    justify-content: space-between
+    justify-content: center
   &-item
-    width: 285px
+    width: 280px
     text-align: center
+    &:nth-child(2)
+      padding: 0 40px      
+    p
+      position: relative      
+      margin: 0
+      padding: 0
+      margin-top: 65px
+      font-size: 14px
+      font-weight: 700
+      line-height: 24px
+      &::before
+        position: absolute
+        top: -48px
+        left: 131px
+        transform: rotate(45deg)
+        content: ""
+        width: 20px
+        height: 20px
+        background-color: white
 
 
 
