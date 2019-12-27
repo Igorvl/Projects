@@ -242,6 +242,7 @@ h2 {
 
 .news {
   display: inline-block;
+  position: relative;
   vertical-align: top;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
@@ -251,6 +252,16 @@ h2 {
   min-height: 419px;
   background: url("../img/pattern-light.jpg");
   color: black;
+}
+
+.news:after {
+  content: "";
+  width: 6px;
+  height: 270px;
+  position: absolute;
+  top: 85px;
+  left: 466px;
+  background: url("../img/sect-separator.png") no-repeat;
 }
 
 .news h2 {
@@ -295,6 +306,12 @@ h2 {
   color: black;
 }
 
+.gallery h2 {
+  display: inline-block;
+  letter-spacing: 0.5px;
+  margin-left: 3px;
+}
+
 .gallery-slider {
   margin: 0;
   padding: 0;
@@ -319,4 +336,66 @@ h2 {
 .gallery-slider img {
   width: 300px;
   border: 8px solid white;
+}
+
+.contacts {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  margin: 36px 0px 0px 0px;
+  padding: 23px 40px 21px 82px;
+  width: 470px;
+  min-height: 435px;
+  background: url("../img/pattern-light.jpg");
+  color: black;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.contacts:after {
+  content: "";
+  width: 6px;
+  height: 270px;
+  position: absolute;
+  top: 85px;
+  left: 466px;
+  background: url("../img/sect-separator.png") no-repeat;
+}
+
+.contacts h2 {
+  display: block;
+  margin: 29px 0px 30px 0px;
+  padding: 0;
+  letter-spacing: 0.1px;
+}
+
+.contacts .contacts-worktime {
+  display: block;
+  margin-top: 20px;
+}
+
+.contacts-btn {
+  margin-top: 23px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  width: 300px;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+.contacts-btn_find,
+.contacts-btn_feedback {
+  color: white;
+  padding: 0;
+  margin: 0;
+}
+
+.contacts-btn_feedback {
+  padding-top: 10px;
 }

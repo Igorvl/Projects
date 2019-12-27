@@ -157,6 +157,7 @@ h2
 
 .news
   display: inline-block 
+  position: relative  
   vertical-align: top
   box-sizing: border-box  
   margin: 77px 0px 0px 0px
@@ -165,7 +166,14 @@ h2
   min-height: 419px
   background: url("../img/pattern-light.jpg") 
   color: black
-  &::after
+  &:after
+    content: ""
+    width: 6px
+    height: 270px
+    position: absolute
+    top: 85px
+    left: 466px
+    background: url("../img/sect-separator.png") no-repeat
 
   h2
     display: block
@@ -197,6 +205,10 @@ h2
   min-height: 419px
   background: url("../img/pattern-light.jpg") 
   color: black
+  h2
+    display: inline-block
+    letter-spacing: 0.5px
+    margin-left: 3px
   &-slider
     margin: 0
     padding: 0
@@ -210,6 +222,48 @@ h2
       width: 300px
       border: 8px solid white
 
+.contacts
+  display: inline-block 
+  position: relative  
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 36px 0px 0px 0px
+  padding: 23px 40px 21px 82px
+  width: 470px
+  min-height: 435px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  font-weight: 700
+  line-height: 24px
+  // letter-spacing: 0.1px  
+  &:after
+    content: ""
+    width: 6px
+    height: 270px
+    position: absolute
+    top: 85px
+    left: 466px
+    background: url("../img/sect-separator.png") no-repeat
+  h2
+    display: block
+    margin: 29px 0px 30px 0px
+    padding: 0
+    letter-spacing: 0.1px
+  .contacts-worktime
+    display: block
+    margin-top: 20px
+  &-btn
+    margin-top: 23px
+    display: flex
+    width: 300px
+    justify-content: space-between
+    &_find, 
+    &_feedback
+      color: white
+      padding: 0
+      margin: 0
+    &_feedback
+      padding-top: 10px
 
 
 
