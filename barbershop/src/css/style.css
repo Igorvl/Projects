@@ -60,6 +60,7 @@ h2 {
 .btn:focus,
 .btn:hover {
   cursor: pointer;
+  background-color: #663d15;
 }
 
 .container {
@@ -398,4 +399,79 @@ h2 {
 
 .contacts-btn_feedback {
   padding-top: 10px;
+}
+
+.signup {
+  display: inline-block;
+  vertical-align: top;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  margin: 36px 0px 0px -3px;
+  padding: 23px 80px 23px 90px;
+  width: 470px;
+  min-height: 435px;
+  background: url("../img/pattern-light.jpg");
+  color: black;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.signup h2 {
+  display: inline-block;
+  letter-spacing: 0.5px;
+  margin-left: 3px;
+  margin-top: 29px;
+}
+
+.signup-txt {
+  margin: 5px 0px 0px 3px;
+}
+
+.signup-form {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+
+.signup-form .signup-btn {
+  color: white;
+  margin-top: 18px;
+  width: 300px;
+}
+
+.signup-form-container {
+  display: block;
+  width: 129px;
+}
+
+.signup-form-container:nth-child(2n) {
+  margin-left: 32px;
+}
+
+.signup-form-container label {
+  display: inline-block;
+  font-weight: 700;
+  margin: 13px 0px 6px 18px;
+}
+
+.signup-form-container input {
+  display: inline-block;
+  -webkit-box-shadow: border-box;
+  box-shadow: border-box;
+  margin: 0;
+  padding: 0;
+  width: 121px;
+  min-height: 37px;
+  border: 2px solid black;
+  padding-left: 15px;
+  font-weight: 700;
+  color: black;
+}
+
+.signup-form-container input:focus {
+  border-color: #663d15;
 }

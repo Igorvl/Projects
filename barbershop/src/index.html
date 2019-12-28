@@ -110,14 +110,38 @@
           <a href="#" class="btn contacts-btn_feedback">ОБРАТНАЯ СВЯЗЬ</a>
         </div>
       </section>
+
       <section class="signup">
         <h2>ЗАПИСАТЬСЯ</h2>
-        <p class="signup-txt">УКАЖИТЕ ЖЕЛАЕМУЮ ДАТУ И ВРЕМЯ И МЫ СВЯЖЕМСЯ С ВАМИ ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ</p>
+        <p class="signup-txt">УКАЖИТЕ ЖЕЛАЕМУЮ ДАТУ И ВРЕМЯ И МЫ СВЯЖЕМСЯ
+          <br>С ВАМИ ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ</p>
         <!-- /.signup-txt -->
-        <form action="" class="signup-form">Форма будет хиа</form>
+        <form action="" method="post" class="signup-form">
+          <div class="signup-form-container">
+            <label for="date">ДАТА</label>
+            <input type="text" name="date" placeholder="08.01.2020">
+          </div>
+          <div class="signup-form-container">
+            <label for="time">ВРЕМЯ</label>
+            <input type="text" name="time" placeholder="10:00">
+          </div>
+          <div class="signup-form-container">
+            <label for="name">ВАШЕ ИМЯ</label>
+            <input type="text" name="name" placeholder="Борода">
+          </div>
+          <div class="signup-form-container">
+            <label for="phone">ТЕЛЕФОН</label>
+            <input type="text" name="phone" placeholder="+7 123 456-78-90">
+          </div>
+          <input type="submit" name="submit" class="btn signup-btn" value="ОТПРАВИТЬ">
+        </form>
         <!-- /.signup-form -->
       </section>
       <!-- /.signup -->
+
+
+
+
       <section class="footer">
         <div class="footer-address">
           <p class="footer-address-txt">БАРБЕРШОП «БОРОДИНСКИЙ»<br>АДРЕС: Г. САНКТ-ПЕТЕРБУРГ, УЛ. Б. КОНЮШЕННАЯ, Д. 19/8

@@ -51,6 +51,7 @@ h2
   &:focus,
   &:hover
     cursor: pointer
+    background-color: #663d15
 
 .container
   margin: 0 auto  
@@ -235,7 +236,6 @@ h2
   color: black
   font-weight: 700
   line-height: 24px
-  // letter-spacing: 0.1px  
   &:after
     content: ""
     width: 6px
@@ -264,6 +264,59 @@ h2
       margin: 0
     &_feedback
       padding-top: 10px
+.signup
+  display: inline-block
+  vertical-align: top
+  box-sizing: border-box
+  margin: 36px 0px 0px -3px
+  padding: 23px 80px 23px 90px
+  width: 470px
+  min-height: 435px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  font-weight: 700
+  line-height: 24px  
+  h2
+    display: inline-block
+    letter-spacing: 0.5px
+    margin-left: 3px
+    margin-top: 29px
+  &-txt
+    margin: 5px 0px 0px 3px
+  &-form
+    display: flex
+    flex-wrap: wrap
+    .signup-btn
+      color: white
+      margin-top: 18px
+      width: 300px
+    &-container
+      display: block
+      width: 129px
+      &:nth-child(2n)
+        margin-left: 32px
+      label
+        display: inline-block
+        font-weight: 700
+        margin: 13px 0px 6px 18px
+      input
+        display: inline-block
+        box-shadow: border-box
+        margin: 0
+        padding: 0
+        width: 121px
+        min-height: 37px
+        border: 2px solid black
+        padding-left: 15px
+        font-weight: 700
+        color: black
+        &:focus
+          border-color: #663d15
+
+
+          
+
+
 
 
 
