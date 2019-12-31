@@ -199,11 +199,10 @@
     </section>
     <!-- /.footer -->
   </main>
-
   <section class="form-login">
     <button class="close-btn">
       <span class="visually-hidden">Закрыть</span>
-    </button>    
+    </button>
     <div class="form-login-container">
       <h2>ЛИЧНЫЙ КАБИНЕТ</h2>
       <p class="form-login-txt">ВВедите пожалуйста свой логин и пароль</p>
@@ -211,15 +210,24 @@
       <form action="">
         <input type="text" placeholder="ЛОГИН">
         <input type="password" placeholder="ПАРОЛЬ">
-        <input type="checkbox" name="remember">
-        <label for="remember">ЗАПОМНИТЕ МЕНЯ</label>        
-        <a href="" class="form-login-restore">Я ЗАБЫЛ ПАРОЛЬ!</a>
-        <input type="submit" class="btn" placeholder="ВОЙТИ" value="ВОЙТИ"></input>
+        <div class="form-login-checkbox"> 
+          <input type="checkbox" name="remember" id="remember">
+          <label for="remember">ЗАПОМНИТЕ МЕНЯ</label>
+          <a href="" class="form-login-restore">Я ЗАБЫЛ ПАРОЛЬ!</a>
+        </div>        
+        <input type="submit" class="btn form-login-btn" value="ВОЙТИ"></input>
       </form>
     </div>
     <!-- /.container-login -->
   </section>
   <!-- /.form-login -->
+
+  <section class="map">
+    <input type="text" class="close-btn map-close">
+    <div class="map-box"><img src="img/map.jpg" alt="Карта"></div>
+    <!-- /.map-box -->
+  </section>
+  <!-- /.map -->
 </body>
 
 </html>

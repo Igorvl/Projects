@@ -382,6 +382,7 @@ h2
     color: black
         
 .form-login
+  display: none // Это нужно отключить
   position: absolute
   top: -8%
   bottom: 0px
@@ -394,6 +395,8 @@ h2
   color: black
   text-transform: uppercase
   font-weight: 700
+  outline: 9999px solid rgba(0,0,0,0.5)
+  z-index: 5
   &-container
     padding: 25px 80px 50px 80px  
   h2
@@ -412,16 +415,59 @@ h2
     &[type="password"]
       background: url("../img/lock.png") no-repeat 275px 14px       
     &[type="checkbox"]
-      display: none
-      :before
-        content: "\2713"
+      opacity: 0
+      margin: 0
+      padding: 0
+      width: 0
+      height: 0
+      &+label:after
+        content: none
+      &:checked + label:after
+        content: ""
+  label
+    position: relative
+    margin-left: -48px
+    &[for="remember"]
+      &:before
+        position: absolute
+        left: -30px
+        content: ""
+        display: inline-block
         border: 2px solid black       
+        width: 16px
+        height: 16px
+      &:after
+        position: absolute
+        left: -26px        
+        top: 5px
+        content: ""
+        display: inline-block
+        width: 10px
+        height: 5px
+        border-left: 2px solid black
+        border-bottom: 2px solid black
+        transform: rotate(-45deg)
+      &:focus,
+      &:hover
+        cursor: pointer
+  &-checkbox
+    display: flex
+    justify-content: space-between
+    margin-left: -13px
   &-txt
     margin-bottom: 15px
+  &-restore
+    color: black
+    text-decoration: underline
+  &-btn[type="submit"]
+    margin-top: 16px
+    padding: 0
+    box-sizing: border-box
+    width: 300px
 .close-btn
   position: absolute
   border: none
-  left: 475px
+  left: 470px
   top: 10px
   width: 20px
   height: 20px
@@ -434,12 +480,15 @@ h2
     display: block
     content: ""
     border: none
-    width: 18px
+    width: 24px
     height: 3px
     background-color: white
     transform: rotate(45deg)
   &::after
     transform: rotate(-45deg)
+  &:focus,
+  &:hover
+    cursor: pointer
 
 
 
