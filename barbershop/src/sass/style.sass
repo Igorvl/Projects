@@ -396,6 +396,7 @@ h2
   text-transform: uppercase
   font-weight: 700
   outline: 9999px solid rgba(0,0,0,0.5)
+  box-shadow: 0 28px 36px rgba(0,0,0,0.25), 0 20px 20px rgba(0,0,0,0.22)
   z-index: 5
   &-container
     padding: 25px 80px 50px 80px  
@@ -481,15 +482,34 @@ h2
     content: ""
     border: none
     width: 24px
-    height: 3px
+    height: 4px
     background-color: white
     transform: rotate(45deg)
+    z-index: 1000
   &::after
     transform: rotate(-45deg)
+    z-index: 1000
   &:focus,
   &:hover
     cursor: pointer
 
+.map
+  display: none // Это нужно отключить
+  position: absolute
+  width: 780px
+  min-height: 573px
+  top: 122%
+  left: 0
+  right: 0
+  bottom: 0
+  margin: auto
+  border: 7px solid white
+  box-sizing: border-box
+  outline: 9999px solid rgba(0,0,0,0.5)
+  box-shadow: 0 28px 36px rgba(0,0,0,0.25), 0 20px 20px rgba(0,0,0,0.22)
+  &-close-btn
+    left: 777px
+    top: 10px
 
 
 
