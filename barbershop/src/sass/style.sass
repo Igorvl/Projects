@@ -827,3 +827,81 @@ h3
     padding: 0
     margin-top: 20px
     margin-bottom: 38px
+
+.price
+  min-height: 795px
+  &-title
+    // border: 1px solid black
+    position: relative    
+    display: flex
+    justify-content: center
+    margin: 0 auto
+    margin-top: 5px
+    font-size: 48px
+    line-height: 36px
+    &:before,
+    &:after
+      content: ""
+      position: absolute
+      width: 160px
+      height: 2px
+      background-color: black
+      top: 70px
+    &:before      
+      left: 0
+    &:after
+      right: 0
+  &-tools
+    display: flex
+    flex-wrap: wrap
+    width: 940px
+    h3
+      width: 240px
+    &-item
+      width: 470px
+    &-list
+      display: block
+      margin: 0
+      padding: 0
+      margin-top: 23px
+      line-height: 37px
+      li 
+        display: flex
+        text-transform: uppercase
+        &:before
+          content: ""
+          display: block
+          width: 7px
+          height: 7px
+          margin-left: 3px
+          margin-right: 11px
+          margin-top: 15px
+          background-color: black
+          transform: rotate(45deg)  
+  &-table-cont
+    margin-left: 10px
+    h3
+      width: 220px
+  &-table
+    border-collapse: collapse
+    margin-top: 36px
+  &-table th, 
+  &-table td
+    width: 225px
+    border: 2px solid black
+    line-height: 37px
+    text-align: center
+  &-table th, 
+    width: 205px
+    padding-left: 20px
+    text-align: left
+  &-about
+    display: inline-block
+    margin-top: 52px
+    &-txt
+      width: 865px
+      columns: 2 255px
+      column-gap: 90px
+      margin-top: 5px
+      text-transform: uppercase
+      line-height: 24px

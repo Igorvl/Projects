@@ -1318,3 +1318,135 @@ h3 {
   margin-top: 20px;
   margin-bottom: 38px;
 }
+
+.price {
+  min-height: 795px;
+}
+
+.price-title {
+  position: relative;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin: 0 auto;
+  margin-top: 5px;
+  font-size: 48px;
+  line-height: 36px;
+}
+
+.price-title:before,
+.price-title:after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 2px;
+  background-color: black;
+  top: 70px;
+}
+
+.price-title:before {
+  left: 0;
+}
+
+.price-title:after {
+  right: 0;
+}
+
+.price-tools {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  width: 940px;
+}
+
+.price-tools h3 {
+  width: 240px;
+}
+
+.price-tools-item {
+  width: 470px;
+}
+
+.price-tools-list {
+  display: block;
+  margin: 0;
+  padding: 0;
+  margin-top: 23px;
+  line-height: 37px;
+}
+
+.price-tools-list li {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  text-transform: uppercase;
+}
+
+.price-tools-list li:before {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin-left: 3px;
+  margin-right: 11px;
+  margin-top: 15px;
+  background-color: black;
+  -webkit-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+
+.price-table-cont {
+  margin-left: 10px;
+}
+
+.price-table-cont h3 {
+  width: 220px;
+}
+
+.price-table {
+  border-collapse: collapse;
+  margin-top: 36px;
+}
+
+.price-table th,
+.price-table td {
+  width: 225px;
+  border: 2px solid black;
+  line-height: 37px;
+  text-align: center;
+}
+
+.price-table th {
+  width: 205px;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.price-about {
+  display: inline-block;
+  margin-top: 52px;
+}
+
+.price-about-txt {
+  width: 865px;
+  -webkit-columns: 2 255px;
+  -moz-columns: 2 255px;
+  columns: 2 255px;
+  -webkit-column-gap: 90px;
+  -moz-column-gap: 90px;
+  column-gap: 90px;
+  margin-top: 5px;
+  text-transform: uppercase;
+  line-height: 24px;
+}
