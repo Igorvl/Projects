@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Borodoff barbershop</title>
   <link href="https://fonts.googleapis.com/css?family=PT+Sans+Narrow:400,700&display=swap&subset=cyrillic" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css?family=Dancing+Script:400,500,600,700&display=swap" rel="stylesheet">
@@ -199,6 +200,7 @@
     </div>
   </section>
   <!-- /.footer -->
+  <!-- Окно логина -->
   <section class="form-login">
     <button class="close-btn">
       <span class="visually-hidden">Закрыть</span>
@@ -229,6 +231,43 @@
     <!-- /.map-box -->
   </section>
   <!-- /.map -->
+
+  <script>
+    // Показать окно логина
+    var link = document.querySelector(".main-nav-login").firstElementChild.firstElementChild;
+    var body = document.querySelector("body");
+    link.addEventListener("click", (evnt)=>{
+        evnt.preventDefault();
+        var formLogin = document.querySelector(".form-login");        
+        formLogin.classList.add('form-login-show');
+      });
+    // Скрыть окно логина
+    var closeLogin = document.querySelector(".close-btn");
+    closeLogin.addEventListener("click", (evnt)=>{
+      evnt.preventDefault();
+      var formLogin = document.querySelector(".form-login");        
+      formLogin.classList.remove('form-login-show');
+      body.setAttribute('style', 'overflow: visible');     
+    })
+    // Показать окно карты
+    var mapModalBtn = document.querySelector(".contacts-btn_find");
+    var mapModalLink = document.querySelector(".footer-address-find");
+    var mapModal = document.querySelector(".map");
+
+    mapModalBtn.addEventListener("click", (evnt) => {
+      evnt.preventDefault();
+      mapModal.classList.add('map-show');
+    });
+    mapModalLink.addEventListener("click", (evnt) => {
+      evnt.preventDefault();
+      mapModal.classList.add('map-show');  
+    });
+    // Скрыть окно карты
+    var mapCloseBtn = document.querySelector(".map-close-btn");
+    mapCloseBtn.addEventListener("click", (evnt) => {
+      mapModal.classList.remove("map-show");
+    })
+  </script>
 </body>
 
 </html>
