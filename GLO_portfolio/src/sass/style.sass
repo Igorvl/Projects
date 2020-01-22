@@ -1,0 +1,101 @@
+// @import "../fonts/fonts.sass"
+@import "_variable.sass"
+
+body
+  margin: 0
+  padding: 0
+  background-repeat: no-repeat
+  background-color: #20202D
+  color: #fff
+  font-family: 'Roboto',Arial, sans-serif
+  font-size: 14px
+
+.visually-hidden:not(:focus):not(:active),
+input[type="checkbox"].visually-hidden,
+input[type="radio"].visually-hidden
+  position: absolute
+
+  width: 1px
+  height: 1px
+  margin: -1px
+  border: 0
+  padding: 0
+  white-space: nowrap
+  clip-path: inset(100%)
+  clip: rect(0 0 0 0)
+  overflow: hidden
+  
+a
+  text-decoration: none
+  color: white
+
+img
+  max-width: 100%
+
+li
+  list-style: none
+h1
+  font-size: 24px
+h2
+  font-size: 19px
+h3
+  font-size: 18px  
+
+.btn
+  border: none
+  background: linear-gradient(180deg, #FDDE76 0%, #FFBB01 100%)
+  box-shadow: 0px 4px 0px #B68500
+  border-radius: 5px 5px 10px 10px
+  text-transform: uppercase
+  font-size: 10px
+  font-weight: 700
+  padding: 18px 44px
+
+.head-gradient
+  background: linear-gradient(2.07deg, #000000 1.01%, rgba(0, 0, 0, 0) 94.55%)
+.glo-background
+  background-color: #000  
+.container
+  width: 255px
+  margin: 0 auto
+.header
+  display: flex
+  justify-content: space-between
+  padding-top: 43px  
+  &__social
+    display: flex
+    margin: 0
+    align-items: center
+  &__item
+    margin: 0px 0px 0px 10px
+.avatar
+  display: flex
+  flex-direction: column
+  padding-top: 39px
+  text-align: center
+  &__img
+    margin: 0 auto
+    width: 113px
+    height: 113px
+    border-radius: 50%
+    border: 3px solid white
+  &__title
+    padding-top: 17px
+    color: $colorOrange
+  &__work
+    line-height: 24px
+  &__btn
+    margin: 0 auto
+    margin: 34px 0px 75px 0px
+.advantages
+  padding-top: 60px
+  padding-bottom: 120px
+  &__title
+    text-align: center
+  &__list
+    padding: 0
+    padding-top: 30px
+  &__item
+    padding-top: 30px   
+  &__txt
+    line-height: 28px

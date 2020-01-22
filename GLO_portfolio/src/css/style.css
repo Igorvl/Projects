@@ -1,0 +1,158 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-repeat: no-repeat;
+  background-color: #20202D;
+  color: #fff;
+  font-family: 'Roboto',Arial, sans-serif;
+  font-size: 14px;
+}
+
+.visually-hidden:not(:focus):not(:active),
+input[type="checkbox"].visually-hidden,
+input[type="radio"].visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  white-space: nowrap;
+  -webkit-clip-path: inset(100%);
+  clip-path: inset(100%);
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: white;
+}
+
+img {
+  max-width: 100%;
+}
+
+li {
+  list-style: none;
+}
+
+h1 {
+  font-size: 24px;
+}
+
+h2 {
+  font-size: 19px;
+}
+
+h3 {
+  font-size: 18px;
+}
+
+.btn {
+  border: none;
+  background: -webkit-gradient(linear, left top, left bottom, from(#FDDE76), to(#FFBB01));
+  background: -o-linear-gradient(top, #FDDE76 0%, #FFBB01 100%);
+  background: linear-gradient(180deg, #FDDE76 0%, #FFBB01 100%);
+  -webkit-box-shadow: 0px 4px 0px #B68500;
+  box-shadow: 0px 4px 0px #B68500;
+  border-radius: 5px 5px 10px 10px;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 18px 44px;
+}
+
+.head-gradient {
+  background: -o-linear-gradient(87.93deg, #000000 1.01%, rgba(0, 0, 0, 0) 94.55%);
+  background: linear-gradient(2.07deg, #000000 1.01%, rgba(0, 0, 0, 0) 94.55%);
+}
+
+.glo-background {
+  background-color: #000;
+}
+
+.container {
+  width: 255px;
+  margin: 0 auto;
+}
+
+.header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  padding-top: 43px;
+}
+
+.header__social {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  margin: 0;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.header__item {
+  margin: 0px 0px 0px 10px;
+}
+
+.avatar {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  padding-top: 39px;
+  text-align: center;
+}
+
+.avatar__img {
+  margin: 0 auto;
+  width: 113px;
+  height: 113px;
+  border-radius: 50%;
+  border: 3px solid white;
+}
+
+.avatar__title {
+  padding-top: 17px;
+  color: #FFBB01;
+}
+
+.avatar__work {
+  line-height: 24px;
+}
+
+.avatar__btn {
+  margin: 0 auto;
+  margin: 34px 0px 75px 0px;
+}
+
+.advantages {
+  padding-top: 60px;
+  padding-bottom: 120px;
+}
+
+.advantages__title {
+  text-align: center;
+}
+
+.advantages__list {
+  padding: 0;
+  padding-top: 30px;
+}
+
+.advantages__item {
+  padding-top: 30px;
+}
+
+.advantages__txt {
+  line-height: 28px;
+}
