@@ -1,6 +1,9 @@
 // @import "../fonts/fonts.sass"
 @import "_variable.sass"
 
+*
+  box-sizing: border-box
+
 body
   margin: 0
   padding: 0
@@ -39,7 +42,10 @@ h1
 h2
   font-size: 19px
 h3
-  font-size: 18px  
+  font-size: 18px
+h4
+  font-size: 15px
+  font-weight: 700
 
 .btn
   border: none
@@ -99,3 +105,158 @@ h3
     padding-top: 30px   
   &__txt
     line-height: 28px
+.contacts
+  text-align: center
+  &__title
+    margin: 48px 0px
+  &__form
+    background-color: white
+    border-radius: 5px
+    box-shadow: -3px 6px 0px $colorOrange
+    margin-bottom: 64px
+    input
+      border: none
+      height: 63px
+      min-width: 220px
+      padding-left: 50px
+      background-color: $lightGray
+      border-radius: 5px
+  &__input-name
+    background: url("../img/form/human.svg") no-repeat 20px center
+    margin-bottom: 17px
+  &__input-phone
+    background: url("../img/form/phone.svg") no-repeat 20px center
+    margin-bottom: 36px  
+  &__btn
+    margin-bottom: 47px
+  &__subtitle
+    padding-top: 39px
+    color: black
+  &__collect
+    display: flex
+    flex-wrap: wrap
+    flex-direction: column
+    align-items: flex-start
+  &__politic
+    margin-top: 30px
+    margin-bottom: 50px
+    text-decoration: underline
+    font-size: 15px
+.phone__title,.mail__title,.social__title
+  text-align: left
+  margin-bottom: 17px
+.phone__txt,.mail__txt,.social__txt
+  display: inline-block
+  margin-bottom: 40px
+.social__txt
+  display: flex
+  flex-direction: column
+  span
+    padding-bottom: 15px
+.footer
+  &__social
+    display: flex
+    padding: 0
+    // justify-content: flex-end
+  &__item
+    margin-right: 20px
+
+@media (min-width:1024px)
+  body
+    font-size: 16px
+  h1
+    font-size: 50px
+  h2  
+    font-size: 36px
+  h3
+    font-size: 24px
+  h4
+    font-size: 18px
+
+  .btn
+    font-size: 12px
+
+  .container
+    width: 940px
+  
+  .header
+    padding-top: 51px  
+    &__item
+      margin: 0px 0px 0px 21px
+  .avatar
+    display: grid
+    grid-template-columns: 420px 1fr
+    grid-template-areas: "title img" "name img" "work img" "btn img"                        
+    column-gap: 140px
+    padding-top: 115px
+    text-align: left
+    &__img
+      grid-area: img
+      width: 389px
+      height: 389px
+      border: 11px solid white
+    &__title
+      grid-area: title
+      font-size: 24px
+    &__name
+      grid-area: name
+      margin: 0
+      padding-bottom: 20px
+    &__work
+      grid-area: work
+      line-height: 28px
+    &__btn
+      grid-area: btn
+      width: 285px
+      min-height: 65px
+  .advantages
+    &__title
+      text-align: left
+    &__list
+      display: grid
+      grid-template-columns: 1fr 1fr 1fr
+      column-gap: 33px
+      row-gap: 60px
+  .contacts
+    text-align: center
+    display: grid
+    grid-template-columns: 385px 385px
+    column-gap: 95px
+    align-items: center
+    &__title
+      text-align: left
+      grid-column: 1/3
+    &__form
+      margin: 0
+      input
+        min-width: 309px
+        padding-left: 50px
+    &__input-name
+      background: url("../img/form/human.svg") no-repeat 20px center
+      margin-bottom: 17px
+    &__input-phone
+      background: url("../img/form/phone.svg") no-repeat 20px center
+      margin-bottom: 36px  
+    &__btn
+      min-height: 65px
+    &__subtitle
+      max-width: 230px
+      margin: 0 auto
+      margin-bottom: 30px
+    &__collect
+      display: grid
+      text-align: left
+      justify-content: space-between
+      align-self: center
+    &__politic
+      grid-area: 4/1/5/3
+      margin-bottom: 0
+  .social__txt
+    flex-direction: row
+    justify-content: space-between
+    margin: 0
+  .collect
+    &__social
+      grid-area: 2/1/3/3
+
+
