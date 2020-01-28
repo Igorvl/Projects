@@ -8,6 +8,7 @@
   <title>Игорь Котов - фрилансер, веб-разработчик.</title>
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/animate.css">
   <link rel="stylesheet" href="css/swiper.min.css">
 </head>
 
@@ -42,11 +43,11 @@
         </ul>
       </section>
       <section class="avatar">
-        <img src="img/Kotov_large.jpg" alt="Аватар" class="avatar__img">
-        <p class="avatar__title">Фрилансер</p>
-        <h1 class="avatar__name">Игорь Котов</h1>
-        <p class="avatar__work">Разрабатываю сайты для малого и среднего бизнеса. У меня можно заказать дизайн и верстку небольшого сайта или интернет-магазина</p>
-        <button class="btn avatar__btn" id="cons">Бесплатная консультация</button>
+        <img src="img/Kotov_large.jpg" alt="Аватар" class="avatar__img wow zoomIn" data-wow-duration="2s" data-wow-delay="0.5s">
+        <p class="avatar__title wow zoomIn">Фрилансер</p>
+        <h1 class="avatar__name wow zoomIn">Игорь Котов</h1>
+        <p class="avatar__work wow zoomIn">Разрабатываю сайты для малого и среднего бизнеса. У меня можно заказать дизайн и верстку небольшого сайта или интернет-магазина</p>
+        <button class="btn avatar__btn wow zoomIn" id="cons">Бесплатная консультация</button>
       </section>
     </div>
   </div>
@@ -87,6 +88,10 @@
           </li>
         </ul>
       </section>
+    </div>
+  </div>
+  <div class="projects-bg">
+    <div class="container">
       <section class="projects">
         <h2 class="projects__title">Последние проекты</h2>
         <div class="swiper-container">
@@ -222,6 +227,7 @@
     </div>
   </div>
   <script src="js/swiper.min.js"></script>
+  <script src="js/wow.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 

@@ -78,6 +78,12 @@ h4 {
   background: linear-gradient(2.07deg, #000000 1.01%, rgba(0, 0, 0, 0) 94.55%);
 }
 
+.projects-bg {
+  background: -webkit-gradient(linear, left top, left bottom, from(#000000), color-stop(95.44%, rgba(0, 0, 0, 0)));
+  background: -o-linear-gradient(top, #000000 0%, rgba(0, 0, 0, 0) 95.44%);
+  background: linear-gradient(180deg, #000000 0%, rgba(0, 0, 0, 0) 95.44%);
+}
+
 .glo-background {
   background-color: #000;
 }
@@ -387,6 +393,7 @@ h4 {
   }
 
   .avatar__img {
+    display: block;
     grid-area: img;
     width: 389px;
     height: 389px;
@@ -394,22 +401,26 @@ h4 {
   }
 
   .avatar__title {
+    display: block;
     grid-area: title;
     font-size: 24px;
   }
 
   .avatar__name {
+    display: block;
     grid-area: name;
     margin: 0;
     padding-bottom: 20px;
   }
 
   .avatar__work {
+    display: block;
     grid-area: work;
     line-height: 28px;
   }
 
   .avatar__btn {
+    display: block;
     grid-area: btn;
     width: 285px;
     min-height: 65px;
