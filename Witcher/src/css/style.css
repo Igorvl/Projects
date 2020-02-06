@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'MasonChronicles';
-  src: url("../Witcher/MasonChronicles.woff") format("woff"), url("../Witcher/MasonChronicles.woff2") format("woff2");
+  src: url("../fonts/MasonChronicles.woff") format("woff"), url("../fonts/MasonChronicles.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
@@ -13,8 +13,17 @@
 body {
   margin: 0;
   padding: 0;
-  background-repeat: no-repeat;
-  background-color: #141218;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  background: #141218 url("../files/background.jpg") no-repeat 100% 0%;
   color: #fff;
   font-family: 'Roboto',Arial, sans-serif;
   font-size: 14px;
@@ -79,6 +88,31 @@ h4 {
 .container {
   margin: 0 auto;
   width: 1140px;
+  min-height: 100vh;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+.container--footer {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  -ms-flex-line-pack: center;
+  align-content: center;
+  margin: 0 auto;
+  width: 1140px;
+  min-height: 60px;
 }
 
 .header {
@@ -125,7 +159,7 @@ h4 {
 
 .about--title {
   font-family: 'MasonChronicles', serif;
-  font-size: 76px;
+  font-size: 80px;
   margin-top: 20px;
 }
 
@@ -183,4 +217,104 @@ h4 {
   grid-area: 1/2/3/3;
   justify-self: center;
   align-self: center;
+  margin-top: 100px;
+}
+
+.swiper-wrapper {
+  margin-top: 50px;
+  width: 360px;
+}
+
+.swiper-container {
+  grid-area: 3/1/4/2;
+  margin-left: 0;
+}
+
+.slide {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  width: 164px;
+  height: 113px;
+  border-radius: 8px;
+}
+
+.slide--subtitle {
+  font-size: 10px;
+  line-height: 12px;
+  margin-left: 15px;
+}
+
+.slide--title {
+  font-weight: bold;
+  margin-bottom: 15px;
+  margin-left: 15px;
+  font-size: 14px;
+  line-height: 16px;
+}
+
+.slide-1 {
+  background: -webkit-gradient(linear, left top, left bottom, from(rgba(20, 18, 24, 0.5)), to(#2D2D2D)), url("../files/slide-1.jpg") no-repeat;
+  background: -o-linear-gradient(top, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%), url("../files/slide-1.jpg") no-repeat;
+  background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%), url("../files/slide-1.jpg") no-repeat;
+}
+
+.slide-2 {
+  background: -webkit-gradient(linear, left top, left bottom, from(rgba(20, 18, 24, 0.5)), to(#2D2D2D)), url("../files/slide-2.jpg") no-repeat;
+  background: -o-linear-gradient(top, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%), url("../files/slide-2.jpg") no-repeat;
+  background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%), url("../files/slide-2.jpg") no-repeat;
+}
+
+.swiper-button-next {
+  position: relative;
+  grid-area: 3/1/4/2;
+  justify-self: end;
+  margin-right: 150px;
+  margin-top: 15px;
+  width: 32px;
+  background: url("../img/sliderArrow.svg") no-repeat;
+}
+
+.swiper-button-next::after {
+  content: '';
+}
+
+.footer {
+  margin-top: 20px;
+  background: #141218;
+  color: #3A383D;
+}
+
+.footer--copyr {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.footer--nav {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  margin: 0;
+}
+
+.footer--item {
+  margin-right: 25px;
+}
+
+.item--link {
+  color: #3A383D;
 }

@@ -1,12 +1,9 @@
-new WOW().init();
-
 var mySwiper = new Swiper('.swiper-container', {
-    pagination: {
-    // el: '.swiper-pagination',
-    el: '.projects__tabs',
-    type: 'bullets',
-    bulletClass: 'projects__bullet',
-    bulletActiveClass: 'projects__bullet-active',
-    clickable: true,
+  speed: 400,
+  spaceBetween: 30,
+  slidesPerView: 2,
+  loop: true,
+  navigation: {
+    nextEl: '.swiper-button-next',
   },
 });

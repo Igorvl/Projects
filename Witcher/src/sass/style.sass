@@ -7,8 +7,10 @@
 body
   margin: 0
   padding: 0
-  background-repeat: no-repeat
-  background-color: #141218
+  display: flex
+  flex-direction: column
+  justify-content: space-between
+  background: #141218 url(../files/background.jpg) no-repeat 100% 0%
   color: #fff
   font-family: 'Roboto',Arial, sans-serif
   font-size: 14px
@@ -57,14 +59,26 @@ h4
   color: white
 
 .container
-    margin: 0 auto
-    width: 1140px
+  margin: 0 auto
+  width: 1140px
+  min-height: 100vh
+  display: flex
+  flex-direction: column
+  justify-content: space-between
+
+.container--footer
+  display: flex
+  justify-content: space-between
+  align-content: center
+  margin: 0 auto
+  width: 1140px
+  min-height: 60px
 
 .header
-    display: grid
-    grid-template-columns: 67px 261px 1fr
-    gap: 30px
-    padding-top: 60px
+  display: grid
+  grid-template-columns: 67px 261px 1fr
+  gap: 30px
+  padding-top: 60px
 
 .head
   &-list
@@ -87,7 +101,7 @@ h4
 .about
   &--title
     font-family: 'MasonChronicles', serif
-    font-size: 76px
+    font-size: 80px
     margin-top: 20px
   &--txt
     width: 460px
@@ -116,6 +130,7 @@ h4
   &--arrow
     position: relative    
     padding-left: 10px
+
 .main
   display: grid
   grid-template-columns: 610px 1fr
@@ -128,3 +143,60 @@ h4
     grid-area: 1/2/3/3
     justify-self: center
     align-self: center
+    margin-top: 100px
+
+.swiper
+  &-wrapper     
+    margin-top: 50px    
+    width: 360px 
+  &-container
+    grid-area: 3/1/4/2     
+    margin-left: 0
+.slide
+  display: flex
+  flex-direction: column
+  justify-content: flex-end
+  width: 164px
+  height: 113px
+  border-radius: 8px
+  &--subtitle
+    font-size: 10px;
+    line-height: 12px;
+    margin-left: 15px
+  &--title
+    font-weight: bold;
+    margin-bottom: 15px 
+    margin-left: 15px
+    font-size: 14px;
+    line-height: 16px;
+  &-1
+    background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%),url(../files/slide-1.jpg)  no-repeat
+  &-2
+    background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%),url(../files/slide-2.jpg)  no-repeat
+
+.swiper-button-next
+  position: relative
+  grid-area: 3/1/4/2
+  justify-self: end
+  margin-right: 150px
+  margin-top: 15px
+  width: 32px
+  background: url(../img/sliderArrow.svg) no-repeat
+  &::after
+    content: ''
+
+.footer
+  margin-top: 20px
+  background: #141218
+  color: #3A383D
+  &--copyr
+    display: flex
+    align-items: center
+  &--nav
+    display: flex
+    align-items: center
+    margin: 0
+  &--item
+    margin-right: 25px 
+.item--link
+  color: #3A383D  

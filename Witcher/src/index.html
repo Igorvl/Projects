@@ -7,10 +7,11 @@
   <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap&subset=cyrillic" rel="stylesheet">
   <title>Witch</title>
   <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/swiper.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body>
+<body class="body">
 
   <div class="container">
     <section class="header">
@@ -24,23 +25,20 @@
       <ul class="head-social">
         <li class="head-social-icon social-icon">
           <a href="https://twitter.com/" class="social-icon--link">
-            <img src="img/twitter.svg" alt="twitter"
-              class="social-icon--img">
-            </a> <!-- /.social-icon--link -->
+            <img src="img/twitter.svg" alt="twitter" class="social-icon--img">
+          </a> <!-- /.social-icon--link -->
         </li>
         <!-- /.head-social-icon social-icon -->
         <li class="head-social-icon social-icon">
           <a href="https://www.instagram.com/" class="social-icon--link">
-            <img src="img/instagram.svg" alt="instagram"
-              class="social-icon--img">
-            </a> <!-- /.social-icon--link -->
+            <img src="img/instagram.svg" alt="instagram" class="social-icon--img">
+          </a> <!-- /.social-icon--link -->
         </li>
         <!-- /.head-social-icon social-icon -->
         <li class="head-social-icon social-icon">
           <a href="https://www.facebook.com/" class="social-icon--link">
-            <img src="img/facebook.svg" alt="facebook"
-              class="social-icon--img">
-            </a> <!-- /.social-icon--link -->
+            <img src="img/facebook.svg" alt="facebook" class="social-icon--img">
+          </a> <!-- /.social-icon--link -->
         </li>
         <!-- /.head-social-icon social-icon -->
       </ul>
@@ -72,9 +70,11 @@
       <div class="main--about">
         <span class="about--title">Ведьмак</span>
         <!-- /.about--title -->
-        <p class="about--txt">Ведьмак Геральт, мутант и убийца чудовищ, на своей верной лошади по кличке Плотва путешествует по Континенту. За тугой
-        мешочек чеканных монет этот мужчина избавит вас от всякой настырной нечисти — хоть от чудищ болотных, оборотней и даже
-        заколдованных принцесс.</p>
+        <p class="about--txt">Ведьмак Геральт, мутант и убийца чудовищ, на своей верной лошади по кличке Плотва
+          путешествует по Континенту. За тугой
+          мешочек чеканных монет этот мужчина избавит вас от всякой настырной нечисти — хоть от чудищ болотных,
+          оборотней и даже
+          заколдованных принцесс.</p>
         <!-- /.about--txt -->
         <button class="about--btn btn">Смотреть онлайн</button>
         <!-- /.about--btn btn -->
@@ -85,11 +85,67 @@
           <img src="img/arrow.svg" alt="arrow" class="player--arrow">
         </button>
       </div>
+      <!-- Slider main container -->
+      <div class="swiper-container">
+        <!-- Additional required wrapper -->
+        <div class="swiper-wrapper">
+          <!-- Slides -->
+          <div class="swiper-slide">
+            <div class="slide slide-1">
+              <div class="slide--subtitle">Серия #1</div>
+              <div class="slide--title">Начало конца</div>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <div class="slide slide-2">
+              <div class="slide--subtitle">Серия #2</div>
+              <div class="slide--title">Четыре знака</div>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <div class="slide slide-1">
+              <div class="slide--subtitle">Серия #3</div>
+              <div class="slide--title">Серия #3</div>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <div class="slide slide-2">
+              <div class="slide--subtitle">Серия #4</div>
+              <div class="slide--title">Серия #4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- If we need navigation buttons -->
+      <div class="swiper-button-next"></div>
     </section>
     <!-- /.main -->
+
   </div>
+  <footer class="footer">
+    <div class="container--footer">
+      <span class="footer--copyr">© 2020 The Witcher. All right reserved.</span>
+      <!-- /.footer--copyr -->
+      <ul class="footer--nav">
+        <li class="footer--item">
+          <a href="#a" class="item--link">Privacy Policy</a>
+        </li>
+        <!-- /.footer--item -->
+        <li class="footer--item">
+          <a href="#a" class="item--link">Terms of Service</a>
+        </li>
+        <!-- /.footer--item -->
+        <li class="footer--item">
+          <a href="#a" class="item--link">Legal</a>
+        </li>
+        <!-- /.footer--item -->
+      </ul>
+      <!-- /.footer--nav -->
+    </div>
+  </footer>
+  <!-- /.footer -->
 
-
+  <script src="js/swiper.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 
