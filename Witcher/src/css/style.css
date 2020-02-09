@@ -11,22 +11,15 @@
 }
 
 body {
-  margin: 0;
   padding: 0;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  -webkit-box-pack: justify;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  background: #141218 url("../files/background.jpg") no-repeat 100% 0%;
+  display: grid;
+  grid-template-row: 1fr 1fr;
+  justify-items: center;
+  background: #141218 url("../files/background.jpg") 65% 0% no-repeat;
   color: #fff;
   font-family: 'Roboto',Arial, sans-serif;
   font-size: 14px;
+  height: 100%;
 }
 
 .visually-hidden:not(:focus):not(:active),
@@ -86,9 +79,9 @@ h4 {
 }
 
 .container {
-  margin: 0 auto;
-  width: 1140px;
-  min-height: 100vh;
+  max-width: 1140px;
+  width: 95%;
+  min-height: 100%;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -96,9 +89,9 @@ h4 {
   -webkit-box-direction: normal;
   -ms-flex-direction: column;
   flex-direction: column;
-  -webkit-box-pack: justify;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
+  -webkit-box-pack: end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
 }
 
 .container--footer {
@@ -110,8 +103,8 @@ h4 {
   justify-content: space-between;
   -ms-flex-line-pack: center;
   align-content: center;
-  margin: 0 auto;
-  width: 1140px;
+  max-width: 1140px;
+  width: 95%;
   min-height: 60px;
 }
 
@@ -145,6 +138,10 @@ h4 {
   margin-left: 21px;
 }
 
+.mobile-menu {
+  display: none;
+}
+
 .rating--title {
   margin-top: 90px;
 }
@@ -164,7 +161,6 @@ h4 {
 }
 
 .about--txt {
-  width: 460px;
   line-height: 150%;
   margin-top: 20px;
 }
@@ -200,9 +196,9 @@ h4 {
 
 .main {
   display: grid;
-  grid-template-columns: 610px 1fr;
-  -ms-flex-line-pack: distribute;
-  align-content: space-around;
+  grid-template-columns: 460px 1fr;
+  -ms-flex-line-pack: justify;
+  align-content: space-between;
 }
 
 .main--rating {
@@ -276,7 +272,6 @@ h4 {
   position: relative;
   grid-area: 3/1/4/2;
   justify-self: end;
-  margin-right: 150px;
   margin-top: 15px;
   width: 32px;
   background: url("../img/sliderArrow.svg") no-repeat;
@@ -290,6 +285,7 @@ h4 {
   margin-top: 20px;
   background: #141218;
   color: #3A383D;
+  width: 100%;
 }
 
 .footer--copyr {
@@ -317,4 +313,117 @@ h4 {
 
 .item--link {
   color: #3A383D;
+}
+
+@media (max-width: 670px) {
+  body {
+    width: 100%;
+  }
+
+  .header {
+    display: none;
+    position: absolute;
+    top: 0;
+    grid-template-columns: 55fr 95px 70fr;
+    grid-template-rows: 70fr 60fr 150fr;
+    gap: 0px;
+    justify-items: center;
+    align-self: end;
+    padding-top: 33px;
+    width: 250px;
+    min-height: 282px;
+    background-color: #9D2929;
+    margin-right: -5%;
+  }
+
+  .header__active {
+    display: grid;
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: 40px;
+    right: 35px;
+    display: block;
+    width: 30px;
+    height: 20px;
+    -webkit-box-pack: end;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    background-color: transparent;
+    border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    cursor: pointer;
+  }
+
+  .mobile-menu::before,
+  .mobile-menu::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 2px;
+    background-color: #fff;
+    border: none;
+    left: 0px;
+    top: 7px;
+  }
+
+  .head-logo {
+    grid-area: 1/2/2/3;
+    align-self: end;
+  }
+
+  .head-social {
+    grid-area: 2/2/3/3;
+    align-self: center;
+    justify-self: start;
+    margin: 0;
+    padding: 0;
+  }
+
+  .head-social-icon {
+    width: 17px;
+    margin: 0;
+    margin-right: 22px;
+  }
+
+  .head-list {
+    grid-area: 3/2/4/3;
+    display: block;
+    padding: 0;
+  }
+
+  .head-item {
+    margin: 0 auto;
+    margin-bottom: 20px;
+  }
+
+  .social-icon--img {
+    margin: 0;
+    padding: 0;
+  }
+
+  .main--player {
+    display: none;
+  }
+
+  .container--footer {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: column;
+    flex-direction: column;
+  }
+
+  .main {
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    grid-template-columns: 315px;
+    margin-top: 180px;
+  }
+
+  .container {
+    margin: 0 auto;
+    width: 90%;
+  }
 }
