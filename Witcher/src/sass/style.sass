@@ -52,7 +52,7 @@ h4
 
 .btn
   border: none
-  padding: 22px 72px;
+  padding: 22px 69px;
   width: 260px;
   height: 60px;
   background: #9D2929;
@@ -99,23 +99,31 @@ h4
 .rating
   &--title
     margin-top: 90px
+    animation-delay: 0.2s
   &--level
     margin-top: 16px
+    animation-delay: 0.2s
   &--level-txt
     margin-left: 10px
+    animation-delay: 0.2s
 .about
   &--title
     font-family: 'MasonChronicles', serif
     font-size: 80px
     margin-top: 20px
+    animation-delay: 0.4s
   &--txt
     line-height: 150%
     margin-top: 20px
+    animation-delay: 0.6s
   &--btn
+    display: block
     margin-top: 40px
+    animation-delay: 0.8s
 
 .player
-  &--btn    
+  &--btn
+    display: inline-block
     position: relative
     padding: 0
     width: 100px
@@ -133,7 +141,8 @@ h4
       opacity: 0.5
   &--arrow
     position: relative    
-    padding-left: 10px
+    left: 36px
+    top: 28px
 
 .main
   display: grid
@@ -246,6 +255,7 @@ h4
       border: none
       left: 0px
       top: 7px
+      transition: transform 0.2s
 
   .head
     &-logo
@@ -273,22 +283,32 @@ h4
   .social-icon--img  
     margin: 0
     padding: 0
-
   
   .main--player
     display: none
-  .container--footer
-    flex-direction: column
 
   .main
     justify-content: center
     grid-template-columns: 315px
     margin-top: 180px
+    margin-bottom: 20px
   .container
     margin: 0 auto
     width: 90%
-    // align-items: self-end  
 
-
+  .container--footer
+    margin: 0 auto
+    width: 315px
+    flex-direction: column 
+  .footer--nav
+    padding: 0
+    padding-bottom: 20px
+    // margin-bottom: 10px
+  .mobile-menu__active
+    border: none
+    &::before            
+      transform: rotate(45deg)
+    &::after      
+      transform: rotate(-45deg)
 
       

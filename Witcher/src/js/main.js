@@ -19,5 +19,6 @@ const menuButton = document.querySelector('.mobile-menu')
 const menu = document.querySelector('.header')
 
 menuButton.addEventListener('click', (param)=>{
-  menu.classList.toggle('header__active')
+  menu.classList.toggle('header__active');
+  menuButton.classList.toggle('mobile-menu__active');
 })

@@ -8,7 +8,10 @@
   <title>Witch</title>
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/swiper.min.css">
+  <link rel="stylesheet" href="css/jquery.fancybox.min.css">
+  <link rel="stylesheet" href="css/animate.css">
   <link rel="stylesheet" href="css/style.css">
+
 </head>
 
 <body class="body">
@@ -49,7 +52,7 @@
     <div class="mobile-menu"></div>
     <section class="main">
       <h1 class="visually-hidden">Main content</h1>
-      <div class="main--rating">
+      <div class="main--rating animated fadeInRight">
         <p class="rating--title">2019, фэнтези</p>
         <!-- /.rating--title -->
         <div class="rating--level">
@@ -71,22 +74,22 @@
       <!-- /.rating -->
 
       <div class="main--about">
-        <span class="about--title">Ведьмак</span>
+        <span class="about--title animated zoomIn">Ведьмак</span>
         <!-- /.about--title -->
-        <p class="about--txt">Ведьмак Геральт, мутант и убийца чудовищ, на своей верной лошади по кличке Плотва
+        <p class="about--txt animated fadeInRight">Ведьмак Геральт, мутант и убийца чудовищ, на своей верной лошади по кличке Плотва
           путешествует по Континенту. За тугой
           мешочек чеканных монет этот мужчина избавит вас от всякой настырной нечисти — хоть от чудищ болотных,
           оборотней и даже
           заколдованных принцесс.</p>
         <!-- /.about--txt -->
-        <button class="about--btn btn">Смотреть онлайн</button>
+        <a data-fancybox href="https://youtu.be/mlO1YaqXLqw" class="about--btn btn animated fadeInRight">Смотреть трейлер</a>
         <!-- /.about--btn btn -->
       </div>
       <!-- /.about -->
       <div class="main--player">
-        <button class="btn player--btn">
+        <a data-fancybox href="https://youtu.be/mlO1YaqXLqw" class="btn player--btn">
           <img src="img/arrow.svg" alt="arrow" class="player--arrow">
-        </button>
+        </a>
       </div>
       <!-- Slider main container -->
       <div class="swiper-container">
@@ -148,6 +151,8 @@
   </footer>
   <!-- /.footer -->
 
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+  <script src="js/jquery.fancybox.min.js"></script>
   <script src="js/swiper.min.js"></script>
   <script src="js/main.js"></script>
 </body>
