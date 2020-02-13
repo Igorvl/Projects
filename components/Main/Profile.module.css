@@ -1,0 +1,14 @@
+.main{
+grid-area: 2/2/3/3;
+display: grid;
+grid-template-rows: repeat(4, 1fr);
+}
+.main__img{
+  grid-area: 1/1/2/2;
+  /* width: 600px; */
+  height: 200px;
+  background: url(https://kitchen-sochi.ru/wp-content/gallery/kitchen_panorams/kitchen_panoram_188.jpg) no-repeat 50% 30%;
+}
+.main__person{
+  background: url(./logo-creator.png) no-repeat 0% 50% /10%
+}
