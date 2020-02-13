@@ -2,8 +2,10 @@
 # Игнорирование всех файлов и папок в ЛЮБЫХ директориях с указанным именем
 # Например /images/user.jpg, /core/images/user.jpg
 # images/*
+build/
 models/
 node_modules/
+reactjs/
 # Игнорирование файла во ВСЕХ директориях
 # Например /params/db/config.php, /config.php
 gulpfile.js
