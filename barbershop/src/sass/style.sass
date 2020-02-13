@@ -1,0 +1,912 @@
+body
+  margin: 0
+  padding: 0
+  background-position: top 40px center
+  background-repeat: no-repeat
+  background-image: url("../img/main-background.jpg")
+  background-color: #070707
+  color: white
+  font-family: 'PT Sans Narrow',Arial, sans-serif
+  font-size: 14px
+
+.visually-hidden:not(:focus):not(:active),
+input[type="checkbox"].visually-hidden,
+input[type="radio"].visually-hidden
+  position: absolute
+
+  width: 1px
+  height: 1px
+  margin: -1px
+  border: 0
+  padding: 0
+  white-space: nowrap
+  clip-path: inset(100%)
+  clip: rect(0 0 0 0)
+  overflow: hidden
+  
+a
+  text-decoration: none
+  color: white
+
+img
+  max-width: 100%
+
+li
+  list-style: none
+
+h2
+  font-size: 30px
+  font-weight: 700
+h3  
+  font-size: 24px
+  font-weight: 700
+
+.btn
+  padding: 16px 0px
+  display: block
+  width: 140px
+  min-height: 44px
+  background-color: black
+  box-sizing: border-box
+  text-align: center
+  border: none
+  font-weight: 700
+  &:focus,
+  &:hover
+    cursor: pointer
+    background-color: #663d15
+
+.container
+  margin: 0 auto  
+  padding: 0  
+  width: 940px
+
+.main-nav
+  margin: 0
+  padding: 0
+  color: white  
+  font-style: 16px
+  &-wrapper
+    margin: 0
+    padding: 0
+    width: 100%
+    background-color: #000
+    min-height: 72px
+    text-align: center
+    .container
+      display: flex
+      justify-content: space-between
+      align-items: center
+      min-height: 72px
+  &-container
+    display: flex
+    flex-wrap: nowrap
+    flex-direction: column
+    align-items: center
+    a      
+      order: 2
+      margin-top: 60px
+    a > img
+      width: 160px
+    &-pages
+      a      
+        order: 0
+        margin: 0
+      a > img
+        width: 110px
+  &-menu
+    margin: 0
+    padding: 0
+    display: flex
+    flex-wrap: wrap
+    width: 620px
+    list-style: none
+    li a
+      position: relative
+      font-size: 16px
+      padding: 26px 21px
+      &:hover, 
+      &:focus
+        background-color: #242424
+  &-active a
+    &:after
+      content: ""
+      position: absolute
+      height: 5px
+      bottom: 0
+      left: 20px
+      right: 20px
+      background-color: #fff
+  &-login
+    margin: 0
+    padding: 0
+    width: 140px
+    text-align: left
+    li a
+      padding: 26px 21px 26px 21px
+      margin-left: 32px
+      font-size: 16px
+      &:hover, 
+      &:focus,
+      &:active
+        background-color: #242424    
+        path 
+          fill: white
+      svg
+        width: 14px
+        margin-right: 15px
+        path 
+          fill: #4d4d4d
+
+.benefit
+  margin: 0
+  padding: 0
+  margin-top: 40px
+  &-list
+    margin: 0
+    padding: 0
+    display: flex
+    justify-content: center
+  &-item
+    width: 280px
+    text-align: center
+    &:nth-child(2)
+      padding: 0 40px      
+    p
+      position: relative      
+      margin: 0
+      padding: 0
+      margin-top: 65px
+      font-size: 14px
+      font-weight: 700
+      line-height: 24px
+      &::before
+        position: absolute
+        top: -48px
+        left: 131px
+        transform: rotate(45deg)
+        content: ""
+        width: 20px
+        height: 20px
+        background-color: white
+
+.news
+  display: inline-block 
+  position: relative  
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 77px 0px 0px 0px
+  padding: 23px 40px 23px 82px
+  width: 470px
+  min-height: 419px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  &:after
+    content: ""
+    width: 6px
+    height: 270px
+    position: absolute
+    top: 85px
+    left: 466px
+    background: url("../img/sect-separator.png") no-repeat
+
+  h2
+    display: block
+    margin-bottom: 25px
+  &-list
+    margin: 0
+    padding: 0
+    .btn-news
+      margin-top: 27px
+  &-item
+    margin: 0
+    margin-bottom: 20px
+    padding: 0
+    font-size: 14px
+    font-weight: 700
+    line-height: 24px
+    letter-spacing: 0.1px
+    p
+      margin: 0
+      padding: 0
+
+.gallery
+  display: inline-block
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 77px 0px 0px -3px
+  padding: 23px 80px 23px 90px
+  width: 470px
+  min-height: 419px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  h2
+    display: inline-block
+    letter-spacing: 0.5px
+    margin-left: 3px
+  &-slider
+    margin: 0
+    padding: 0
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    button
+      color: white
+      margin-top: 36px
+    img
+      width: 300px
+      border: 8px solid white
+
+.contacts
+  display: inline-block 
+  position: relative  
+  vertical-align: top
+  box-sizing: border-box  
+  margin: 36px 0px 0px 0px
+  padding: 23px 40px 21px 82px
+  width: 470px
+  min-height: 435px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  font-weight: 700
+  line-height: 24px
+  &:after
+    content: ""
+    width: 6px
+    height: 270px
+    position: absolute
+    top: 85px
+    left: 466px
+    background: url("../img/sect-separator.png") no-repeat
+  h2
+    display: block
+    margin: 29px 0px 30px 0px
+    padding: 0
+    letter-spacing: 0.1px
+  .contacts-worktime
+    display: block
+    margin-top: 20px
+  &-btn
+    margin-top: 23px
+    display: flex
+    width: 300px
+    justify-content: space-between
+    &_find, 
+    &_feedback
+      color: white
+      padding: 0
+      margin: 0
+    &_feedback
+      padding-top: 10px
+.signup
+  display: inline-block
+  vertical-align: top
+  box-sizing: border-box
+  margin: 36px 0px 0px -3px
+  padding: 23px 80px 23px 90px
+  width: 470px
+  min-height: 435px
+  background: url("../img/pattern-light.jpg") 
+  color: black
+  font-weight: 700
+  line-height: 24px  
+  h2
+    display: inline-block
+    letter-spacing: 0.5px
+    margin-left: 3px
+    margin-top: 29px
+  &-txt
+    margin: 5px 0px 0px 3px
+  &-form
+    display: flex
+    flex-wrap: wrap
+    .signup-btn
+      color: white
+      margin-top: 18px
+      width: 300px
+    &-container
+      display: block
+      width: 129px
+      &:nth-child(2n)
+        margin-left: 32px
+      label
+        display: inline-block
+        font-weight: 700
+        margin: 13px 0px 6px 18px
+      input
+        display: inline-block
+        box-shadow: border-box
+        margin: 0
+        padding: 0
+        width: 121px
+        min-height: 37px
+        border: 2px solid black
+        padding-left: 15px
+        font-weight: 700
+        color: black
+        &:focus
+          border-color: #663d15
+
+.footer
+  margin: 0
+  padding: 0
+  margin-top: 62px
+  background-color: #242424
+  background-image: url("../img/pattern-dark.jpg")
+  .container
+    padding: 62px 0px 12px 0px
+    display: flex
+    justify-content: space-between
+    align-items: flex-start
+    text-align: center
+    font-weight: 700
+  &-address
+    text-align: left
+    p
+      margin: 0
+      padding: 0
+      margin-bottom: 6px
+      margin-left: 2px
+      line-height: 23px
+    &-phone
+      display: inline-block
+      margin-top: 7px
+    &-find
+      text-decoration: underline
+  &-friends
+    display: flex
+    margin-right: 162px
+    flex-wrap: wrap
+    width: 141px
+    justify-content: flex-start
+    &-txt
+      flex-grow: 1
+    &-items
+      margin: 0
+      padding: 0
+      width: 141px
+      margin-top: 21px
+      display: flex
+      justify-content: space-between
+    &-item
+      display: flex
+      justify-content: center
+      align-items: center
+      box-sizing: border-box
+      width: 43px
+      height: 43px
+      background-color: black
+      &:hover,
+      &:focus
+        background-color: white
+      &:hover path,
+      &:focus path
+        fill: black        
+.btn-footer-copyright
+  margin: 0
+  padding: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  margin-top: 21px
+  max-height: 40px
+  &:hover,
+  &:focus
+    background-color: white
+    color: black
+        
+.form-login
+  display: none // Это нужно отключить
+  position: absolute
+  top: -8%
+  bottom: 0px
+  left: 0px
+  right: 0px
+  margin: auto
+  width: 460px
+  height: 385px
+  background-color: white
+  color: black
+  text-transform: uppercase
+  font-weight: 700
+  outline: 9999px solid rgba(0,0,0,0.5)
+  box-shadow: 0 28px 36px rgba(0,0,0,0.25), 0 20px 20px rgba(0,0,0,0.22)
+  z-index: 5
+  &-show
+    display: block
+  &-container
+    padding: 25px 80px 50px 80px  
+  h2
+    margin-bottom: 25px 
+  input
+    width: 275px
+    height: 40px
+    border: 2px solid black
+    margin-bottom: 10px
+    font-weight: 700
+    padding-left: 20px
+    &[type="submit"]
+      color: white
+    &[type="text"]
+      background: url("../img/user.png") no-repeat 275px 14px 
+    &[type="password"]
+      background: url("../img/lock.png") no-repeat 275px 14px       
+    &[type="checkbox"]
+      opacity: 0
+      margin: 0
+      padding: 0
+      width: 0
+      height: 0
+      &+label:after
+        content: none
+      &:checked + label:after
+        content: ""
+  label
+    position: relative
+    margin-left: -48px
+    &[for="remember"]
+      &:before
+        position: absolute
+        left: -30px
+        content: ""
+        display: inline-block
+        border: 2px solid black       
+        width: 16px
+        height: 16px
+      &:after
+        position: absolute
+        left: -26px        
+        top: 5px
+        content: ""
+        display: inline-block
+        width: 10px
+        height: 5px
+        border-left: 2px solid black
+        border-bottom: 2px solid black
+        transform: rotate(-45deg)
+      &:focus,
+      &:hover
+        cursor: pointer
+  &-checkbox
+    display: flex
+    justify-content: space-between
+    margin-left: -13px
+  &-txt
+    margin-bottom: 15px
+  &-restore
+    color: black
+    text-decoration: underline
+  &-btn[type="submit"]
+    margin-top: 16px
+    padding: 0
+    box-sizing: border-box
+    width: 300px
+.close-btn
+  position: absolute
+  border: none
+  left: 470px
+  top: 10px
+  width: 20px
+  height: 20px
+  background-color: transparent
+  &::before,
+  &::after
+    margin: 0
+    padding: 0
+    transform-origin: 40% 40%
+    display: block
+    content: ""
+    border: none
+    width: 24px
+    height: 4px
+    background-color: white
+    transform: rotate(45deg)
+    z-index: 1000
+  &::after
+    transform: rotate(-45deg)
+    z-index: 1000
+  &:focus,
+  &:hover
+    cursor: pointer
+
+.map
+  display: none // Это нужно отключить
+  position: absolute
+  width: 780px
+  height: 573px
+  top: 180%
+  left: 0
+  right: 0
+  bottom: 0
+  margin: auto
+  border: 7px solid white
+  box-sizing: border-box
+  outline: 9999px solid rgba(0,0,0,0.5)
+  box-shadow: 0 28px 36px rgba(0,0,0,0.25), 0 20px 20px rgba(0,0,0,0.22)
+  &-show
+    display: block
+  &-close-btn
+    left: 777px
+    top: 10px
+
+.shop
+  margin: 0
+  padding: 0
+  min-height: 907px
+  background-color: #fdfaf7
+  background-image: url("../img/pattern-light.jpg")  
+  color: black
+  border: 1px solid #fdfaf7
+  font-weight: 700
+  
+  &-header  
+    h2
+      margin-top: 50px
+      text-transform: uppercase      
+    ul
+      margin: 0
+      padding: 0
+      display: flex
+    &-breadcrumbs
+      li
+        margin-right: 20px
+        a
+          color: black
+          display: flex
+          text-transform: uppercase
+          &:after
+            content: ""
+            display: block
+            width: 6px
+            height: 6px
+            margin-left: 17px
+            margin-top: 5px
+            background-color: black
+            transform: rotate(45deg)
+        &:last-child a
+          color: #aba9a7
+          cursor: default
+          &:after
+            content: ""
+            display: none
+  &-wrapper
+    display: flex
+    flex-wrap: wrap
+  &-filters
+    width: 169px
+  &-vendors
+    margin: 0
+    padding: 0
+    margin-top: 52px
+    &-list
+      margin: 0
+      padding: 0
+      margin-top: 30px
+      font-size: 14px
+      text-transform: uppercase
+    &-item
+      margin-bottom: 21px
+      input
+        opacity: 0
+        margin: 0
+        padding: 0
+        width: 0
+        height: 0
+        &+label:after
+          content: none
+        &:checked + label:after
+          content: ""
+      label
+        position: relative
+        &[class="shop-vendors-item-name"]
+          &:before
+            position: absolute
+            left: -42px
+            content: ""
+            display: inline-block
+            border: 2px solid black       
+            width: 16px
+            height: 16px
+          &:after
+            position: absolute
+            left: -38px        
+            top: 5px
+            content: none
+            display: inline-block
+            width: 10px
+            height: 5px
+            border-left: 2px solid black
+            border-bottom: 2px solid black
+            transform: rotate(-45deg)
+          &:focus,
+          &:hover
+            cursor: pointer   
+      &-name
+        margin-left: 30px
+  &-group
+    margin: 0
+    padding: 0
+    margin-top: 52px
+
+    ul
+      margin: 0
+      padding: 0
+      margin-top: 30px
+      font-size: 14px
+      text-transform: uppercase
+    &-item
+      margin-bottom: 21px
+      input
+        opacity: 0
+        margin: 0
+        padding: 0
+        width: 0
+        height: 0
+        &+label:after
+          content: none
+        &:checked + label:after
+          content: ""
+      label
+        position: relative
+        width: 120px
+        display: inline-block
+        &[class="shop-group-item-name"]
+          &:before
+            position: absolute
+            left: -42px
+            content: ""
+            display: inline-block
+            border: 2px solid black 
+            border-radius: 16px      
+            width: 16px
+            height: 16px
+          &:after
+            position: absolute
+            left: -37px        
+            top: 5px
+            content: none
+            display: inline-block
+            width: 4.7px
+            height: 4.7px
+            border: 4.7px solid black
+            box-sizing: border-box
+            border-radius: 4.7px
+          &:focus,
+          &:hover
+            cursor: pointer   
+      &-name
+        margin-left: 30px
+  &-filter-btn
+    margin-top: 51px
+    width: 112px
+    color: white
+    font-size: 14px
+    text-transform: uppercase
+
+.goods
+  margin: 0
+  padding: 0
+  margin-top: 40px  
+  margin-left: 70px
+  width: 701px
+  &-items
+    margin: 0
+    margin-top: 15px
+    padding: 0
+    display: flex
+    flex-wrap: wrap
+    box-sizing: border-box
+  &-item
+    display: flex
+    flex-wrap: wrap
+    width: 220px
+    min-height: 285px
+    margin-right: 20px
+    margin-bottom: 20px
+    box-sizing: border-box  
+    background-color: white
+    box-shadow: 0 0 10px rgba(0,0,0,0.3)
+    &:nth-child(3n)
+      margin-right: 0px
+    img
+      width: 220px
+      height: 165px
+    p
+      width: 220px
+      margin: 10px 0px 5px 18px
+      color: #000
+    &-name
+      min-width: 170px
+      margin: 0
+      margin-left: 18px
+      margin-bottom: 10px
+      text-transform: uppercase
+      color: #000     
+    &-price
+      display: flex
+      justify-content: center
+      align-items: center
+      width: 110px
+      height: 44px
+      background-color: #e5e5e5
+      margin-left: 15px
+      // margin-bottom: 10px      
+  &-btn
+    width: 77px
+    height: 42px
+    padding: 0
+    margin: 0
+    color: white
+  &-pagination
+    margin: 0
+    padding: 0
+    margin-top: 28px
+    margin-left: 3px
+    display: flex
+    li
+      width: 42px
+      height: 42px
+      margin-right: 8px      
+      a
+        display: flex
+        justify-content: center
+        align-items: center
+        background-color: black
+        width: 42px
+        height: 42px
+        &:hover
+          cursor: pointer
+          background-color: #663d15
+        &.active
+          background-color: white
+          color: black
+          cursor: default
+
+.footer-pages
+  margin: 0
+
+.item
+  display: flex
+  margin: 0
+  padding: 0
+  &-photo
+    display: flex
+    flex-wrap: wrap
+    margin: 0
+    margin-top: 55px
+    padding: 0
+    width: 460px
+    justify-content: space-between
+    img
+      width: 140px
+      height: 150px
+      margin-top: 18px
+      box-shadow: 0 0 5px 5px rgba(0,0,0,0.08)
+    & .item-main-img
+      width: 460px
+      height: 500px
+      margin-top: 0
+  &-info
+    margin: 0
+    margin-left: 90px
+    margin-top: 77px
+    padding: 0
+    width: 380px
+    text-transform: uppercase
+    &-description
+      display: flex
+      flex-wrap: wrap
+    &-number
+      display: inline-block
+      // text-align: right
+      color: #aeaeae
+      margin: 0 auto
+      margin-right: 0
+    &-txt
+      width: 380px
+      display: inline-block
+      margin-top: 35px
+      line-height: 24px
+    &-solution
+    &-lists
+      display: block
+      margin: 0
+      padding: 0
+      margin-top: 28px
+      line-height: 24px
+      li 
+        display: flex
+        &:before
+          content: ""
+          display: block
+          width: 7px
+          height: 7px
+          margin-left: 3px
+          margin-right: 13px
+          margin-top: 9px
+          background-color: black
+          transform: rotate(45deg)        
+
+  &-price
+    margin: 0
+    padding: 0
+    margin-top: 20px
+    margin-bottom: 38px
+
+.price
+  min-height: 795px
+  &-title
+    // border: 1px solid black
+    position: relative    
+    display: flex
+    justify-content: center
+    margin: 0 auto
+    margin-top: 5px
+    font-size: 48px
+    line-height: 36px
+    &:before,
+    &:after
+      content: ""
+      position: absolute
+      width: 160px
+      height: 2px
+      background-color: black
+      top: 70px
+    &:before      
+      left: 0
+    &:after
+      right: 0
+  &-tools
+    display: flex
+    flex-wrap: wrap
+    width: 940px
+    h3
+      width: 240px
+    &-item
+      width: 470px
+    &-list
+      display: block
+      margin: 0
+      padding: 0
+      margin-top: 23px
+      line-height: 37px
+      li 
+        display: flex
+        text-transform: uppercase
+        &:before
+          content: ""
+          display: block
+          width: 7px
+          height: 7px
+          margin-left: 3px
+          margin-right: 11px
+          margin-top: 15px
+          background-color: black
+          transform: rotate(45deg)  
+  &-table-cont
+    margin-left: 10px
+    h3
+      width: 220px
+  &-table
+    border-collapse: collapse
+    margin-top: 36px
+  &-table th, 
+  &-table td
+    width: 225px
+    border: 2px solid black
+    line-height: 37px
+    text-align: center
+  &-table th, 
+    width: 205px
+    padding-left: 20px
+    text-align: left
+  &-about
+    display: inline-block
+    margin-top: 52px
+    &-txt
+      width: 865px
+      columns: 2 255px
+      column-gap: 90px
+      margin-top: 5px
+      text-transform: uppercase
+      line-height: 24px

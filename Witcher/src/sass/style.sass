@@ -1,0 +1,314 @@
+@import "../fonts/_fonts"
+@import "_variable.sass"
+
+*
+  box-sizing: border-box
+
+body
+  // margin: 0 auto
+  padding: 0
+  display: grid
+  grid-template-row: 1fr 1fr
+  justify-items: center
+  background: #141218 url(../files/background.jpg) 65% 0% no-repeat 
+  color: #fff
+  font-family: 'Roboto',Arial, sans-serif
+  font-size: 14px
+  height: 100%
+
+.visually-hidden:not(:focus):not(:active),
+input[type="checkbox"].visually-hidden,
+input[type="radio"].visually-hidden
+  position: absolute
+
+  width: 1px
+  height: 1px
+  margin: -1px
+  border: 0
+  padding: 0
+  white-space: nowrap
+  clip-path: inset(100%)
+  clip: rect(0 0 0 0)
+  overflow: hidden
+  
+a
+  text-decoration: none
+  color: white
+
+img
+  max-width: 100%
+
+li
+  list-style: none
+h1
+  font-size: 24px
+h2
+  font-size: 19px
+h3
+  font-size: 18px
+h4
+  font-size: 15px
+  font-weight: 700
+
+.btn
+  border: none
+  padding: 22px 69px;
+  width: 260px;
+  height: 60px;
+  background: #9D2929;
+  border-radius: 8px;
+  color: white
+
+.container
+  // margin: 0 auto
+  max-width: 1140px
+  width: 95%
+  min-height: 100%
+  display: flex
+  flex-direction: column
+  justify-content: flex-end
+
+.container--footer
+  display: flex
+  justify-content: space-between
+  align-content: center
+  // margin: 0 auto
+  max-width: 1140px
+  width: 95%
+  min-height: 60px
+
+.header
+  display: grid
+  grid-template-columns: 67px 261px 1fr
+  gap: 30px
+  padding-top: 60px
+
+.head
+  &-list
+    display: flex
+  &-item
+    margin-right: 24px
+  &-social
+    display: flex
+    justify-content: flex-end
+  &-social-icon
+    margin-left: 21px
+.mobile-menu
+  display: none
+
+.rating
+  &--title
+    margin-top: 90px
+    animation-delay: 0.2s
+  &--level
+    margin-top: 16px
+    animation-delay: 0.2s
+  &--level-txt
+    margin-left: 10px
+    animation-delay: 0.2s
+.about
+  &--title
+    font-family: 'MasonChronicles', serif
+    font-size: 80px
+    margin-top: 20px
+    animation-delay: 0.4s
+  &--txt
+    line-height: 150%
+    margin-top: 20px
+    animation-delay: 0.6s
+  &--btn
+    display: block
+    margin-top: 40px
+    animation-delay: 0.8s
+
+.player
+  &--btn
+    display: inline-block
+    position: relative
+    padding: 0
+    width: 100px
+    height: 100px
+    border-radius: 50%
+    &::before
+      content: ''
+      position: absolute
+      left: -16px
+      top: -16px
+      width: 132px
+      height: 132px
+      border-radius: 50%
+      background: #9D2929;
+      opacity: 0.5
+  &--arrow
+    position: relative    
+    left: 36px
+    top: 28px
+
+.main
+  display: grid
+  grid-template-columns: 460px 1fr
+  align-content: space-between
+  &--rating
+    grid-area: 1/1/2/2
+  &--about
+    grid-area: 2/1/3/2
+  &--player
+    grid-area: 1/2/3/3
+    justify-self: center
+    align-self: center
+    margin-top: 100px
+
+.swiper
+  &-wrapper     
+    margin-top: 50px    
+    width: 360px 
+  &-container
+    grid-area: 3/1/4/2     
+    margin-left: 0
+.slide
+  display: flex
+  flex-direction: column
+  justify-content: flex-end
+  width: 164px
+  height: 113px
+  border-radius: 8px
+  &--subtitle
+    font-size: 10px;
+    line-height: 12px;
+    margin-left: 15px
+  &--title
+    font-weight: bold;
+    margin-bottom: 15px 
+    margin-left: 15px
+    font-size: 14px;
+    line-height: 16px;
+  &-1
+    background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%),url(../files/slide-1.jpg)  no-repeat
+  &-2
+    background: linear-gradient(180deg, rgba(20, 18, 24, 0.5) 0%, #2D2D2D 100%),url(../files/slide-2.jpg)  no-repeat
+
+.swiper-button-next
+  position: relative
+  grid-area: 3/1/4/2
+  justify-self: end
+  margin-top: 15px
+  width: 32px
+  background: url(../img/sliderArrow.svg) no-repeat
+  &::after
+    content: ''
+
+.footer
+  margin-top: 20px
+  background: #141218
+  color: #3A383D
+  width: 100%
+  &--copyr
+    display: flex
+    align-items: center
+  &--nav
+    display: flex
+    align-items: center
+    margin: 0
+  &--item
+    margin-right: 25px 
+.item--link
+  color: #3A383D  
+
+@media ( max-width: 670px )
+  body
+    width: 100%
+
+  .header
+    display: none
+    position: absolute
+    top: 0
+    grid-template-columns: 55fr 95px 70fr
+    grid-template-rows: 70fr 60fr 150fr
+    gap: 0px
+    justify-items: center
+    align-self: end
+    padding-top: 33px
+    width: 250px
+    min-height: 282px
+    background-color: #9D2929
+    margin-right: -5%
+    &__active
+      display: grid
+  .mobile-menu
+    position: absolute
+    top: 40px
+    right: 35px
+    display: block
+    width: 30px
+    height: 20px
+    justify-content: flex-end
+    background-color: transparent
+    border-top: 2px solid white
+    border-bottom: 2px solid white
+    cursor: pointer
+    &::before, &::after      
+      content: ''
+      position: absolute
+      width: 30px
+      height: 2px
+      background-color: #fff
+      border: none
+      left: 0px
+      top: 7px
+      transition: transform 0.2s
+
+  .head
+    &-logo
+      grid-area: 1/2/2/3
+      align-self: end
+    &-social
+      grid-area: 2/2/3/3
+      align-self: center
+      justify-self: start
+      margin: 0
+      padding: 0
+      &-icon
+        width: 17px
+        margin: 0
+        margin-right: 22px
+    &-list
+      grid-area: 3/2/4/3
+      display: block 
+      padding: 0
+      justify-self: 
+    &-item
+      margin: 0 auto
+      margin-bottom: 20px
+      
+  .social-icon--img  
+    margin: 0
+    padding: 0
+  
+  .main--player
+    display: none
+
+  .main
+    justify-content: center
+    grid-template-columns: 315px
+    margin-top: 180px
+    margin-bottom: 20px
+  .container
+    margin: 0 auto
+    width: 90%
+
+  .container--footer
+    margin: 0 auto
+    width: 315px
+    flex-direction: column 
+  .footer--nav
+    padding: 0
+    padding-bottom: 20px
+    // margin-bottom: 10px
+  .mobile-menu__active
+    border: none
+    &::before            
+      transform: rotate(45deg)
+    &::after      
+      transform: rotate(-45deg)
+
+      
