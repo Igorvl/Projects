@@ -1,0 +1,31 @@
+
+.mainDialogs {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+}
+.logo {
+    width: 40px;
+}
+
+.messageTxt {
+    border: 1px solid #264a64;
+    border-radius: 5px;
+    resize: none;
+    height: 25px;
+    width: 300px;
+    padding: 0;
+    margin: 0;
+}
+
+.messageBtn {
+    display: block;
+    fill: #234c78;
+}
+.commentBlock {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.commentTxt{
+    margin-bottom: 10px;
+}

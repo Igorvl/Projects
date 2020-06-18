@@ -1,0 +1,22 @@
+.mainAside {
+    grid-area: 1/4/2/5;
+    margin: 20px;
+    margin-top: 5px;
+    margin-right: 0;
+}
+.nav_link {
+    padding: 7px;
+    display: flex;
+    text-decoration: none;
+    color: #264a64;
+}
+
+.nav_link:active, .nav_link:hover {
+    color: darkgoldenrod;
+}
+.nav_ul {
+    padding: 5px 0px 10px 10px;
+    list-style: none;
+    background-color: white;
+    border-radius: 5px;
+}
