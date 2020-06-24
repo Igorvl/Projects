@@ -6,6 +6,7 @@ const FOLLOW = 'FOLLOW';
 const UNFOLLOW = 'UNFOLLOW';
 const TOTAL_PAGES = 'TOTAL_PAGES';
 const CHOOSED_PAGE = 'CHOOSED_PAGE';
+const IS_PRELOADER_RUNNING = 'IS_PRELOADER_RUNNING';
 
 
 //начальные значения для инициализации state redux
@@ -15,12 +16,16 @@ let initialState = {
 	usersOnPage: 50,
 	currentPage: 1,
 	choosedPage: 1,
-	totalPages: 1
+	totalPages: 1,
+	isPreloaderRunning: false,
 };
 
 export default (state = initialState, action) => {
 	//поверхностное копирование state, принцип иммутабельности
 	switch (action.type) {
+		// current page in pagination
+		case 'IS_PRELOADER_RUNNING':
+			return {...state, isPreloaderRunning: action.isPreloaderRunning};
 		// current page in pagination
 		case 'CHOOSED_PAGE':
 			return {...state, currentPage: state.choosedPage, choosedPage: action.choosedPage};
@@ -66,6 +71,7 @@ export default (state = initialState, action) => {
 // action creators
 //for Dialogs NewCommentText andNewComment
 // export const addNewCommentText = messageTxt => ({type: ADD_NEW_COMMENT_TEXT, messageTxt: messageTxt});
+export const isPreloaderRunningAC = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
 export const choosedPageAC = (choosedPage) => ({type: CHOOSED_PAGE, choosedPage});
 export const totalPagesAC = () => ({type: TOTAL_PAGES, });
 export const getUsersAC = (usersData) => ({type: GET_USERS, usersData: usersData});

@@ -1,19 +1,22 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {followAC, getUsersAC, unfollowAC, totalPagesAC, choosedPageAC} from "../../Redux/usersReducer";
 import {connect} from "react-redux";
-// import Users from "./Users";
-// import UsersC from "./UsersC";
 import UsersH from "./UsersH";
 import {useState} from "react";
 import * as axios from "axios";
 
 const UsersContainer = (props) => {
-	// хук для запроса на серв.
-	let [initialState, axiosResponse] = useState();
-	//если длина списка пользователей === 0 делается запрос на сервер и производится запись пришедшего списка через CB
-	axiosResponse = (props.usersData.length === 0) || (props.currentPage !== props.choosedPage) ? axios.get(`https://social-network.samuraijs.com/api/1.0/users?count=${props.usersOnPage}&page=${props.choosedPage}`).then(response => {
-		props.getUsersCB(response.data);
-	}) : null;
+	
+	let [preloaderOn, setPreloaderOn] = useState(false);
+	
+	// хук для запроса на серв. Производится запись пришедшего списка через CB
+	useEffect(() => {
+		setPreloaderOn(true);
+		axios.get(`https://social-network.samuraijs.com/api/1.0/users?count=${props.usersOnPage}&page=${props.choosedPage}`).then(response => {
+			props.getUsersCB(response.data);
+			setPreloaderOn(false);
+		})
+	}, [props.choosedPage]);
 	
 	let paginationNums = [];
 	for (let i = 1; i <= props.totalPages; i++) {
@@ -21,12 +24,13 @@ const UsersContainer = (props) => {
 	}
 	
 	return <UsersH
-		paginationNums = {paginationNums}
-		usersData = {props.usersData}
-		choosedPageCB = {props.choosedPageCB}
-		choosedPage = {props.choosedPage}
-		unfollowCB = {props.unfollowCB}
-		followCB = {props.followCB}
+		paginationNums={paginationNums}
+		usersData={props.usersData}
+		choosedPageCB={props.choosedPageCB}
+		choosedPage={props.choosedPage}
+		unfollowCB={props.unfollowCB}
+		followCB={props.followCB}
+		preloaderOn={preloaderOn}
 	/>;
 };
 

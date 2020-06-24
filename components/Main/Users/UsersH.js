@@ -1,33 +1,39 @@
-import React, {useState} from 'react';
+import React from 'react';
 import s from '../../../css/Users.module.css';
 import ava from '../../../Images/logo.svg';
 import Icon24Like from '@vkontakte/icons/dist/24/like';
 import Icon24LikeOutline from '@vkontakte/icons/dist/24/like_outline';
+import Preloader from "../../Common/Preloader";
 
 export default (props) => {
+	
 	return (
 		<div className={s.mainProfile}>
-			<div className={s.userMain}>
-				{props.paginationNums.map(i => <span className={props.choosedPage !== i ? s.pageNumber : s.currentPageNumber}
-				                                     onClick={e => props.choosedPageCB(i)} key={i}>{i}</span>)
-				}
-			</div>
-			<div>
-				{props.usersData.map(u => {
-					return (
-						<div className={s.userMain} key={u.id}>
-							<img className={s.ava} src={u.photos.small !== null ? u.photos.small : ava} alt=""/>
-							<div>{u.name}</div>
-							<div>
-								{u.follow
-									? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollowCB(u.id)}/>
-									: <Icon24LikeOutline className={s.buttonFollow} onClick={() => props.followCB(u.id)}/>
-								}
-							</div>
-						</div>
-					)
-				})}
-			</div>
+			{props.preloaderOn ? <Preloader/> :
+				<div>
+					<div className={s.userMain}>
+						{props.paginationNums.map(i => <span className={props.choosedPage !== i
+							? s.pageNumber
+							: s.currentPageNumber} onClick={e => props.choosedPageCB(i)} key={i}>{i}</span>)}
+					</div>
+					<div>
+						{props.usersData.map(u => {
+							return (
+								<div className={s.userMain} key={u.id}>
+									<img className={s.ava} src={u.photos.small !== null ? u.photos.small : ava} alt=""/>
+									<div>{u.name}</div>
+									<div>
+										{u.follow
+											? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollowCB(u.id)}/>
+											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => props.followCB(u.id)}/>
+										}
+									</div>
+								</div>
+							)
+						})}
+					</div>
+				</div>
+			}
 		</div>
 	);
 };
