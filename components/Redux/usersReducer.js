@@ -1,6 +1,4 @@
-// import userLogo from "../../../src/Images/logo.svg";
 //actions
-// const ADD_NEW_COMMENT_TEXT = 'ADD_NEW_COMMENT_TEXT';
 const GET_USERS = 'GET_USERS';
 const FOLLOW = 'FOLLOW';
 const UNFOLLOW = 'UNFOLLOW';
@@ -16,7 +14,7 @@ let initialState = {
 	usersOnPage: 50,
 	currentPage: 1,
 	choosedPage: 1,
-	totalPages: 1,
+	countPages: 1,
 	isPreloaderRunning: false,
 };
 
@@ -31,11 +29,11 @@ export default (state = initialState, action) => {
 			return {...state, currentPage: state.choosedPage, choosedPage: action.choosedPage};
 		// number of pages in pagination
 		case 'TOTAL_PAGES':
-			return {state};
+			return {...state, countPages: Math.ceil(action.usersData.totalCount / state.usersOnPage)};
 		// adding text in textarea in dialogsPage
 		case 'GET_USERS':
 			//возвращает копию state, и обновляет newCommentTxt
-			return {...state, usersData: action.usersData.items, currentPage: state.choosedPage, totalPages: Math.ceil(action.usersData.totalCount / state.usersOnPage)};
+			return {...state, usersData: action.usersData.items, currentPage: state.choosedPage, countPages: Math.ceil(action.usersData.totalCount / state.usersOnPage)};
 		
 		// add new comment in dialogsPage-dialogData
 		case 'FOLLOW':
@@ -71,9 +69,9 @@ export default (state = initialState, action) => {
 // action creators
 //for Dialogs NewCommentText andNewComment
 // export const addNewCommentText = messageTxt => ({type: ADD_NEW_COMMENT_TEXT, messageTxt: messageTxt});
-export const isPreloaderRunningAC = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
-export const choosedPageAC = (choosedPage) => ({type: CHOOSED_PAGE, choosedPage});
-export const totalPagesAC = () => ({type: TOTAL_PAGES, });
-export const getUsersAC = (usersData) => ({type: GET_USERS, usersData: usersData});
-export const followAC = (userId) => ({type: FOLLOW, userId: userId});
-export const unfollowAC = (userId) => ({type: UNFOLLOW, userId: userId});
+export const isPreloaderRunning = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
+export const selectedPage = (choosedPage) => ({type: CHOOSED_PAGE, choosedPage});
+export const totalPages = (usersData) => ({type: TOTAL_PAGES, usersData: usersData});
+export const getUsers = (usersData) => ({type: GET_USERS, usersData: usersData});
+export const follow = (userId) => ({type: FOLLOW, userId: userId});
+export const unfollow = (userId) => ({type: UNFOLLOW, userId: userId});

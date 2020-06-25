@@ -14,7 +14,7 @@ export default (props) => {
 					<div className={s.userMain}>
 						{props.paginationNums.map(i => <span className={props.choosedPage !== i
 							? s.pageNumber
-							: s.currentPageNumber} onClick={e => props.choosedPageCB(i)} key={i}>{i}</span>)}
+							: s.currentPageNumber} onClick={e => props.selectedPage(i)} key={i}>{i}</span>)}
 					</div>
 					<div>
 						{props.usersData.map(u => {
@@ -24,8 +24,8 @@ export default (props) => {
 									<div>{u.name}</div>
 									<div>
 										{u.follow
-											? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollowCB(u.id)}/>
-											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => props.followCB(u.id)}/>
+											? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollow(u.id)}/>
+											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => props.follow(u.id)}/>
 										}
 									</div>
 								</div>

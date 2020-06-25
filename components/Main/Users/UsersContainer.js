@@ -1,8 +1,7 @@
-import React, {useEffect} from 'react';
-import {followAC, getUsersAC, unfollowAC, totalPagesAC, choosedPageAC} from "../../Redux/usersReducer";
+import React, {useState, useEffect} from 'react';
+import {follow, getUsers, unfollow, totalPages, selectedPage} from "../../Redux/usersReducer";
 import {connect} from "react-redux";
 import UsersH from "./UsersH";
-import {useState} from "react";
 import * as axios from "axios";
 
 const UsersContainer = (props) => {
@@ -13,23 +12,23 @@ const UsersContainer = (props) => {
 	useEffect(() => {
 		setPreloaderOn(true);
 		axios.get(`https://social-network.samuraijs.com/api/1.0/users?count=${props.usersOnPage}&page=${props.choosedPage}`).then(response => {
-			props.getUsersCB(response.data);
+			props.getUsers(response.data);
 			setPreloaderOn(false);
 		})
 	}, [props.choosedPage]);
 	
 	let paginationNums = [];
-	for (let i = 1; i <= props.totalPages; i++) {
+	for (let i = 1; i <= props.countPages; i++) {
 		paginationNums.push(i);
 	}
 	
 	return <UsersH
 		paginationNums={paginationNums}
 		usersData={props.usersData}
-		choosedPageCB={props.choosedPageCB}
 		choosedPage={props.choosedPage}
-		unfollowCB={props.unfollowCB}
-		followCB={props.followCB}
+		selectedPage={props.selectedPage}
+		unfollow={props.unfollow}
+		follow={props.follow}
 		preloaderOn={preloaderOn}
 	/>;
 };
@@ -37,24 +36,15 @@ const UsersContainer = (props) => {
 const mapStateToProps = (state) => {
 	return ({
 		usersData: state.usersPage.usersData,
-		totalPages: state.usersPage.totalPages,
+		countPages: state.usersPage.countPages,
 		currentPage: state.usersPage.currentPage,
 		choosedPage: state.usersPage.choosedPage,
 		usersOnPage: state.usersPage.usersOnPage,
 	})
 };
-const mapDispatchToProps = (dispatch) => {
-	return (
-		{
-			// callbacks for buttons from Users
-			followCB: userId => dispatch(followAC(userId)),
-			unfollowCB: userId => dispatch(unfollowAC(userId)),
-			getUsersCB: usersData => dispatch(getUsersAC(usersData)),
-			totalPagesCB: totalPages => dispatch(totalPagesAC(totalPages)),
-			choosedPageCB: choosedPage => dispatch(choosedPageAC(choosedPage)),
-		}
-	)
-};
-export default connect(mapStateToProps, mapDispatchToProps)(UsersContainer);
-// export default connect(mapStateToProps, mapDispatchToProps)(UsersC);
+
+export default connect(mapStateToProps, {
+	// callBacks for mapDispatchToProps
+	follow,	unfollow,	getUsers,	totalPages,	selectedPage,
+})(UsersContainer);
 
