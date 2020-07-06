@@ -4,6 +4,7 @@ import ava from '../../../Images/logo.svg';
 import Icon24Like from '@vkontakte/icons/dist/24/like';
 import Icon24LikeOutline from '@vkontakte/icons/dist/24/like_outline';
 import Preloader from "../../Common/Preloader";
+import {NavLink} from "react-router-dom";
 
 export default (props) => {
 	
@@ -20,8 +21,12 @@ export default (props) => {
 						{props.usersData.map(u => {
 							return (
 								<div className={s.userMain} key={u.id}>
-									<img className={s.ava} src={u.photos.small !== null ? u.photos.small : ava} alt=""/>
-									<div>{u.name}</div>
+									<NavLink to={'/profile/' + u.id} className={s.userLink}>
+										<img className={s.ava} src={u.photos.small !== null ? u.photos.small : ava} alt=""
+										     onClick={() => props.choosedUserId(u.id)}/>
+									</NavLink>
+									<div className={s.userName}>{u.name}</div>
+									
 									<div>
 										{u.follow
 											? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollow(u.id)}/>

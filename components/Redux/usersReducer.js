@@ -5,7 +5,7 @@ const UNFOLLOW = 'UNFOLLOW';
 const TOTAL_PAGES = 'TOTAL_PAGES';
 const CHOOSED_PAGE = 'CHOOSED_PAGE';
 const IS_PRELOADER_RUNNING = 'IS_PRELOADER_RUNNING';
-
+const CHOOSED_USERID = 'CHOOSED_USERID';
 
 //начальные значения для инициализации state redux
 let initialState = {
@@ -16,11 +16,15 @@ let initialState = {
 	choosedPage: 1,
 	countPages: 1,
 	isPreloaderRunning: false,
+	choosedUserId: 2,
 };
 
 export default (state = initialState, action) => {
 	//поверхностное копирование state, принцип иммутабельности
 	switch (action.type) {
+		// choosed user id in user page for getting profile
+		case 'CHOOSED_USERID':
+			return {...state, choosedUserId: action.choosedUserId};
 		// current page in pagination
 		case 'IS_PRELOADER_RUNNING':
 			return {...state, isPreloaderRunning: action.isPreloaderRunning};
@@ -75,3 +79,4 @@ export const totalPages = (usersData) => ({type: TOTAL_PAGES, usersData: usersDa
 export const getUsers = (usersData) => ({type: GET_USERS, usersData: usersData});
 export const follow = (userId) => ({type: FOLLOW, userId: userId});
 export const unfollow = (userId) => ({type: UNFOLLOW, userId: userId});
+export const choosedUserId = (userId) => ({type: CHOOSED_USERID, choosedUserId: userId});

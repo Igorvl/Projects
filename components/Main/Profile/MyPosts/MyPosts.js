@@ -10,9 +10,9 @@ export default (props) => {
 		<div>
 			<span>Ввести комментарий</span>
 			<div>
-				<textarea value={props.newMsgTxt} onChange={(p)=> props.addNewPostTextCB(p.target.value)} name="#"cols="60" rows="5"/>
+				<textarea value={props.newMsgTxt} onChange={(p)=> props.addNewPostText(p.target.value)} name="#"cols="60" rows="5"/>
 			</div>
-			<button onClick={()=>props.addPostCB()} className={s.postBtn}>Add post</button>
+			<button onClick={()=>props.addPost()} className={s.postBtn}>Add post</button>
 			
 			<div className={s.posts}>
 				{posts}

@@ -1,5 +1,5 @@
 import MyPosts from "./MyPosts";
-import {addNewPostTextAC, addPostAC} from "../../../Redux/profileReducer";
+import {addNewPostText, addPost} from "../../../Redux/profileReducer";
 import {connect} from "react-redux";
 
 
@@ -8,14 +8,5 @@ const mapStateToProps = (state) => {
 		postData: state.profilePage.postData,
 	})
 };
-const mapDispatchToProps = (dispatch) => {
-	//callbacks for textarea and button in myPosts
-	return (
-		{
-			addNewPostTextCB: postText => {dispatch(addNewPostTextAC(postText))},
-			addPostCB: () => {dispatch(addPostAC())},
-		}
-	)
-};
 
-export default connect(mapStateToProps, mapDispatchToProps)(MyPosts)
+export default connect(mapStateToProps, {addNewPostText, addPost})(MyPosts)

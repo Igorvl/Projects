@@ -45,3 +45,17 @@
     display: flex;
     justify-content: center;
 }
+.userName {
+    display: block;
+    color: black;
+    text-decoration: none;
+}
+.userLink {
+    display: block;
+    color: black;
+    text-decoration: none;
+    width: auto;
+}
+.ava {
+    display: inline-block;
+}

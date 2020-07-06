@@ -49,7 +49,7 @@ let profileReducer = (state = initialState, action) => {
 
 // action creators
 //for MyPosts NewPostText addPost
-export const addNewPostTextAC = messageTxt => ({type: ADD_NEW_POST_TEXT, messageTxt: messageTxt});
-export const addPostAC = () => ({type: ADD_POST});
+export const addNewPostText = messageTxt => ({type: ADD_NEW_POST_TEXT, messageTxt: messageTxt});
+export const addPost = () => ({type: ADD_POST});
 
 export default profileReducer;
