@@ -19,7 +19,7 @@ export default (props) => {
 				<main className={s.body}>
 					<Navbar/>
 					<div className={s.mainField}>
-						<Route render={()=> <ProfileContainer/>} path={'/profile'}/>
+						<Route render={()=> <ProfileContainer/>} path={'/profile/:userId?'}/>
 						<Route render={()=> <DialogsContainer/>} path={'/dialogs'}/>
 						<Route render={()=> <UsersContainer/>} path={'/users'}/>
 						<Route render={()=> <Music/>} path={'/music'}/>

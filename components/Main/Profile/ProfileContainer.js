@@ -1,62 +1,43 @@
 import React, {useState, useEffect} from 'react';
-import {choosedUserId} from "../../Redux/usersReducer";
 import {connect} from "react-redux";
+import {withRouter} from 'react-router-dom';
 import * as axios from "axios";
 import Profile from "./Profile";
+import {choosedUserId, currentUser} from "../../Redux/usersReducer";
 
-let user;
 const ProfileContainer = (props) => {
 
 let [preloaderOn, setPreloaderOn] = useState(false);
-let [choosedUser, setChoosedUser] = useState({
-	"aboutMe": null,
-	"contacts": {
-		"facebook": null,
-		"website": null,
-		"vk": null,
-		"twitter": null,
-		"instagram": null,
-		"youtube": null,
-		"github": null,
-		"mainLink": null
-	},
-	"lookingForAJob": true,
-	"lookingForAJobDescription": null,
-	"fullName": null,
-	"userId": null,
-	"photos": {
-		"small": null,
-		"large": null
-	}
-});
 
 // хук для запроса на серв. профиля пользователя.
 useEffect(() => {
 	setPreloaderOn(true);
-	axios.get(`https://social-network.samuraijs.com/api/1.0/profile/${props.UserId}`).then(response => {
-		setChoosedUser(prevState => {return {...prevState, ...response.data}});
+	axios.get(`https://social-network.samuraijs.com/api/1.0/profile/${props.match.params.userId ? props.match.params.userId : '2'}`).then(response => {
+		props.currentUser(response.data);
 		setPreloaderOn(false);
-		user = choosedUser;
 	})
-}, []);
+}, [props.match.params.userId, props.UserId]);
 
 
 return <Profile
-	userId = {props.UserId}
-	choosedUser = {choosedUser}
-	// choosedUserId = {props.choosedUserId}
+	choosedUser = {props.choosedUser}
+	preloaderOn={preloaderOn}
 />
-
 };
 
 const mapStateToProps = (state) => {
 	return ({
 		UserId: state.usersPage.choosedUserId,
-		choosedUser: state.choosedUser,
+		choosedUser: state.usersPage.currentUser,
 	})
 };
 
+// получение id пользователя из параметра ссылки. withRouter - HOC возвращающий параметры строки в props.
+// В ссылке в App.js указать параметр ':userId?'
+let ProfileContainerWithParam = withRouter(ProfileContainer);
+
+
 export default connect(mapStateToProps, {
 	// callBacks for mapDispatchToProps
-	choosedUserId,})(ProfileContainer);
+	choosedUserId, currentUser})(ProfileContainerWithParam);
 
