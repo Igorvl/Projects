@@ -3,8 +3,9 @@ import logo from '../../Images/logo.svg';
 import loupe from '../../Images/head_loupe.svg';
 import camera from '../../Images/camera_50.png';
 import s from '../../css/Header.module.css';
+import {NavLink} from "react-router-dom";
 
-export default () => {
+export default (props) => {
 	return (
 		<div className={s.app}>
 			<header className={s.appHeader}>
@@ -22,11 +23,14 @@ export default () => {
 					</div>
 					
 					<div className={s.loginBlock}>
-						{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-						<a href="#">
-							<span>Login</span>
+						<NavLink to={'/#'}>
+							{props.authData.isLoggedIn ?
+								<span>{props.authData.login}</span> :
+								<span>{'Login'}</span>
+							}
+							
 							<img src={camera} className={s.loginBlock__camera} alt=""/>
-						</a>
+						</NavLink>
 					</div>
 				</div>
 			</header>

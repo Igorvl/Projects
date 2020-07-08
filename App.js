@@ -1,7 +1,6 @@
 import React from 'react';
 import s from './css/App.module.css';
 import {Route} from "react-router-dom";
-import Header from "./components/Header/Header";
 import Navbar from "./components/Main/Navbar";
 import MainAside from "./components/Main/MainAside";
 import Music from "./components/Main/Music/Music";
@@ -11,11 +10,12 @@ import Settings from "./components/Main/Settings/Settings";
 import DialogsContainer from "./components/Main/Dialogs/DialogsContainer";
 import UsersContainer from "./components/Main/Users/UsersContainer";
 import ProfileContainer from "./components/Main/Profile/ProfileContainer";
+import HeaderContainer from "./components/Header/HeaderContainer";
 
 export default (props) => {
 	return (
 			<div className={s.app}>
-				<Header/>
+				<HeaderContainer/>
 				<main className={s.body}>
 					<Navbar/>
 					<div className={s.mainField}>
