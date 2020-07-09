@@ -1,12 +1,17 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import s from '../../../css/Users.module.css';
 import ava from '../../../Images/logo.svg';
 import Icon24Like from '@vkontakte/icons/dist/24/like';
 import Icon24LikeOutline from '@vkontakte/icons/dist/24/like_outline';
 import Preloader from "../../Common/Preloader";
 import {NavLink} from "react-router-dom";
+import * as axios from "axios";
 
 export default (props) => {
+	
+	let sendUnFollow = (id) => {
+		props.unfollow(id)
+	};
 	
 	return (
 		<div className={s.mainProfile}>
@@ -29,8 +34,24 @@ export default (props) => {
 									
 									<div>
 										{u.follow
-											? <Icon24Like className={s.buttonFollow} onClick={() => props.unfollow(u.id)}/>
-											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => props.follow(u.id)}/>
+											? <Icon24Like className={s.buttonFollow} onClick={() => {
+												// кнопка unfollow с отправкой инфо на серв.
+												axios.delete(`https://social-network.samuraijs.com/api/1.0/follow/${u.id}`, {
+													withCredentials: true,
+													headers: {"API-KEY": "b516e719-c36d-4150-afe4-048d0a974d23"},
+												}).then(response => {
+													props.unfollow(u.id);
+												})
+											}}/>
+											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => {
+												// кнопка follow с отправкой инфо на серв.
+												axios.post(`https://social-network.samuraijs.com/api/1.0/follow/${u.id}`,{}, {
+													withCredentials: true,
+													headers: {"API-KEY": "b516e719-c36d-4150-afe4-048d0a974d23"},
+												}).then(response => {
+													props.follow(u.id);
+												})
+											}}/>
 										}
 									</div>
 								</div>
