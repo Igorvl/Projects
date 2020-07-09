@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import s from '../../../css/Users.module.css';
 import ava from '../../../Images/logo.svg';
 import Icon24Like from '@vkontakte/icons/dist/24/like';
@@ -8,10 +8,6 @@ import {NavLink} from "react-router-dom";
 import * as axios from "axios";
 
 export default (props) => {
-	
-	let sendUnFollow = (id) => {
-		props.unfollow(id)
-	};
 	
 	return (
 		<div className={s.mainProfile}>

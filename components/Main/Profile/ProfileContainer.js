@@ -8,15 +8,15 @@ import {choosedUserId, currentUser} from "../../Redux/usersReducer";
 const ProfileContainer = (props) => {
 
 let [preloaderOn, setPreloaderOn] = useState(false);
-
+let {userId, currentUser} = props;
 // хук для запроса на серв. профиля пользователя.
 useEffect(() => {
 	setPreloaderOn(true);
-	axios.get(`https://social-network.samuraijs.com/api/1.0/profile/${props.match.params.userId ? props.match.params.userId : '2'}`).then(response => {
-		props.currentUser(response.data);
+	axios.get(`https://social-network.samuraijs.com/api/1.0/profile/${userId ? userId : '2'}`).then(response => {
+		currentUser(response.data);
 		setPreloaderOn(false);
 	})
-}, [props.match.params.userId, props.UserId]);
+}, [userId, currentUser]);
 
 
 return <Profile

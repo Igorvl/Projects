@@ -2,20 +2,20 @@ import React, {useState, useEffect} from 'react';
 import {follow, getUsers, unfollow, totalPages, selectedPage, choosedUserId} from "../../Redux/usersReducer";
 import {connect} from "react-redux";
 import UsersH from "./UsersH";
-import * as axios from "axios";
+import {getApiUsers} from "../../../API/getApiUsers";
 
 const UsersContainer = (props) => {
 	
 	let [preloaderOn, setPreloaderOn] = useState(false);
-	
+	let {getUsers, usersOnPage, choosedPage} = props;
 	// хук для запроса на серв. списка пользователей. Производится запись пришедшего списка через CB
 	useEffect(() => {
 		setPreloaderOn(true);
-		axios.get(`https://social-network.samuraijs.com/api/1.0/users?count=${props.usersOnPage}&page=${props.choosedPage}`).then(response => {
-			props.getUsers(response.data);
+		getApiUsers(usersOnPage, choosedPage).then(response => {
+			getUsers(response.data);
 			setPreloaderOn(false);
 		})
-	}, [props.choosedPage]);
+	}, [getUsers, usersOnPage, choosedPage]);
 	
 	let paginationNums = [];
 	for (let i = 1; i <= props.countPages; i++) {

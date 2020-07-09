@@ -6,19 +6,19 @@ import {authUser} from "../Redux/authReducer";
 
 const HeaderContainer = (props) => {
 	
-	let [preloaderOn, setPreloaderOn] = useState(false);
-	
+	let [, setPreloaderOn] = useState(false);
+	let {authUser} = props;
 	// хук для запроса на серв. списка пользователей. Производится запись пришедшего списка через CB
 	useEffect(() => {
 		setPreloaderOn(true);
 		// запрос с параметром на кроссдоменную аутентификацию {withCredentials:true}
 		axios.get(`https://social-network.samuraijs.com/api/1.0/auth/me`, {withCredentials:true}).then(response => {
 			if (response.data.resultCode === 0) {
-				props.authUser(response.data.data)
+				authUser(response.data.data)
 			}
 			setPreloaderOn(false);
 		})
-	}, []);
+	}, [authUser]);
 	
 	return <Header
 		authData={props.authData}
