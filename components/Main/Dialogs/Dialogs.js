@@ -4,6 +4,7 @@ import Message from "./Message/Message";
 import DialogItem from "./DialogItem/DialogItem";
 import userLogo from "../../../Images/logo.svg";
 import Icon28Send from '@vkontakte/icons/dist/28/send';
+import {Redirect} from "react-router-dom";
 
 export default (props) => {
 	let dialogs = props.dialogData.map(d => <DialogItem name={`${d.name} ${d.id}`} id={d.id} key={Math.floor(Math.random()*1000)}/>);
@@ -16,6 +17,7 @@ export default (props) => {
 			key={Math.floor(Math.random()*1000)}
 		/>);
 	
+	if (!props.isLoggedIn) return <Redirect to={'/login'}/>;
 	return (
 		<div className={s.mainDialogs}>
 			<div>

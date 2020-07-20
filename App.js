@@ -11,6 +11,7 @@ import DialogsContainer from "./components/Main/Dialogs/DialogsContainer";
 import UsersContainer from "./components/Main/Users/UsersContainer";
 import ProfileContainer from "./components/Main/Profile/ProfileContainer";
 import HeaderContainer from "./components/Header/HeaderContainer";
+import LoginContainer from "./components/Login/LoginContainer";
 
 export default (props) => {
 	return (
@@ -26,6 +27,7 @@ export default (props) => {
 						<Route render={()=> <Games/>} path={'/games'}/>
 						<Route render={()=> <News/>} path={'/news'}/>
 						<Route render={()=> <Settings/>} path={'/settings'}/>
+						<Route render={()=> <LoginContainer/>} path={'/login'}/>
 					</div>
 					<MainAside/>
 				</main>

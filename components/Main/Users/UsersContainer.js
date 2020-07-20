@@ -10,6 +10,7 @@ import {
 } from "../../Redux/usersReducer";
 import {connect} from "react-redux";
 import UsersH from "./UsersH";
+import {Redirect} from "react-router-dom";
 
 const UsersContainer = (props) => {
 	
@@ -28,6 +29,7 @@ const UsersContainer = (props) => {
 		paginationNums.push(i);
 	}
 	
+	if (!props.isLoggedIn) return <Redirect to={'/login'} />;
 	return <UsersH
 		paginationNums={paginationNums}
 		usersData={props.usersData}
@@ -49,6 +51,7 @@ const mapStateToProps = (state) => {
 		choosedPage: state.usersPage.choosedPage,
 		usersOnPage: state.usersPage.usersOnPage,
 		currentUser: state.usersPage.currentUser,
+		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
 

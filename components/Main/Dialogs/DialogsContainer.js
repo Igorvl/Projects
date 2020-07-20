@@ -9,6 +9,7 @@ const mapStateToProps = (state) => {
 		dialogData: state.dialogsPage.dialogData,
 		messageData: state.dialogsPage.messageData,
 		newCommentTxt: state.dialogsPage.newCommentTxt,
+		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
 const mapDispatchToProps = (dispatch) => {

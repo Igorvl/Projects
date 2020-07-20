@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {connect} from "react-redux";
-import {withRouter} from 'react-router-dom';
+import {Redirect, withRouter} from 'react-router-dom';
 import Profile from "./Profile";
 import {choosedUserId, currentUser} from "../../Redux/usersReducer";
 import {profileRequest} from "../../Redux/profileReducer";
@@ -16,7 +16,8 @@ const ProfileContainer = (props) => {
 				setPreloaderOn(false);
 			}, [UserId]
 		);
-		
+	
+	if (!props.isLoggedIn) return <Redirect to={'/login'} />;
 		return <Profile
 			choosedUser={props.choosedUser}
 			preloaderOn={preloaderOn}
@@ -27,6 +28,7 @@ const mapStateToProps = (state) => {
 	return ({
 		UserId: state.usersPage.choosedUserId,
 		choosedUser: state.usersPage.currentUser,
+		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
 

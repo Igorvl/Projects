@@ -67,3 +67,7 @@
     height: 30px;
     border-radius: 25px;
 }
+.loginBlock__name{
+    align-self: center;
+    color: #f0fbff;
+}
