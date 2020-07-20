@@ -14,8 +14,8 @@ export default (props) => {
 						<div><img src={props.choosedUser.photos.large} className={s.avaPhoto} alt=""/></div>
 					}
 					<div className={s.title}>
-						<div>{props.choosedUser.fullName}</div>
-						<div>{props.choosedUser.aboutMe}</div>
+						<div>{props.choosedUser.name}</div>
+						<div>{props.choosedUser.status}</div>
 					</div>
 				</div>
 				: <Preloader/>}

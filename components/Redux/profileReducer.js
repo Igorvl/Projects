@@ -1,4 +1,7 @@
 //actions
+import {dataApiRequest} from "../../API/dataApiRequest";
+import {currentUser} from "./usersReducer";
+
 const ADD_NEW_POST_TEXT = 'ADD_NEW_POST_TEXT';
 const ADD_POST = 'ADD_POST';
 
@@ -51,5 +54,13 @@ let profileReducer = (state = initialState, action) => {
 //for MyPosts NewPostText addPost
 export const addNewPostText = messageTxt => ({type: ADD_NEW_POST_TEXT, messageTxt: messageTxt});
 export const addPost = () => ({type: ADD_POST});
+
+export const profileRequest = UserId => {
+	return (dispatch) => {
+		dataApiRequest.profileRequest(UserId).then(response => {
+			dispatch(currentUser(response.data));
+		})
+	}
+};
 
 export default profileReducer;

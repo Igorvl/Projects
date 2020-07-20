@@ -1,10 +1,11 @@
+import {dataApiRequest} from "../../API/dataApiRequest";
+
 //actions
 const GET_USERS = 'GET_USERS';
 const FOLLOW = 'FOLLOW';
 const UNFOLLOW = 'UNFOLLOW';
 const TOTAL_PAGES = 'TOTAL_PAGES';
 const CHOOSED_PAGE = 'CHOOSED_PAGE';
-const IS_PRELOADER_RUNNING = 'IS_PRELOADER_RUNNING';
 const CHOOSED_USERID = 'CHOOSED_USERID';
 const CURRENT_USER = 'CURRENT_USER';
 
@@ -52,8 +53,8 @@ export default (state = initialState, action) => {
 		case 'CHOOSED_USERID':
 			return {...state, choosedUserId: action.choosedUserId};
 		// current page in pagination
-		case 'IS_PRELOADER_RUNNING':
-			return {...state, isPreloaderRunning: action.isPreloaderRunning};
+		// case 'IS_PRELOADER_RUNNING':
+		// 	return {...state, isPreloaderRunning: action.isPreloaderRunning};
 		// current page in pagination
 		case 'CHOOSED_PAGE':
 			return {...state, currentPage: state.choosedPage, choosedPage: action.choosedPage};
@@ -76,7 +77,7 @@ export default (state = initialState, action) => {
 				...state,
 				usersData: state.usersData.map(u => {
 					if (u.id === action.userId) {
-						return {...u, follow: true}
+						return {...u, followed: true}
 					}
 					return {...u}
 				})
@@ -87,7 +88,7 @@ export default (state = initialState, action) => {
 				...state,
 				usersData: state.usersData.map(u => {
 					if (u.id === action.userId) {
-						return {...u, follow: false}
+						return {...u, followed: false}
 					}
 					return {...u}
 				})
@@ -103,7 +104,7 @@ export default (state = initialState, action) => {
 
 // action creators
 //for Dialogs NewCommentText andNewComment
-export const isPreloaderRunning = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
+// export const isPreloaderRunning = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
 export const selectedPage = (choosedPage) => ({type: CHOOSED_PAGE, choosedPage});
 export const totalPages = (usersData) => ({type: TOTAL_PAGES, usersData: usersData});
 export const getUsers = (usersData) => ({type: GET_USERS, usersData: usersData});
@@ -111,3 +112,30 @@ export const follow = (userId) => ({type: FOLLOW, userId: userId});
 export const unfollow = (userId) => ({type: UNFOLLOW, userId: userId});
 export const choosedUserId = (userId) => ({type: CHOOSED_USERID, choosedUserId: userId});
 export const currentUser = (user) => ({type: CURRENT_USER, currentUser: user});
+
+export const getUsersTh = (usersOnPage, choosedPage) => {
+	return (dispatch) => {
+		// DAL с запросом через axios пользователей с сервера
+		dataApiRequest.getUsersA(usersOnPage, choosedPage).then(response => {
+			dispatch(getUsers(response.data));
+		})
+	}
+};
+
+export const unfollowTh = (userId) => {
+	return (dispatch) => {
+		// DAL с запросом через axios unfollow пользователя
+		dataApiRequest.setUnfollow(userId).then(() => {
+			dispatch(unfollow(userId));
+		});
+	}
+};
+
+export const followTh = (userId) => {
+	return (dispatch) => {
+		// DAL с запросом через axios follow пользователя
+		dataApiRequest.setFollow(userId).then(() => {
+			dispatch(follow(userId))
+		});
+	}
+};

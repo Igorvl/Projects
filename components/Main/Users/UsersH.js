@@ -5,7 +5,6 @@ import Icon24Like from '@vkontakte/icons/dist/24/like';
 import Icon24LikeOutline from '@vkontakte/icons/dist/24/like_outline';
 import Preloader from "../../Common/Preloader";
 import {NavLink} from "react-router-dom";
-import * as axios from "axios";
 
 export default (props) => {
 	
@@ -16,7 +15,7 @@ export default (props) => {
 					<div className={s.userMain}>
 						{props.paginationNums.map(i => <span className={props.choosedPage !== i
 							? s.pageNumber
-							: s.currentPageNumber} onClick={e => props.selectedPage(i)} key={i}>{i}</span>)}
+							: s.currentPageNumber} onClick={() => props.selectedPage(i)} key={i}>{i}</span>)}
 					</div>
 					<div>
 						{props.usersData.map(u => {
@@ -24,29 +23,22 @@ export default (props) => {
 								<div className={s.userMain} key={u.id}>
 									<NavLink to={'/profile/' + u.id} className={s.userLink}>
 										<img className={s.ava} src={u.photos.small !== null ? u.photos.small : ava} alt=""
-										     onClick={() => props.choosedUserId(u.id)}/>
+										     onClick={() => {
+										     	props.choosedUserId(u.id);
+										      props.currentUser(u);
+										     }}/>
 									</NavLink>
 									<div className={s.userName}>{u.name}</div>
 									
 									<div>
-										{u.follow
+										{u.followed
+											// кнопка unfollow с отправкой инфо на серв.
 											? <Icon24Like className={s.buttonFollow} onClick={() => {
-												// кнопка unfollow с отправкой инфо на серв.
-												axios.delete(`https://social-network.samuraijs.com/api/1.0/follow/${u.id}`, {
-													withCredentials: true,
-													headers: {"API-KEY": "b516e719-c36d-4150-afe4-048d0a974d23"},
-												}).then(response => {
-													props.unfollow(u.id);
-												})
+												props.unfollowTh(u.id)
 											}}/>
+											// кнопка follow с отправкой инфо на серв.
 											: <Icon24LikeOutline className={s.buttonFollow} onClick={() => {
-												// кнопка follow с отправкой инфо на серв.
-												axios.post(`https://social-network.samuraijs.com/api/1.0/follow/${u.id}`,{}, {
-													withCredentials: true,
-													headers: {"API-KEY": "b516e719-c36d-4150-afe4-048d0a974d23"},
-												}).then(response => {
-													props.follow(u.id);
-												})
+												props.followTh(u.id);
 											}}/>
 										}
 									</div>
