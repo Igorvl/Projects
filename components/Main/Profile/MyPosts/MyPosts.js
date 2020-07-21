@@ -1,7 +1,6 @@
 import React from 'react';
 import s from '../../../../css/MyPosts.module.css';
 import Post from "./Post/Post";
-import {Redirect} from "react-router-dom";
 
 export default (props) => {
 	

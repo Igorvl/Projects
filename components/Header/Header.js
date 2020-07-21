@@ -23,10 +23,10 @@ export default (props) => {
 					</div>
 					
 					<div className={s.loginBlock}>
-						{props.authData.isLoggedIn ?
+						{props.isLoggedIn ?
 							<div className={s.loginBlock}>
-								<NavLink to={'/profile'}>
-									<span className={s.loginBlock__name}>{props.authData.login}</span>
+								<NavLink to={'/profile/'+ props.id}>
+									<span className={s.loginBlock__name}>{props.login}</span>
 									<img src={camera} className={s.loginBlock__camera} alt=""/>
 								</NavLink>
 							</div> :

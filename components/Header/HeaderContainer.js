@@ -15,9 +15,7 @@ const HeaderContainer = (props) => {
 		setPreloaderOn(false);
 	}, [authTh]);
 	
-	return <Header
-		authData={props.authData}
-	/>;
+	return <Header {...props.authData}/>;
 };
 
 const mapStateToProps = (state) => {
@@ -26,10 +24,7 @@ const mapStateToProps = (state) => {
 	})
 };
 
-export default connect(mapStateToProps, {
-	// callBacks for mapDispatchToProps
-	authTh,
-})(HeaderContainer);
+export default connect(mapStateToProps, {	authTh,})(HeaderContainer);
 
 
 
