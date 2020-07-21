@@ -12,14 +12,6 @@ const mapStateToProps = (state) => {
 		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
-const mapDispatchToProps = (dispatch) => {
-	return (
-		{
-			// callbacks for textarea and button from Dialog
-			addNewCommentTextCB: txt =>	dispatch(addNewCommentText(txt)),
-			addNewCommentCB: () => dispatch(addNewComment()),
-		}
-	)
-};
-export default connect(mapStateToProps, mapDispatchToProps)(Dialogs);
+
+export default connect(mapStateToProps, {addNewCommentText,addNewComment})(Dialogs);
 

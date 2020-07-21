@@ -30,9 +30,9 @@ export default (props) => {
 					<div className={s.commentBlock}>
 						<img src={userLogo} className={s.logo} alt=""/>
 						<textarea className={s.messageTxt}
-						          onChange={(p)=>{props.addNewCommentTextCB(p.target.value)}}
+						          onChange={(p)=>{props.addNewCommentText(p.target.value)}}
 						          value={props.newCommentTxt}/>
-						<Icon28Send onClick={()=>{props.addNewCommentCB()}} className={s.messageBtn} fill={'#264a64'}/>
+						<Icon28Send onClick={()=>{props.addNewComment()}} className={s.messageBtn} fill={'#264a64'}/>
 					</div>
 				</div>
 			</div>
