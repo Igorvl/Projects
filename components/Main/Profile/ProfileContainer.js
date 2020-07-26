@@ -4,6 +4,7 @@ import {Redirect, withRouter} from 'react-router-dom';
 import Profile from "./Profile";
 import {choosedUserId, currentUser} from "../../Redux/usersReducer";
 import {profileRequest} from "../../Redux/profileReducer";
+import withAuthRedirect from "../../HOC/withAuthRedirect";
 
 const ProfileContainer = (props) => {
 		
@@ -28,7 +29,6 @@ const mapStateToProps = (state) => {
 	return ({
 		UserId: state.usersPage.choosedUserId,
 		choosedUser: state.usersPage.currentUser,
-		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
 
@@ -36,9 +36,7 @@ const mapStateToProps = (state) => {
 // В ссылке в App.js указать параметр ':userId?'
 let ProfileContainerWithParam = withRouter(ProfileContainer);
 
+let AuthRedirectComponent = withAuthRedirect(ProfileContainerWithParam);
 
-export default connect(mapStateToProps, {
-	// callBacks for mapDispatchToProps
-	choosedUserId, currentUser
-})(ProfileContainerWithParam);
+export default connect(mapStateToProps, {	choosedUserId, currentUser })(AuthRedirectComponent);
 

@@ -2,6 +2,7 @@
 import {addNewComment, addNewCommentText} from "../../Redux/dialogsReducer";
 import Dialogs from "./Dialogs";
 import {connect} from "react-redux";
+import withAuthRedirect from "../../HOC/withAuthRedirect";
 
 const mapStateToProps = (state) => {
 	return ({
@@ -9,9 +10,10 @@ const mapStateToProps = (state) => {
 		dialogData: state.dialogsPage.dialogData,
 		messageData: state.dialogsPage.messageData,
 		newCommentTxt: state.dialogsPage.newCommentTxt,
-		isLoggedIn: state.auth.isLoggedIn,
 	})
 };
 
-export default connect(mapStateToProps, {addNewCommentText,addNewComment})(Dialogs);
+let AuthRedirectComponent = withAuthRedirect(Dialogs);
+
+export default connect(mapStateToProps, {addNewCommentText,addNewComment})(AuthRedirectComponent);
 
