@@ -5,6 +5,7 @@ import Profile from "./Profile";
 import {choosedUserId, currentUser} from "../../Redux/usersReducer";
 import {profileRequest} from "../../Redux/profileReducer";
 import withAuthRedirect from "../../HOC/withAuthRedirect";
+import {compose} from "redux";
 
 const ProfileContainer = (props) => {
 		
@@ -32,11 +33,14 @@ const mapStateToProps = (state) => {
 	})
 };
 
-// получение id пользователя из параметра ссылки. withRouter - HOC возвращающий параметры строки в props.
-// В ссылке в App.js указать параметр ':userId?'
-let ProfileContainerWithParam = withRouter(ProfileContainer);
+// все ф-и последовательной обработки ProfileContainer переносим в конвеер compose (ф-я Redux). Порядок выполнения:
+// withRouter, withAuthRedirect, connect
+export default compose(
+	connect(mapStateToProps, {	choosedUserId, currentUser }),
+	// получение id пользователя из параметра ссылки. withRouter - HOC возвращающий параметры строки в props.
+	// В ссылке в App.js указать параметр ':userId?'
+	withAuthRedirect,
+	withRouter,
+)(ProfileContainer);
 
-let AuthRedirectComponent = withAuthRedirect(ProfileContainerWithParam);
-
-export default connect(mapStateToProps, {	choosedUserId, currentUser })(AuthRedirectComponent);
 
