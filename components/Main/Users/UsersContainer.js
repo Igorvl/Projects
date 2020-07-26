@@ -10,6 +10,7 @@ import {
 } from "../../Redux/usersReducer";
 import {connect} from "react-redux";
 import UsersH from "./UsersH";
+// import WithAuthRedirect from "../../HOC/withAuthRedirect";
 import {Redirect} from "react-router-dom";
 
 const UsersContainer = (props) => {
@@ -29,7 +30,8 @@ const UsersContainer = (props) => {
 		paginationNums.push(i);
 	}
 	
-	if (!props.isLoggedIn) return <Redirect to={'/login'} />;
+	// if (!props.isLoggedIn) return <Redirect to={'/login'} />;
+	
 	return <UsersH
 		paginationNums={paginationNums}
 		usersData={props.usersData}
@@ -55,8 +57,20 @@ const mapStateToProps = (state) => {
 	})
 };
 
+const WithAuthRedirect = (Component) => {
+	class RedirectComponent extends React.Component  {
+		render() {
+			if (!this.props.isLoggedIn) return <Redirect to={'/login'}/>;
+			return <Component {...this.props}/>
+		}
+	}
+	return RedirectComponent
+};
+
+
+let AuthRedirectComponent = WithAuthRedirect(UsersContainer);
+
 export default connect(mapStateToProps, {
-	// callBacks for mapDispatchToProps
 	followTh, unfollowTh, totalPages, selectedPage, choosedUserId, getUsersTh, currentUser
-})(UsersContainer);
+})(AuthRedirectComponent);
 
