@@ -39,7 +39,8 @@ let initialState = {
 		"photos": {
 			"small": null,
 			"large": null
-		}
+		},
+		"status": 'Statuz'
 	}
 };
 
