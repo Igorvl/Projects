@@ -24,10 +24,12 @@ export default (props) => {
 					
 					<div className={s.loginBlock}>
 						{props.isLoggedIn ?
-							<div className={s.loginBlock}>
-								<NavLink to={'/profile/'+ props.id}>
-									<span className={s.loginBlock__name}>{props.login}</span>
-									<img src={camera} className={s.loginBlock__camera} alt=""/>
+							<div className={s.loginBlock} onClick={() => props.profileRequest(props.id)}>
+								<NavLink to={'/profile/' + props.id}>
+									<div className={s.loginBlock} >
+										<span className={s.loginBlock__name}>{props.login}</span>
+										<img src={camera} className={s.loginBlock__camera} alt=""/>
+									</div>
 								</NavLink>
 							</div> :
 							<NavLink to={'/login'}>
@@ -36,7 +38,6 @@ export default (props) => {
 							</NavLink>
 						}
 					</div>
-				
 				</div>
 			</header>
 		</div>

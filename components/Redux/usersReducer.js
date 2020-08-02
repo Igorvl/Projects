@@ -20,7 +20,7 @@ let initialState = {
 	isPreloaderRunning: false,
 	choosedUserId: 2,
 	//профиль пользователя
-	currentUser: {
+	choosedUser: {
 		"aboutMe": null,
 		"contacts": {
 			"facebook": null,
@@ -49,13 +49,12 @@ export default (state = initialState, action) => {
 	switch (action.type) {
 		// current user in user page for getting profile
 		case 'CURRENT_USER':
-			return {...state, currentUser: action.currentUser};
+			return {...state, choosedUser : action.choosedUser };
+		// case 'CURRENT_USER':
+		// 	return {...state, choosedUser : {...state.choosedUser, ...action.choosedUser} };
 		// choosed user id in user page for getting profile
 		case 'CHOOSED_USERID':
 			return {...state, choosedUserId: action.choosedUserId};
-		// current page in pagination
-		// case 'IS_PRELOADER_RUNNING':
-		// 	return {...state, isPreloaderRunning: action.isPreloaderRunning};
 		// current page in pagination
 		case 'CHOOSED_PAGE':
 			return {...state, currentPage: state.choosedPage, choosedPage: action.choosedPage};
@@ -105,14 +104,22 @@ export default (state = initialState, action) => {
 
 // action creators
 //for Dialogs NewCommentText andNewComment
-// export const isPreloaderRunning = (isPreloaderRunning) => ({type: IS_PRELOADER_RUNNING, isPreloaderRunning});
 export const selectedPage = (choosedPage) => ({type: CHOOSED_PAGE, choosedPage});
 export const totalPages = (usersData) => ({type: TOTAL_PAGES, usersData: usersData});
 export const getUsers = (usersData) => ({type: GET_USERS, usersData: usersData});
 export const follow = (userId) => ({type: FOLLOW, userId: userId});
 export const unfollow = (userId) => ({type: UNFOLLOW, userId: userId});
 export const choosedUserId = (userId) => ({type: CHOOSED_USERID, choosedUserId: userId});
-export const currentUser = (user) => ({type: CURRENT_USER, currentUser: user});
+export const currentUser = (user) => ({type: CURRENT_USER, choosedUser: user});
+
+
+export const profileRequest = UserId => {
+	return (dispatch) => {
+		dataApiRequest.profileRequest(UserId).then(response => {
+			dispatch(currentUser(response.data));
+		})
+	}
+};
 
 export const getUsersTh = (usersOnPage, choosedPage) => {
 	return (dispatch) => {

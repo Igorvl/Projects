@@ -1,6 +1,6 @@
-//actions
 import {dataApiRequest} from "../../API/dataApiRequest";
 
+//actions
 const AUTH_USER_DATA = 'AUTH_USER_DATA';
 
 //начальные значения для инициализации state redux
@@ -35,7 +35,9 @@ export const authTh = () => {
 	return (dispatch) => {
 		dataApiRequest.authRequest().then(response => {
 			if (response.data.resultCode === 0) {
-			 dispatch(authUser(response.data.data))
+				dispatch(authUser(response.data.data));
 			}
-	})
-}};
+		});
+	}
+};
+

@@ -3,7 +3,7 @@ import {connect} from "react-redux";
 import {Redirect, withRouter} from 'react-router-dom';
 import Profile from "./Profile";
 import {choosedUserId, currentUser} from "../../Redux/usersReducer";
-import {profileRequest} from "../../Redux/profileReducer";
+import {profileRequest} from "../../Redux/usersReducer";
 import withAuthRedirect from "../../HOC/withAuthRedirect";
 import {compose} from "redux";
 
@@ -29,7 +29,7 @@ const ProfileContainer = (props) => {
 const mapStateToProps = (state) => {
 	return ({
 		UserId: state.usersPage.choosedUserId,
-		choosedUser: state.usersPage.currentUser,
+		choosedUser: state.usersPage.choosedUser,
 	})
 };
 

@@ -18,7 +18,8 @@ export default (props) => {
 						<div><img src={props.choosedUser.photos.large} className={s.avaPhoto} alt=""/></div>
 					}
 					<div className={s.title}>
-						<div>{props.choosedUser.name}</div>
+						<div>{props.choosedUser.name ? props.choosedUser.name : props.choosedUser.fullName}</div>
+						<div>{props.choosedUser.status }</div>
 						{!statusState ?
 							<div onDoubleClick={clickOnStatus}>{props.choosedUser.status}</div>	:
 							<div className={s.titleInput}>

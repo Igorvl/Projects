@@ -38,6 +38,7 @@ const UsersContainer = (props) => {
 		followTh={props.followTh}
 		preloaderOn={preloaderOn}
 		choosedUserId={props.choosedUserId}
+		choosedUser={props.choosedUser}
 		currentUser={props.currentUser}
 	/>;
 };
@@ -49,7 +50,6 @@ const mapStateToProps = (state) => {
 		currentPage: state.usersPage.currentPage,
 		choosedPage: state.usersPage.choosedPage,
 		usersOnPage: state.usersPage.usersOnPage,
-		currentUser: state.usersPage.currentUser,
 	})
 };
 

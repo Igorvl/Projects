@@ -15,23 +15,25 @@ import LoginContainer from "./components/Login/LoginContainer";
 
 export default (props) => {
 	return (
-			<div className={s.app}>
-				<HeaderContainer/>
-				<main className={s.body}>
-					<Navbar/>
-					<div className={s.mainField}>
-						<Route render={()=> <ProfileContainer/>} path={'/profile/:userId?'}/>
-						<Route render={()=> <DialogsContainer/>} path={'/dialogs'}/>
-						<Route render={()=> <UsersContainer/>} path={'/users'}/>
-						<Route render={()=> <Music/>} path={'/music'}/>
-						<Route render={()=> <Games/>} path={'/games'}/>
-						<Route render={()=> <News/>} path={'/news'}/>
-						<Route render={()=> <Settings/>} path={'/settings'}/>
-						<Route render={()=> <LoginContainer/>} path={'/login'}/>
-					</div>
-					<MainAside/>
-				</main>
-			</div>
+		<div className={s.app}>
+			<HeaderContainer>
+				<Route render={() => <HeaderContainer/>} path={'/profile/:userId'}/>
+			</HeaderContainer>
+			<main className={s.body}>
+				<Navbar/>
+				<div className={s.mainField}>
+					<Route exact render={() => <ProfileContainer/>} path={'/profile/:userId?'}/>
+					<Route render={() => <DialogsContainer/>} path={'/dialogs'}/>
+					<Route render={() => <UsersContainer/>} path={'/users'}/>
+					<Route render={() => <Music/>} path={'/music'}/>
+					<Route render={() => <Games/>} path={'/games'}/>
+					<Route render={() => <News/>} path={'/news'}/>
+					<Route render={() => <Settings/>} path={'/settings'}/>
+					<Route render={() => <LoginContainer/>} path={'/login'}/>
+				</div>
+				<MainAside/>
+			</main>
+		</div>
 	);
 };
 
