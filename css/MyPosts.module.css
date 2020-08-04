@@ -1,0 +1,12 @@
+.mainBlock {
+    background-color: white;
+}
+
+.posts{
+    margin-top: 10px;
+}
+.postBtn {
+    margin-top: 10px;
+    padding: 5px;
+    border: none;
+}
