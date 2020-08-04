@@ -6,9 +6,17 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "acorn": "^7.4.0",
+    "elliptic": "^6.5.3",
+    "jquery": "^3.5.1",
+    "kind-of": "^6.0.3",
+    "lodash.template": "^4.5.0",
+    "minimist": "^1.2.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1"
+    "react-scripts": "3.4.1",
+    "url-regex": "^5.0.0",
+    "websocket-extensions": "^0.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
