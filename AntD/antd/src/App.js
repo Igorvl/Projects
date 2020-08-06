@@ -1,7 +1,8 @@
 import React, { Component } from "react";
-import { Layout, Input, Button } from "antd";
+import { Layout, Input, Button, List } from "antd";
+import { CheckOutlined } from '@ant-design/icons';
 
-// We import our firestore module
+//import our firestore module
 import firestore from "./firestore";
 
 import "./App.css";
@@ -12,18 +13,48 @@ export default class App extends Component {
   constructor(props) {
     super(props);
     // Set the default state of our application
-    this.state = { addingTodo: false, pendingTodo: "" };
+    this.state = { addingTodo: false, pendingTodo: "", todos: [] };
     // We want event handlers to share this context
     this.addTodo = this.addTodo.bind(this);
+    this.completeTodo = this.completeTodo.bind(this);
+    // We listen for live changes to our todos collection in Firebase
+    firestore.collection("todos").onSnapshot(snapshot => {
+      let todos = [];
+      snapshot.forEach(doc => {
+        const todo = doc.data();
+        todo.id = doc.id;
+        if (!todo.completed) todos.push(todo);
+      });
+      // Sort our todos based on time added
+      todos.sort(function(a, b) {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      });
+      // Anytime the state of our database changes, we update state
+      this.setState({ todos });
+    });
   }
   
-  async addTodo(evt) {
+  async completeTodo(id) {
+    // Mark the todo as completed
+    await firestore
+      .collection("todos")
+      .doc(id)
+      .set({
+        completed: true
+      });
+  }
+  
+  async addTodo() {
+    if (!this.state.pendingTodo) return;
     // Set a flag to indicate loading
     this.setState({ addingTodo: true });
     // Add a new todo from the value of the input
     await firestore.collection("todos").add({
       content: this.state.pendingTodo,
-      completed: false
+      completed: false,
+      createdAt: new Date().toISOString()
     });
     // Remove the loading flag and clear the input
     this.setState({ addingTodo: false, pendingTodo: "" });
@@ -45,6 +76,7 @@ export default class App extends Component {
             onChange={evt => this.setState({ pendingTodo: evt.target.value })}
             value={this.state.pendingTodo}
             onPressEnter={this.addTodo}
+            required
           />
           <Button
             className="App-add-todo-button"
@@ -55,6 +87,21 @@ export default class App extends Component {
           >
             Add Todo
           </Button>
+          <List
+            className="App-todos"
+            size="large"
+            bordered
+            dataSource={this.state.todos}
+            renderItem={todo => (
+              <List.Item>
+                {todo.content}
+                <CheckOutlined
+                  onClick={evt => this.completeTodo(todo.id)}
+                  className="App-todo-complete"
+                />
+              </List.Item>
+            )}
+          />
         </Content>
         <Footer className="App-footer">&copy; My Company</Footer>
       </Layout>
