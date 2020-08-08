@@ -1,0 +1,11 @@
+.title_txt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #A649E9;
+    font-size: 29pt;
+    width: 420px;
+    height: 180px;
+    vertical-align: middle;
+    background: center url(../img/commas.svg) no-repeat ;
+}

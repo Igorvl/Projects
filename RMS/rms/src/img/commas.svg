@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 249.78348 190.52157">
+  <defs>
+    <style>
+      .a {
+        fill: #ededed;
+      }
+    </style>
+  </defs>
+  <title>Asset 1</title>
+  <g>
+    <path class="a" d="M111.70032,91.31619v99.20538H0V91.38547L42.8136,0H74.807L57.75944,91.38547Z"/>
+    <path class="a" d="M249.78348,91.31619v99.20538H138.08316V91.38547L180.89676,0H212.8902L195.8426,91.38547Z"/>
+  </g>
+</svg>
