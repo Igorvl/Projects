@@ -9,6 +9,13 @@
 /*    animation: App-logo-spin infinite 20s linear;*/
 /*  }*/
 /*}*/
+h2{
+  color: #A649E9;
+}
+
+h3{
+  color: #424242;
+}
 
 .App_content {
   background-color: #fafafa;
