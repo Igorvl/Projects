@@ -1,6 +1,45 @@
 .global_wrapper {
     width: 100%;
     height: 100%;
-    background-color: gray;
+    background-color: lightgray;
+}
 
+.adv_H2 {
+    font-family: Lato-Light, serif;
+    font-size: 39px;
+}
+
+.adv_H3 {
+    font-family: Inter-Regular, serif;
+    font-size: 19px;
+}
+
+.adv_remark {
+    font-family: Inter-Regular, serif;
+    color: #757575;
+    font-size: 16px;
+}
+.content_block {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr;
+    justify-items: center;
+}
+.content_block__item {
+    width: 230px;
+}
+
+.item_num {
+    display: block;
+    font-family: Inter-Bold, serif;
+    font-size: 47px;
+    color: #424242;
+}
+.item_num__perc {
+    color: #c3c3c3;
+}
+.item_txt {
+    color: #424242;
+    font-family: Inter-Regular, serif;
+    font-size: 16px;
 }
