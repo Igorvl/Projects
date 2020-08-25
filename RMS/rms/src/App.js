@@ -1,14 +1,15 @@
 import React from 'react';
 import s from './css/App.module.css';
-// import FeedBack from "./Components/feedback";
 import {Layout} from 'antd';
 import Advantage from "./Components/Advantage/Advantage";
 
+// AntD
 const {Header, Footer, Content} = Layout;
 
 function App() {
+	
 	return (
-		<div className={s.App}>
+		<div className={s.App} >
 			<Header>
 				{/*Header*/}
 			</Header>
