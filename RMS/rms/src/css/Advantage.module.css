@@ -7,11 +7,13 @@
 .adv_H2 {
     font-family: Lato-Light, serif;
     font-size: 39px;
+    color: #A649E9;
 }
 
 .adv_H3 {
     font-family: Inter-Regular, serif;
     font-size: 19px;
+    padding-bottom: 20px;
 }
 
 .adv_wrapper {
@@ -23,6 +25,7 @@
     font-family: Inter-Regular, serif;
     color: #757575;
     font-size: 16px;
+    padding-top: 50px;
 }
 
 .content_block {
@@ -34,9 +37,24 @@
 
 .content_block__item {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    flex-basis: 250px;
+    flex-basis: 200px;
+}
+.content_block__item:after {
+    /*flex-wrap: nowrap;*/
+    font-family: Lato-Light, serif;
+    content: '|';
+    font-size: 50px;
+    color: #C3C3C3;
+}
+
+.content_block__item:last-child:after {
+    /*flex-wrap: nowrap;*/
+    font-family: Lato-Light, serif;
+    content: '';
+    font-size: 50px;
+    color: #C3C3C3;
 }
 
 .item_num {
@@ -56,7 +74,7 @@
 .item_txt {
     display: block;
     flex-grow: 1;
-    max-width: 200px;
+    width: 200px;
     color: #424242;
     font-family: Inter-Regular, serif;
     font-size: 16px;
@@ -66,6 +84,7 @@
     display: flex;
     justify-content: center;
     max-width: 250px;
+    min-width: 200px;
 }
 
 .dividerBox {
@@ -80,10 +99,6 @@
     width: 2px;
 }
 
-/*.MuiDividerFlexItem {*/
-/*    height: 30px*/
-/*}*/
-
 .wrap {
     display: flex;
     justify-content: center;
@@ -93,18 +108,26 @@
 @media (max-width: 1000px) {
     .content_block__item {
         flex: 0 1 50%;
-        /*flex-basis: 250px;*/
-        /*max-width: 250px;*/
+        align-items: flex-end;
+        padding-right: 40px;
+        align-self: flex-end;
     }
-
+    .content_block__item:nth-child(even) {
+        align-items: flex-start;
+        padding-left: 40px;
+    }
+    .content_block__item:after {
+        content: '';
+    }
 }
-@media (max-width: 550px) {
-    .content_block__item {
+@media (max-width: 500px) {
+    .content_block__item,
+    .content_block__item:nth-child(even){
         flex: 0 1 100%;
-        min-width: 250px;
+        padding: 0;
+        align-items: center;
     }
-    .adv_wrapper {
-        padding-right: 0px;
-        padding-left: 0px;
+    .content_block__item:after {
+        content: '';
     }
 }
