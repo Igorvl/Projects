@@ -1,22 +1,15 @@
 import React, {useState} from "react";
-import 'antd/dist/antd.css';
 import s from "../../css/Advantage.module.css";
-import {Col, Divider, Row, Space} from "antd";
-
-
-// Ant style
-const style = {background: '#0092ff', padding: '8px 0'};
-
 
 export default () => {
 	
-	let [adv, setAdv] = useState([
-			{id: 0, num: 45, txt: 'Увеличение скорости загрузки сайта'},
-			{id: 1, num: 50, txt: 'Рост продаж с сайта'},
-			{id: 2, num: 75, txt: 'Улучшение имиджа компании'},
-			{id: 3, num: 36, txt: 'Экономия на привлечении клиента'},
-		]
-	);
+	// let [adv, setAdv] = useState([
+	// 		{id: 0, num: 45, txt: 'Увеличение скорости загрузки сайта'},
+	// 		{id: 1, num: 50, txt: 'Рост продаж с сайта'},
+	// 		{id: 2, num: 75, txt: 'Улучшение имиджа компании'},
+	// 		{id: 3, num: 36, txt: 'Экономия на привлечении клиента'},
+	// 	]
+	// );
 	
 	return (
 		<div className={s.global_wrapper}>
@@ -33,22 +26,21 @@ export default () => {
 						<span className={s.item_txt}>Увеличение скорости загрузки сайта</span>
 					</div>
 				</div>
-				
-				{/*	/!*<Divider type="vertical" className={s.antDividerVertical}/>*!/*/}
+				<div className={s.item_sep}> </div>
 				<div className={s.content_block__item}>
 					<div>
 						<div className={s.item_num}>50<span className={s.item_num__perc}>%</span></div>
 						<span className={s.item_txt}>Рост продаж <br/>с сайта</span>
 					</div>
 				</div>
-				{/*	/!*<Divider type="vertical" className={s.antDividerVertical}/>*!/*/}
+				<div className={s.item_sep}> </div>
 				<div className={s.content_block__item}>
 					<div>
 						<div className={s.item_num}>75<span className={s.item_num__perc}>%</span></div>
 						<span className={s.item_txt}>Улучшение имиджа компании</span>
 					</div>
 				</div>
-				{/*	/!*<Divider type="vertical" className={s.antDividerVertical}/>*!/*/}
+				<div className={s.item_sep}> </div>
 				<div className={s.content_block__item}>
 					<div>
 						<div className={s.item_num}>36<span className={s.item_num__perc}>%</span></div>
