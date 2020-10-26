@@ -5,7 +5,7 @@
 
 .adv_H2 {
     font-family: Lato-Light, serif;
-    font-size: 39px;
+    font-size: 35px;
     color: #A649E9;
 }
 
@@ -40,6 +40,7 @@
 
 .item_num {
     display: block;
+    margin-bottom: 25px;
     max-width: 250px;
     font-family: Inter-Bold, serif;
     font-size: 47px;
@@ -99,7 +100,7 @@
         width: 60%;
     }
     .content_block__item {
-        margin-bottom: 10px;
+        margin-bottom: 25px;
     }
     .item_sep {
         border-right: 1px solid lightgray;
@@ -120,4 +121,68 @@
     .content_block__item {
         margin-bottom: 15px;
     }
+}
+
+
+
+
+.a {
+    fill: url(#a);
+}
+
+.b {
+    fill: url(#b);
+}
+
+.c {
+    fill: url(#c);
+}
+
+.d {
+    fill: url(#d);
+}
+
+.e {
+    fill: url(#e);
+}
+
+.f {
+    fill: url(#f);
+}
+
+.g, .i {
+    font-size: 13.54118px;
+}
+
+.g, .i, .n {
+    fill: white;
+    font-family: Roboto-Regular, Roboto, serif;
+}
+
+.g, .l {
+    letter-spacing: 0.19998em;
+}
+
+.h {
+    letter-spacing: 0.20878em;
+}
+
+.i {
+    letter-spacing: 0.18585em;
+}
+
+.j {
+    letter-spacing: 0.20002em;
+}
+
+.k {
+    letter-spacing: 0.11355em;
+}
+
+.m {
+    letter-spacing: 0.20784em;
+}
+
+.n {
+    font-size: 13.55184px;
 }
