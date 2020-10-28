@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="Артман" autoUploadExternalChanges="true">
+    <serverData>
+      <paths name="Артман">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/public_html/elab_test1/" local="$PROJECT_DIR$" web="/" />
+            <mapping local="" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

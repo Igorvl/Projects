@@ -1,0 +1,290 @@
+@media screen and (max-width: 1366px) {
+  body {
+    background: url(../img/main-1366-top.jpg) no-repeat, url(../img/main-1366-bot.jpg) no-repeat bottom;
+    background-size: 100%; }
+
+  .container {
+    max-width: 88.7rem; }
+
+  header {
+    background: none; }
+
+  #mainNav > .container {
+    max-width: 100rem; }
+
+  #mainNav .top-logo .navbar-brand img {
+    max-width: 11.2rem; }
+
+  #mainNav .navbar-nav {
+    margin-top: .5rem;
+    margin-left: 1rem !important; }
+
+  .top-menu-block .navbar .navbar-nav li.nav-item {
+    padding: 0 1.2rem; }
+
+  .top-menu-block .navbar .navbar-nav li.nav-item a.nav-link {
+    font-size: 1rem; }
+
+  .time-phone-block {
+    padding-left: 3rem; }
+
+  .time-phone.d-flex .time {
+    font-size: 1.1rem;
+    margin-top: .3rem !important; }
+
+  .phone {
+    font-size: 2.1rem;
+    margin-right: 0; }
+
+  .header-text-block > div:nth-child(3) p {
+    font-size: 1.1rem; }
+
+  header .vert-title {
+    bottom: 9rem; }
+
+  .vert-title span {
+    font-size: 1.4rem;
+    left: calc(50% - 13.4rem); }
+
+  section#about .about-head-row .holder-left {
+    padding-right: 3.7rem; }
+
+  section#about .about-head-row .holder-right {
+    padding-left: 4rem; }
+
+  section#about .about-head-row .holder-right p {
+    font-size: 1.6rem;
+    max-width: 24rem;
+    line-height: normal; }
+
+  .row.features-items {
+    padding-top: 0;
+    position: relative;
+    top: 0; }
+
+  section#about {
+    padding-bottom: 17rem; }
+
+  .feature-item:nth-child(1) {
+    right: -0.5rem; }
+
+  .feature-item:nth-child(2) {
+    right: -1.3rem; }
+
+  .feature-item:nth-child(3) {
+    right: -2.2rem; }
+
+  .feature-item:nth-child(4) {
+    right: -2.9rem; }
+
+  .feature-item h4 {
+    font-size: 1.65rem;
+    margin-bottom: 1rem; }
+
+  .feature-item {
+    padding: 0 0.7rem; }
+
+  .feature-item p {
+    padding: 0;
+    font-size: 1.25rem;
+    margin-bottom: 2.4rem; }
+
+  .more-btn-wrap a.btn-light span {
+    font-size: 1.2rem;
+    line-height: 3rem;
+    padding: 0 2rem;
+    border-radius: .5rem; }
+
+  section#external_dif {
+    padding-top: 0rem;
+    padding-bottom: 14.7rem; }
+
+  section#external_dif h3 span {
+    margin: .5rem auto; }
+
+  section#external_dif p {
+    font-size: 1.2rem;
+    max-width: 43%;
+    line-height: 1.6rem;
+    margin-top: 2.6rem; }
+
+  section#portfolio .section-header p {
+    margin-bottom: 2.9rem; }
+
+  section#portfolio .row.filter-buttons {
+    padding: 0;
+    margin-bottom: 2rem;
+    padding-left: 3rem; }
+
+  section#portfolio .row.filter-buttons .more-btn-wrap a.btn-light span {
+    font-size: 1rem;
+    min-width: 12.5rem;
+    line-height: 3.2rem; }
+
+  section#portfolio .more-btn-wrap.see-more-btn {
+    margin-top: 2.5rem; }
+
+  section#live_position {
+    margin-top: 0;
+    padding-top: 8.5rem; }
+
+  section#live_position .section-header h3 {
+    margin-bottom: 2.6rem; }
+
+  section#live_position .section-text h4 {
+    font-size: 1.6rem;
+    max-width: 19rem;
+    margin-bottom: 1.6rem;
+    margin-right: 0rem; }
+
+  .more-btn-wrap.see-more-btn a.btn-light span {
+    font-size: 1rem;
+    padding: 0 2.3rem; }
+
+  section#live_position .container .col-6 {
+    margin-top: 6.2rem;
+    margin-bottom: 0rem; }
+
+  .filter-numb {
+    bottom: -4rem !important;
+    font-size: 1.47rem; }
+
+  section#live_position .section-text p {
+    font-size: 1.25rem;
+    line-height: 1.7rem;
+    padding-left: 1rem;
+    margin-right: .1rem; }
+
+  section#all_workes {
+    padding-top: 7.2rem;
+    margin-bottom: 0rem; }
+
+  section#plans .row.features-items .col-4.feature-item.text-center.premium-div p {
+    margin-bottom: 2.4rem; }
+
+  section#workes .vert-title .text-workers {
+    font-size: 1.4rem;
+    top: 8.4rem;
+    right: 0.4rem; }
+
+  section#workes .direktor {
+    padding-top: 13.5rem; }
+
+  section#workes .vert-title {
+    top: 0.3rem; }
+
+  section#workes .direktor p.subheader {
+    font-size: 1.6rem;
+    max-width: 19.3rem;
+    margin-bottom: 2.1rem;
+    line-height: 1.1; }
+
+  section#workes .direktor p.direktor-text-1 {
+    padding-left: .4rem;
+    line-height: 1.55rem;
+    margin-bottom: .8rem;
+    font-size: 1.25rem; }
+
+  section#plans .row.features-items .feature-item-ico .ico-glow img {
+    top: 1.5rem; }
+
+  section#plans .row.features-items .col-4.feature-item.text-center.express-div p {
+    margin-bottom: 2.4rem;
+    padding: 0 1.5rem; }
+
+  section#workes .direktor p {
+    font-size: 1.25rem; }
+
+  .row.oll-workes {
+    padding: 0 2.7rem 0 2rem; }
+
+  section#all_workes .row.oll-workes p.workes-status {
+    font-size: 1.25rem; }
+
+  section#all_workes .row.oll-workes p.workes-worktime {
+    line-height: 0.89rem;
+    font-size: 1.3rem; }
+
+  section#plans {
+    padding-top: 4.1rem; }
+
+  section#plans .row.features-items {
+    padding-top: 1rem;
+    padding-left: 1.7rem;
+    padding-right: 6.7rem; }
+
+  section#plans .row.features-items .feature-item p {
+    padding: 0 1.8rem;
+    font-size: 1.25rem;
+    line-height: 1.33;
+    margin-bottom: 2.4rem;
+    min-height: 7.8rem; }
+
+  section#plans .feature-item:nth-child(2) {
+    right: -2.4rem; }
+
+  section#plans .row.features-items .feature-item p.price {
+    font-size: 1.7rem;
+    min-height: auto; }
+
+  section#contact .vert-title {
+    top: 1.2rem; }
+
+  section#contact .vert-title span {
+    left: calc(50% - 18.3rem); }
+
+  footer.footer {
+    padding-top: 15rem;
+    padding-bottom: 6.5rem; }
+
+  #mainNavBot > .container {
+    max-width: 100rem; }
+
+  #mainNavBot .top-logo .navbar-brand img {
+    max-width: 9.1rem; }
+
+  #mainNavBot .container {
+    margin-left: 7.4rem; }
+
+  #mainNavBot .top-menu-block .navbar .navbar-nav li.nav-item a.nav-link {
+    font-size: .8rem; }
+
+  #mainNavBot .top-menu-block .navbar .navbar-nav li.nav-item {
+    padding: 0 .5rem; }
+
+  div#navbarResponsiveBot {
+    padding-right: 5rem; }
+
+  footer.footer .time-phone-block {
+    padding-left: 0;
+    left: -2.7rem; }
+
+  footer.footer .time-phone.d-flex .time {
+    font-size: 0.8rem;
+    margin-top: .1rem !important; }
+
+  footer.footer .phone {
+    font-size: 1.6rem; }
+
+  section#contact p.subtitle {
+    font-size: 1.56rem;
+    max-width: 17.2rem; }
+
+  section#contact p {
+    margin-bottom: 3.65rem;
+    max-width: 35rem; }
+
+  p.sequrity {
+    display: none; }
+
+  form#form2 .form-fields {
+    margin-bottom: 2.5rem; }
+
+  form#form2 input.btn-sub {
+    font-size: 1.2rem;
+    line-height: 2.5rem;
+    padding: 0 2.2rem; }
+
+  .scroll-to-top {
+    right: 6.5rem;
+    bottom: 6rem; } }

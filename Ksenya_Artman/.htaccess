@@ -1,0 +1,28 @@
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# END WordPress
+# RewriteCond %{HTTP_HOST} ^ksar\.me$ [OR]
+# RewriteCond %{HTTP_HOST} ^www\.ksar\.me$
+# RewriteRule ^contsept\-2\/\â\€\Ž$ "http\:\/\/ksar\.me\/\?project\=contsept\-2" [R=301,L]
+
+# RewriteCond %{HTTP_HOST} ^ksar\.me$ [OR]
+# RewriteCond %{HTTP_HOST} ^www\.ksar\.me$
+# RewriteRule ^contsept\-1\/\â\€\Ž$ "http\:\/\/ksar\.me\/\?project\=contsept1" [R=301,L]
+
+Options +FollowSymLinks
+RewriteEngine On
+RewriteCond %{HTTP_HOST} ^euromedialab\.com$ [OR]
+RewriteCond %{HTTP_HOST} ^www\.euromedialab\.com$
+RewriteCond %{REQUEST_URI} !^/[0-9]+\..+\.cpaneldcv$
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/.+$
+RewriteCond %{REQUEST_URI} !^/\.well-known/pki-validation/[A-F0-9]{32}\.txt(?:\ Comodo\ DCV)?$
+RewriteRule ^/?$ "http\:\/\/euromedialab\.ru\/" [R=301,L]
+

@@ -1,0 +1,351 @@
+@media screen and (max-width: 1920px) {
+
+  .container {
+
+    max-width: 81.6rem; }
+
+
+
+  #mainNav .container {
+
+    max-width: 82rem; }
+
+
+
+  body {
+
+    background: url(../img/main-1920-top.jpg) no-repeat, url(../img/main-1920-bot.jpg) no-repeat bottom;
+
+    background-size: contain; }
+
+
+
+  .more-btn-wrap a.btn-light span {
+
+    font-size: 0.9rem; }
+
+
+
+  section#external_dif p {
+
+    margin-top: 2.4rem; }
+
+
+
+  section#external_dif p.gold-text2 {
+
+    margin-bottom: 2.54rem; }
+
+
+
+  .top-logo.col-2 {
+
+    right: -1.25rem; }
+
+
+
+  .time-phone-block {
+
+    padding-left: 2rem; }
+
+
+
+  header {
+
+    height: 87.5rem; }
+
+
+
+  .header-text-block > div:nth-child(1) p {
+
+    margin-bottom: .4rem; }
+
+
+
+  .header-text-block > div:nth-child(2) p {
+
+    margin-bottom: 1.6rem; }
+
+
+
+  section#about .about-head-row .holder-left {
+
+    padding-right: 4.3rem; }
+
+
+
+  section#about .about-head-row .holder-right {
+
+    padding-left: 4.8rem; }
+
+
+
+  .row.features-items {
+
+    padding-top: 0.1rem; }
+
+    .row.features-items .more-btn-wrap {
+
+      margin-top: 2rem; }
+
+
+
+  section#about {
+
+    padding-bottom: 16.1rem; }
+
+
+
+  section#external_dif {
+
+    padding-bottom: 14.8rem; }
+
+
+
+  section#portfolio .section-header {
+
+    margin-top: -2.4rem; }
+
+
+
+  section#portfolio .row.filter-buttons {
+
+    padding: 0px 13%;
+
+    margin-bottom: 3.8rem; }
+
+
+
+  .more-btn-wrap {
+
+/*     margin-top: 3.5rem;  */
+  }
+
+
+
+  section#live_position {
+
+    margin-top: 0;
+
+    padding-top: 300px;
+
+    padding-bottom: 3rem; }
+
+
+
+  section#live_position .section-header h3 {
+
+    margin-bottom: 2rem; }
+
+
+
+  section#live_position .section-text h4 {
+
+    margin-right: .4rem; }
+
+
+
+  section#live_position .section-text p {
+
+    font-size: 1.07rem;
+
+    line-height: 1.58rem;
+
+    margin-bottom: 0;
+
+    padding-left: 1.6rem;
+
+    margin-right: .5rem; }
+
+
+
+  section#workes .direktor {
+
+    padding-right: 1.5rem;
+
+    padding-top: 9.5rem; }
+
+
+
+  section#all_workes {
+
+    padding-top: 6.2rem;
+
+    margin-bottom: 0rem; }
+
+
+
+  .row.oll-workes {
+
+    padding: 0 1.5rem; }
+
+
+
+  .row.oll-workes.oll-workes-2row {
+
+    padding-top: 3.4rem;
+
+    padding-bottom: 2rem; }
+
+
+
+  section#plans {
+
+    padding-top: 4.3rem;
+
+    padding-bottom: 0; }
+
+    section#plans .heart-workers {
+
+      margin-bottom: 2.6rem; }
+
+
+
+  section#plans .row.features-items .feature-item-ico-holder {
+
+    margin-top: -10.5rem; }
+
+
+
+  section#plans .row.features-items {
+
+    padding-top: 0.2rem;
+
+    padding-left: 2.4rem;
+
+    padding-right: 4.5rem; }
+
+
+
+  section#plans .row.features-items .feature-item p {
+
+    margin-bottom: 2.1rem; }
+
+
+
+  section#plans .row.features-items .col-4.feature-item.text-center.express-div p {
+
+    margin-bottom: 1.45rem; }
+
+
+
+  section#plans .row.features-items .col-4.feature-item.text-center.premium-div p {
+
+    margin-bottom: 2rem; }
+
+
+
+  section#plans .more-btn-wrap {
+
+    margin-top: 2.5rem; }
+
+
+
+  section#contact {
+
+    padding-top: 11rem;
+
+    padding-bottom: 3.2rem;
+
+    margin-top: -0.8rem; }
+
+
+
+  footer.footer {
+
+    padding-top: 13.2rem;
+
+    padding-bottom: 3rem; }
+
+
+
+  section#contact .vert-title span {
+
+    left: calc(50% - 15.7rem); }
+
+
+
+  #mainNavBot .container {
+
+    margin-left: 6.5rem; }
+
+
+
+  section#all_workes .container {
+
+    max-width: 81.5rem; }
+
+
+
+  form#form2 .form-fields {
+
+    margin-bottom: 1rem; }
+
+
+
+  section#live_position .container .col-6 {
+
+    margin-top: -4.8rem;
+
+    margin-bottom: 4rem; }
+
+
+
+  .more-btn-wrap.bottom-send {
+
+    display: none; }
+
+
+
+  p.no-nado.bottom-no-nado {
+
+    display: none; }
+
+
+
+  form#form2 {
+
+    display: block; }
+
+
+
+  img.big {
+
+    display: none; }
+
+
+
+  img.mid {
+
+    display: block !important; }
+
+
+
+  section#workes .vert-title {
+
+    top: -2.1rem; }
+
+
+
+  .more-btn-wrap.see-more-btn a.btn-light span {
+
+    font-size: 0.8rem; }
+
+
+
+  .filter-numb {
+
+    bottom: -2.7rem !important; }
+
+
+
+  section#plans .row.features-items .feature-item-ico .ico-glow img {
+
+    top: 1.2rem; }
+
+
+
+  section#external_dif p.gold-text1 {
+
+    margin-top: 3.2rem; } }
+
