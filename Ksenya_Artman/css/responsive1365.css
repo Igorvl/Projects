@@ -13,7 +13,8 @@
     max-width: 100rem; }
 
   #mainNav .top-logo .navbar-brand img {
-    max-width: 11.2rem; }
+    /*max-width: 11.2rem; */
+  }
 
   #mainNav .navbar-nav {
     margin-top: .5rem;
