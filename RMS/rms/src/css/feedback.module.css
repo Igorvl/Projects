@@ -1,3 +1,26 @@
+.grid{
+    display: grid;
+    grid-template-columns: 1fr 3fr 6fr 2fr;
+    grid-template-rows: 100px 305px 100px;
+}
+
+.img{
+    grid-area: 2/2/3/3;
+    background: url(.././img/elena-skrybina.jpg) center no-repeat;
+}
+h2{
+    font-family: Inter-Regular, Roboto, serif;
+    font-size: 20px;
+    color: #353535;
+    text-align: left;
+}
+.info_box{
+    grid-area: 2/4/3/3;
+}
+.info_box_txt{
+
+}
+
 .title_txt {
     display: flex;
     align-items: center;

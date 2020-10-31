@@ -2,7 +2,8 @@ import React from 'react';
 import s from './css/App.module.css';
 import {Layout} from 'antd';
 import Advantage from "./Components/Advantage/Advantage";
-import Strategy from "./Components/Advantage/Strategy";
+import Strategy from "./Components/Strategy/Strategy";
+import Feedback from "./Components/Feedback/Feedback";
 
 // AntD
 const {Header, Footer, Content} = Layout;
@@ -17,7 +18,7 @@ function App() {
 			<Content  className={s.App_content}>
 				<Advantage/>
 				<Strategy/>
-				{/*<FeedBack/>*/}
+				<Feedback/>
 			</Content>
 			<Footer>
 				{/*Footer*/}
