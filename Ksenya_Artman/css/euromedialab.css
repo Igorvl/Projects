@@ -4602,7 +4602,7 @@ section#all_workes .row.oll-workes .workes-foto {
   background: #dfecf4;
   border-radius: 100%;
   border: .1rem solid #fff;
-  box-shadow: 0 0 50px 30px #f7f1e6; }
+  box-shadow: 0 0 50px 30px #f7f1e6, 0 0 6px 3px black; }
 section#all_workes .row.oll-workes .workes-foto .workes-foto-iner {
   border-radius: 50%;
   overflow: hidden;
