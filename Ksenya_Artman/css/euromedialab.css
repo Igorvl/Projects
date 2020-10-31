@@ -4595,30 +4595,36 @@ section#all_workes {
   padding-top: 5.7rem; }
   section#all_workes .container {
     max-width: 78rem; }
-  section#all_workes .row.oll-workes .workes-foto {
-    display: inline-block;
-    padding: .8rem;
-    background: #dfecf4;
-    border-radius: 100%;
-    border: .1rem solid #fff;
-    box-shadow: 0 0 100px #f7f1e6; }
-    section#all_workes .row.oll-workes .workes-foto .workes-foto-iner {
-      border-radius: 50%;
-      overflow: hidden;
-      max-width: 10.8rem; }
-      section#all_workes .row.oll-workes .workes-foto .workes-foto-iner img {
-        transition: all 0.5s ease;
-        -webkit-transition: all 0.5s ease;
-        -moz-transition: all 0.5s ease;
-        -o-transition: all 0.5s ease;
-        border-radius: 50%;
-        overflow: hidden; }
-    section#all_workes .row.oll-workes .workes-foto:hover .workes-foto-iner img {
-      -webkit-transform: scale(1.03);
-      -ms-transform: scale(1.03);
-      transform: scale(1.03);
-      border-radius: 50%;
-      overflow: hidden; }
+
+section#all_workes .row.oll-workes .workes-foto {
+  display: inline-block;
+  padding: .8rem;
+  background: #dfecf4;
+  border-radius: 100%;
+  border: .1rem solid #fff;
+  box-shadow: 0 0 50px 30px #f7f1e6; }
+section#all_workes .row.oll-workes .workes-foto .workes-foto-iner {
+  border-radius: 50%;
+  overflow: hidden;
+  max-width: 10.8rem; }
+section#all_workes .row.oll-workes .workes-foto .workes-foto-iner img {
+  transition: all 0.5s ease;
+  -webkit-transition: all 0.5s ease;
+  -moz-transition: all 0.5s ease;
+  -o-transition: all 0.5s ease;
+  border-radius: 50%;
+  overflow: hidden; }
+section#all_workes .row.oll-workes .workes-foto:hover .workes-foto-iner img {
+  -webkit-transform: scale(1.03);
+  -ms-transform: scale(1.03);
+  transform: scale(1.03);
+  border-radius: 50%;
+  overflow: hidden; }
+
+
+
+
+
   section#all_workes .row.oll-workes p.workes-name {
     font-family: 'MuseoSansCyrl-300';
     font-size: 1.8rem;
@@ -4753,7 +4759,7 @@ section#contact {
     bottom: auto;
     height: 11.3rem; }
     section#contact .vert-title span {
-      left: calc(50% - 15.5rem); }
+      left: calc(50% - 19.1rem); }
   section#contact form#contactForm {
     display: none; }
 
