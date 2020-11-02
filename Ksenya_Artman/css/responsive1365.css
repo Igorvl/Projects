@@ -165,8 +165,9 @@
 
   section#workes .vert-title .text-workers {
     font-size: 1.4rem;
-    top: 8.4rem;
-    right: 0.4rem; }
+    top: 10.4rem;
+    /*right: 0.4rem; */
+  }
 
   section#workes .direktor {
     padding-top: 13.5rem; }
