@@ -4469,10 +4469,11 @@ section#live_position {
     margin-left: 0;
   }
     section#live_position .container .col-7 {
-      padding-right: 3.1rem;
+      /*padding-right: 3.1rem;*/
       padding-top: 0;
       padding-left: 2rem;
-      margin-left: -2rem; }
+      /*margin-left: -2rem; */
+    }
   section#live_position .section-header h3 {
     font-size: 3.25rem;
     font-weight: 100;
@@ -4634,7 +4635,7 @@ section#all_workes .row.oll-workes .workes-foto:hover .workes-foto-iner img {
 
   section#all_workes .row.oll-workes p.workes-name {
     font-family: 'MuseoSansCyrl-300';
-    font-size: 1.8rem;
+    font-size: 1.52rem;
     /*font-size: 46pt;*/
     text-transform: uppercase;
     line-height: 1.5;
@@ -4642,7 +4643,7 @@ section#all_workes .row.oll-workes .workes-foto:hover .workes-foto-iner img {
     white-space: nowrap; }
   section#all_workes .row.oll-workes p.workes-status {
     font-family: 'MuseoSansCyrl-300';
-    font-size: 1rem;
+    font-size: 1.02rem;
     text-transform: uppercase;
     line-height: 1;
     margin: 0;

@@ -144,9 +144,13 @@
     font-size: 1rem;
     padding: 0 2.3rem; }
 
-  section#live_position .container .col-6 {
+  section#live_position .container .col-7 {
     margin-top: 6.2rem;
-    margin-bottom: 0rem; }
+    margin-bottom: 0rem;
+    padding-right: 5.1rem;
+    margin-left: 2rem;
+
+  }
 
   .filter-numb {
     bottom: -4rem !important;
