@@ -1,7 +1,13 @@
 @media screen and (max-width: 1366px) {
   body {
-    background: url(../img/main-1366-top.jpg) no-repeat, url(../img/main-1366-bot.jpg) no-repeat bottom;
+    background: url(../img/main-1366-top.jpg) no-repeat;
+    /*, url(../img/main-1366-bot.jpg) no-repeat bottom;*/
     background-size: 100%; }
+
+  .bottom_bgr {
+    background: url(../img/main-1366-bot.jpg) no-repeat;
+    margin-top: -15rem;
+  }
 
   .container {
     max-width: 88.7rem; }

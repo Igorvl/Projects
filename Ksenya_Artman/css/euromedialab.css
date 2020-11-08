@@ -88,10 +88,21 @@ section {
 body {
   font-family: inherit;
   font-size: 1rem;
-  background: url(../img/main-3966-top.jpg) no-repeat, url(../img/main-3966-bot.jpg) no-repeat bottom;
+  background: url(../img/main-3966-top.jpg) no-repeat;
+  /*, url(../img/main-3966-bot.jpg) no-repeat bottom;*/
   background-size: contain;
   overflow-x: hidden;
-  max-width: 100%; }
+  max-width: 100%;
+}
+
+.bottom_bgr {
+  background: url(../img/main-3966-bot.jpg) no-repeat;
+  margin-top: -9rem;
+  /*background-size: contain;*/
+  overflow-x: hidden;
+  background-size: 100%;
+  max-width: 100%;
+}
 
 img.mid {
   display: none; }

@@ -1,6 +1,14 @@
 body {
-  background: url(../img/main-720-top.jpg) no-repeat, url(../img/main-720-bot.jpg) no-repeat center 100%;
+  background: url(../img/main-720-top.jpg) no-repeat;
+  /*, url(../img/main-720-bot.jpg) no-repeat center 100%;*/
   background-size: contain; }
+
+.bottom_bgr {
+  background: url(../img/main-720-bot.jpg) no-repeat;
+  /*margin-top: -9rem;*/
+
+}
+
 
 html {
   font-size: 2.5vw; }

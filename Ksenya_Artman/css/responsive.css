@@ -14,10 +14,16 @@
 
   body {
 
-    background: url(../img/main-1920-top.jpg) no-repeat, url(../img/main-1920-bot.jpg) no-repeat bottom;
+    background: url(../img/main-1920-top.jpg) no-repeat;
+    /*, url(../img/main-1920-bot.jpg) no-repeat bottom;*/
 
     background-size: contain; }
 
+  .bottom_bgr {
+    background: url(../img/main-1920-bot.jpg) no-repeat;
+    margin-top: -12rem;
+
+  }
 
 
   .more-btn-wrap a.btn-light span {
@@ -136,26 +142,17 @@
 
 
   section#live_position .section-text p {
-
     font-size: 1.07rem;
-
     line-height: 1.58rem;
-
     margin-bottom: 0;
-
-    padding-left: 1.6rem;
-
-    margin-right: .5rem; }
-
-
+    padding-left: 8.6rem;
+    margin-right: .5rem;
+  }
 
   section#workes .direktor {
-
     padding-right: 1.5rem;
-
-    padding-top: 9.5rem; }
-
-
+    padding-top: 27.2rem;
+  }
 
   section#all_workes {
 
@@ -242,18 +239,17 @@
 
 
   footer.footer {
-
-    padding-top: 13.2rem;
-
-    padding-bottom: 3rem; }
-
-
+    /*padding-top: 13.2rem;*/
+    padding-bottom: 3rem;
+  }
 
   section#contact .vert-title span {
 
     left: calc(50% - 16.7rem); }
 
+  section#contact .col-6 {
 
+  }
 
   #mainNavBot .container {
 
