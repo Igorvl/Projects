@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 127.26518 135.62506">
+  <defs>
+    <style>
+      .a, .b, .c {
+        fill: none;
+        stroke-linecap: round;
+        stroke-miterlimit: 10;
+      }
+
+      .a {
+        stroke: #5b6f7c;
+        stroke-width: 3px;
+      }
+
+      .b {
+        stroke: #8499aa;
+      }
+
+      .c {
+        stroke: #b52518;
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <title>Asset 3</title>
+  <g>
+    <g>
+      <polyline class="a" points="1.5 134.125 107.649 134.125 107.649 34.407"/>
+      <rect class="a" x="1.5" y="74.99856" width="26.3933" height="47.2495"/>
+      <polyline class="b" points="9.657 82.999 19.737 82.999 19.737 114.248"/>
+      <rect class="a" x="36.9113" y="63.80226" width="26.3934" height="58.4458"/>
+      <polyline class="b" points="45.067 71.802 55.149 71.802 55.149 114.248"/>
+      <rect class="a" x="72.3228" y="49.95296" width="26.3932" height="72.2951"/>
+      <polyline class="b" points="80.479 57.953 90.559 57.953 90.559 114.248"/>
+    </g>
+    <path class="c" d="M123.48282,3.78237v0a9.49954,9.49954,0,0,0-13.43438,0L107.64888,6.1819l-2.39955-2.39955a9.49956,9.49956,0,0,0-13.43439,0v0a9.49953,9.49953,0,0,0,0,13.43438l2.39954,2.39955,13.4344,13.4344,13.4344-13.4344,2.39954-2.39955A9.49953,9.49953,0,0,0,123.48282,3.78237Z"/>
+  </g>
+</svg>

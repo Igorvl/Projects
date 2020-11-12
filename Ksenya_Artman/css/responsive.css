@@ -129,7 +129,7 @@
 
   section#live_position {
     margin-top: 0;
-    padding-top: 300px;
+    padding-top: 480px;
     padding-bottom: 3rem; }
 
   section#live_position .section-header h3 {
@@ -142,39 +142,31 @@
 
 
   section#live_position .section-text p {
-    font-size: 1.07rem;
-    line-height: 1.58rem;
+    font-size: 1.17rem;
+    line-height: 1.9rem;
+    margin-top: 4.5rem;
     margin-bottom: 0;
     padding-left: 8.6rem;
     margin-right: .5rem;
   }
 
   section#workes .direktor {
-    padding-right: 1.5rem;
-    padding-top: 27.2rem;
+    /*padding-right: 1.5rem;*/
+    padding-top: 23.5rem;
+    padding-left: 5.5rem;
   }
 
   section#all_workes {
-
-    padding-top: 6.2rem;
-
-    margin-bottom: 0rem; }
-
-
+    padding-top: 11rem;
+    margin-bottom: 0rem;
+  }
 
   .row.oll-workes {
-
-    padding: 0 1.5rem; }
-
-
-
+    padding: 0 1.5rem;
+  }
   .row.oll-workes.oll-workes-2row {
-
     padding-top: 3.4rem;
-
     padding-bottom: 2rem; }
-
-
 
   section#plans {
 
@@ -239,8 +231,8 @@
 
 
   footer.footer {
-    /*padding-top: 13.2rem;*/
     padding-bottom: 3rem;
+    padding-top: 7.26rem
   }
 
   section#contact .vert-title span {
@@ -253,9 +245,13 @@
 
   #mainNavBot .container {
 
-    margin-left: 6.5rem; }
+    /*margin-left: 6.5rem;*/
+  }
 
-
+  .top-menu-block {
+    padding-left: 3.9rem;
+    padding-right: 1.2rem;
+  }
 
   section#all_workes .container {
 
@@ -309,7 +305,7 @@
 
   section#workes .vert-title {
 
-    top: 5rem; }
+    top: 12rem; }
 
 
 

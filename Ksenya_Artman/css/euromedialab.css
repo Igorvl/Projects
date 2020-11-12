@@ -321,7 +321,7 @@ img {
       .top-menu-block .navbar .navbar-nav li.nav-item a.nav-link {
         padding: 0;
         font-family: Arial, Gotham, "Helvetica Neue", Helvetica, "sans-serif";
-        font-size: .72rem;
+        font-size: 1rem;
         line-height: 1.9rem;
         position: relative;
         transition: all 200ms;
@@ -4483,7 +4483,7 @@ section#live_position {
       /*padding-right: 3.1rem;*/
       padding-top: 0;
       padding-left: 2rem;
-      /*margin-left: -2rem; */
+      margin-left: 2rem;
     }
   section#live_position .section-header h3 {
     font-size: 3.25rem;
@@ -4498,9 +4498,9 @@ section#live_position {
   section#live_position .section-text {
     text-align: right; }
     section#live_position .section-text h4 {
-      font-size: 1.37rem;
+      font-size: 2rem;
       font-weight: 100;
-      max-width: 15.9rem;
+      /*max-width: 15.9rem;*/
       margin-left: auto;
       margin-bottom: 1.31rem;
       color: #1e2e3c; }
@@ -4579,7 +4579,8 @@ section#workes {
       font-size: 3.18rem;
       font-weight: 100;
       line-height: 1;
-      margin-bottom: 2.4rem; }
+      margin-bottom: 2.4rem;
+    }
       section#workes .direktor h3 span {
         display: block;
         font-family: 'MuseoSansCyrl-700';
@@ -4588,17 +4589,17 @@ section#workes {
         line-height: 4.2rem;
         padding-left: .5rem; }
     section#workes .direktor p.subheader {
-      font-size: 1.4rem;
-      max-width: 16.3rem;
-      margin-bottom: 1.8rem;
+      font-size: 1.9rem;
+      /*max-width: 16.3rem;*/
+      margin-bottom: 2rem;
       padding-left: .3rem; }
     section#workes .direktor p {
-      font-size: 1.05rem;
+      font-size: 1.15rem;
       line-height: 1.4;
       margin-bottom: 1.6rem; }
     section#workes .direktor p.direktor-text-1 {
       padding-left: .4rem;
-      line-height: 1.54rem;
+      line-height: 1.9rem;
       margin-bottom: .8rem; }
     section#workes .direktor p.direktor-text-2 {
       padding-left: .4rem;
