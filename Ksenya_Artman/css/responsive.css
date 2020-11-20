@@ -215,20 +215,19 @@
 
 
   section#plans .more-btn-wrap {
+    margin-top: 2.5rem;
+  }
 
-    margin-top: 2.5rem; }
-
+  .heart-workers > img {
+    margin-left: 1rem;
+  }
 
 
   section#contact {
-
-    padding-top: 11rem;
-
+    padding-top: 3rem;
     padding-bottom: 3.2rem;
-
-    margin-top: -0.8rem; }
-
-
+    margin-top: -0.8rem;
+  }
 
   footer.footer {
     padding-bottom: 3rem;
@@ -236,16 +235,7 @@
   }
 
   section#contact .vert-title span {
-
-    left: calc(50% - 16.2rem); }
-
-  section#contact .col-6 {
-
-  }
-
-  #mainNavBot .container {
-
-    /*margin-left: 6.5rem;*/
+    left: calc(50% - 16.2rem);
   }
 
   .top-menu-block {
@@ -254,16 +244,12 @@
   }
 
   section#all_workes .container {
-
-    max-width: 81.5rem; }
-
-
+    max-width: 81.5rem;
+  }
 
   form#form2 .form-fields {
-
-    margin-bottom: 1rem; }
-
-
+    margin-bottom: 1rem;
+  }
 
   section#live_position .container .col-6 {
 
