@@ -6,7 +6,7 @@
 
   .bottom_bgr {
     background: url(../img/main-1366-bot.jpg) no-repeat;
-    margin-top: -15rem;
+    margin-top: -18rem;
   }
 
   .container {
@@ -132,9 +132,9 @@
     margin-top: 2.5rem; }
 
   section#live_position {
-    margin-top: 110px;
-    padding-top: 0px;
-    /*padding-top: 8.5rem;*/
+    /*margin-top: 110px;*/
+    /*padding-top: 0px;*/
+    padding-top: 20rem;
   }
 
   section#live_position .section-header h3 {
@@ -153,8 +153,8 @@
   section#live_position .container .col-7 {
     margin-top: 6.2rem;
     margin-bottom: 0rem;
-    padding-right: 5.1rem;
-    margin-left: 2rem;
+    padding-right: 6rem;
+    padding-left: 4rem;
 
   }
 
@@ -163,13 +163,18 @@
     font-size: 1.47rem; }
 
   section#live_position .section-text p {
-    font-size: 1rem;
-    line-height: 1.7rem;
+    font-size: 1.3rem;
+    line-height: 2rem;
+    padding-left: 3rem;
+    margin-right: .1rem;
+  }
+
+  .text-workers-holder{
     padding-left: 1rem;
-    margin-right: .1rem; }
+  }
 
   section#workes {
-    margin-top: -100px;
+    margin-top: 0px;
   }
 
   section#all_workes {
@@ -186,22 +191,24 @@
   }
 
   section#workes .direktor {
-    padding-top: 13.5rem; }
+    padding-top: 22rem;
+    padding-left: 5rem;
+  }
 
   section#workes .vert-title {
     top: 9.3rem; }
 
   section#workes .direktor p.subheader {
-    font-size: 1.6rem;
+    font-size: 2rem;
     max-width: 19.3rem;
-    margin-bottom: 2.1rem;
+    margin-bottom: 3rem;
     line-height: 1.1; }
 
   section#workes .direktor p.direktor-text-1 {
     padding-left: .4rem;
-    line-height: 1.55rem;
+    line-height: 2rem;
     margin-bottom: .8rem;
-    font-size: 1.25rem; }
+    font-size: 1.35rem; }
 
   section#plans .row.features-items .feature-item-ico .ico-glow img {
     top: 1.5rem; }
