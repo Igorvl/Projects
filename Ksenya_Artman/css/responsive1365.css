@@ -1,11 +1,11 @@
 @media screen and (max-width: 1366px) {
   body {
     background: url(../img/main-1366-top.jpg) no-repeat;
-    /*, url(../img/main-1366-bot.jpg) no-repeat bottom;*/
     background-size: 100%; }
 
   .bottom_bgr {
     background: url(../img/main-1366-bot.jpg) no-repeat;
+    background-size: 100%;
     margin-top: -18rem;
   }
 
@@ -65,9 +65,11 @@
     line-height: normal; }
 
   .row.features-items {
+    max-width: 81rem;
     padding-top: 0;
     position: relative;
-    top: 0; }
+    top: 0;
+  }
 
   section#about {
     padding-bottom: 17rem; }

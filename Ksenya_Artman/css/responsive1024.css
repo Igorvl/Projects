@@ -1,7 +1,13 @@
 @media screen and (max-width: 1024px) {
   body {
-    background: url(../img/main-1024-top.jpg) no-repeat, url(../img/main-1024-bot.jpg) no-repeat bottom;
+    background: url(../img/main-1024-top.jpg) no-repeat;
     background-size: 100%; }
+
+  .bottom_bgr {
+    background: url(../img/main-1024-bot.jpg) no-repeat;
+    background-size: 100%;
+    margin-top: -12rem;
+  }
 
   .container {
     max-width: 85rem; }
@@ -16,11 +22,15 @@
   #mainNav .top-logo .navbar-brand img {
     max-width: 100%; }
 
+  .row-menu {
+    margin-left: 0.5rem;
+  }
+
   .phone {
-    font-size: 1.88rem;
+    font-size: 1.7rem;
     margin-right: 0;
     position: relative;
-    left: -1.1rem;
+    /*left: -2.5rem;*/
     top: 0.4rem; }
 
   .top-menu-block .navbar .navbar-nav li.nav-item a.nav-link {
@@ -48,6 +58,18 @@
 
   section#about {
     padding-bottom: 13rem; }
+
+  .doc {
+    margin-top: 25rem;
+  }
+
+  .feature-item {
+    grid-template-rows: 16rem 4rem 10rem 4rem;
+  }
+
+  .about-item{
+    grid-template-rows: 16rem 4rem 4rem 0rem;
+  }
 
   section#external_dif h3 span {
     margin: 1rem auto; }
@@ -167,10 +189,12 @@
     margin-bottom: 1.1rem; }
 
   section#contact .vert-title {
-    top: 1.4rem; }
+    /*top: 1.4rem; */
+  }
 
   section#contact {
-    padding-top: 14rem; }
+    /*padding-top: 14rem; */
+  }
 
   section#contact p {
     margin-bottom: 3.65rem;
@@ -205,9 +229,10 @@
   nav#mainNavBot .top-menu-block {
     padding-left: 0;
     padding-right: 0;
+    padding-top: 0.5rem;
     max-width: none;
     margin-left: 4rem;
-    flex: 0 0 55%; }
+    flex: 0 0 45%; }
 
   #mainNavBot .top-menu-block .navbar .navbar-nav li.nav-item {
     padding: 0 1.45rem; }
@@ -225,8 +250,8 @@
     left: 0;
     max-width: 17rem; }
 
-  footer.footer .phone {
-    font-size: 1.9rem; }
+  /*footer.footer .phone {*/
+  /*  font-size: 1.9rem; }*/
 
   img.mid {
     display: none !important; }
@@ -235,7 +260,8 @@
     display: block !important; }
 
   section#contact .vert-title span {
-    left: calc(50% - 18.4rem); } }
+    left: calc(50% - 19rem); }
+}
 @media screen and (max-width: 768px) {
     .category__item  {
         width: 230px;

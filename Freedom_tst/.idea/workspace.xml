@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="e9089c0d-db55-43e8-a890-5613c64ee3d7" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/Freedom_tst.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.nvmrc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.ar.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.bg.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.cs.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.da.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.de.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.el.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.en.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.es.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.fi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.fr.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.hi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.hu.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.id.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.it.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.ja.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.ko.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.nl.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.no.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.pl.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.pt.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.ru.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.sv.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.th.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.tr.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.uk.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/i18n/i18n.zh.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/iguanachart.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/iguanachart.min.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/iguanachart.min.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/buy.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/down.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/exclamation.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-buy.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-down.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-exclamation.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-leftDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-leftUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-rightDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-rightUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-sell.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-smileDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-smileUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-trash.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/icon-up.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/left.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/leftDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/leftUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/nt_graph_popup.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/question.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/right.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/rightDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/rightUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/sell.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/smileDown.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/smileUp.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/images/up.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/styles/cursors/grab.cur" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/styles/cursors/grabbing.cur" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/styles/cursors/red_vertical_cursor.cur" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/styles/icons/panzoom.gif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/example/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/chart.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/.empty" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.ar.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.bg.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.da.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.de.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.el.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.en.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.es.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.fi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.fr.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.hi.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.hu.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.id.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.it.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.ja.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.ko.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.nl.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.no.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.pl.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.pt.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.sv.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.th.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.uk.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/i18n/i18n.zh.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/iguana-ui.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/jquery.iguana-chart.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/jquery.simplemodal.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/00-core.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/01-1-chartwidgetlayer.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/01-2-chartarealayer.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/01-chartdrawinglayer.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/02-chartelement.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/03-chartchannel.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/04-chartellipse.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/05-chartfibonacciarc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/06-chartfibonaccicorrection.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/08-charthorizontalline.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/10-chartrectangle.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/11-charttrend.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/12-charttriangle.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/13-chartverticalline.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/14-chartmark.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/15-chartlabel.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/16-chartarrow.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/18-charttrade.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/19-charbubble.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/21-chartorder.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/22-chartvisualtrade.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/23-chartbutton.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/24-chartevent.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/26-chartrange.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/27-chartposition.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/28-charttradepanels.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/30-charthorizontalrange.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/41-crosshair.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/50-chartoptions.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/51-chart.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/52-chartarea.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/53-chartrenderer.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/54-chartselection.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/55-charttouches.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/charting/70-prediction.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/ichart.core.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/lib/indicators.descr.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/TA_analyse_rs.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/TA_common.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/TA_prototypes.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_AD.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ADOSC.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ADX.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_APO.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_AROON.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ATR.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_BBANDS.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_CHV.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_DPO.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ELDR.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_EMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MACD.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MEDPRICE.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MFI.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MINUS_DI.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_MINUS_DM.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_OBV.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_PCH.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_PLUS_DI.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_PPO.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ROC.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_RSI.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_SAR.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_SMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_STOCH.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_TEMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_TRANGE.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_TRIMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_TYPPRICE.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_VAR.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_VPT.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_WCLPRICE.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_WILLR.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_WMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/ta/functions/TA_ZLEMA.JS" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/scripts/templates.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/_toolbar.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/ichart.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/icons.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/icons.less" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/md_colors.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/md_colors.less" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/styles/sprite.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Ksenya_Artman/fonts/PFDinDisplayPro-Light.otf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Ksenya_Artman/fonts/PFDinDisplayPro-Light.svg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../RMS/rms/src/Components/Nettrd.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/css/euromedialab.css" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/css/euromedialab.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive.css" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive1024.css" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive1024.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive1365.css" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/css/responsive1365.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/fonts/PFDinDisplayPro-Light.woff" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/fonts/PFDinDisplayPro-Light.woff" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Ksenya_Artman/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../Ksenya_Artman/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../RMS/rms/src/Components/Feedback/Feedback.js" beforeDir="false" afterPath="$PROJECT_DIR$/../RMS/rms/src/Components/Feedback/Feedback.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="PackageJsonUpdateNotifier">
+    <dismissed value="$PROJECT_DIR$/package.json" />
+  </component>
+  <component name="ProjectId" id="1kjrv2D6lmyWjMLvnhJIyVcwY9R" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.gutterIcons" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Projects\Business\Web_projects\Freedom_tst" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Projects\Business\Web_projects\Freedom_tst\example" />
+      <recent name="C:\Projects\Business\Web_projects\Freedom_tst" />
+      <recent name="C:\Projects\Business\Web_projects\Freedom_tst\src" />
+    </key>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e9089c0d-db55-43e8-a890-5613c64ee3d7" name="Default Changelist" comment="" />
+      <created>1606225068618</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1606225068618</updated>
+      <workItem from="1606225071883" duration="14906000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="440" y="402" width="1108" height="650" key="find.popup" timestamp="1606266957200">
+      <screen x="0" y="0" width="1920" height="1052" />
+    </state>
+    <state x="440" y="402" width="1108" height="650" key="find.popup/0.0.1920.1052/-1366.0.1366.768@0.0.1920.1052" timestamp="1606266957200" />
+    <state x="539" y="17" key="search.everywhere.popup" timestamp="1606226152608">
+      <screen x="0" y="0" width="1920" height="1052" />
+    </state>
+    <state x="539" y="17" key="search.everywhere.popup/0.0.1920.1052/-1366.0.1366.768@0.0.1920.1052" timestamp="1606226152608" />
+  </component>
+</project>

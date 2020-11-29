@@ -1,19 +1,14 @@
 @media screen and (max-width: 1920px) {
 
   .container {
-
-    max-width: 81.6rem; }
-
-
+    max-width: 81.6rem;
+  }
 
   #mainNav .container {
-
-    max-width: 82rem; }
-
-
+    max-width: 82rem;
+  }
 
   body {
-
     background: url(../img/main-1920-top.jpg) no-repeat;
     /*, url(../img/main-1920-bot.jpg) no-repeat bottom;*/
 
@@ -21,125 +16,73 @@
 
   .bottom_bgr {
     background: url(../img/main-1920-bot.jpg) no-repeat;
+    background-size: 100%;
     margin-top: -12rem;
-
   }
 
-
   .more-btn-wrap a.btn-light span {
-
     font-size: 0.9rem; }
 
-
-
   section#external_dif p {
-
     margin-top: 2.4rem; }
 
-
-
   section#external_dif p.gold-text2 {
-
     margin-bottom: 2.54rem; }
 
-
-
   .top-logo.col-2 {
-
     right: -1.25rem; }
 
-
-
   .time-phone-block {
-
     padding-left: 2rem; }
 
-
-
   header {
-
     height: 87.5rem; }
 
-
-
   .header-text-block > div:nth-child(1) p {
-
     margin-bottom: .4rem; }
 
-
-
   .header-text-block > div:nth-child(2) p {
-
     margin-bottom: 1.6rem; }
 
-
-
   section#about .about-head-row .holder-left {
-
     padding-right: 4.3rem; }
 
-
-
   section#about .about-head-row .holder-right {
-
     padding-left: 4.8rem; }
 
-
-
   .row.features-items {
-
     padding-top: 0.1rem; }
 
     .row.features-items .more-btn-wrap {
-
       margin-top: 2rem; }
 
-
-
   section#about {
-
     padding-bottom: 16.1rem; }
 
-
-
   section#external_dif {
-
     padding-bottom: 14.8rem; }
 
-
-
   section#portfolio .section-header {
-
     margin-top: -2.4rem; }
 
-
-
   section#portfolio .row.filter-buttons {
-
     padding: 0px 13%;
-
     margin-bottom: 3.8rem; }
 
-
-
   .more-btn-wrap {
-
 /*     margin-top: 3.5rem;  */
   }
 
   section#live_position {
     margin-top: 0;
-    padding-top: 480px;
+    padding-top: 27rem;
     padding-bottom: 3rem; }
 
   section#live_position .section-header h3 {
     margin-bottom: 2rem; }
 
   section#live_position .section-text h4 {
-
     margin-right: .4rem; }
-
-
 
   section#live_position .section-text p {
     font-size: 1.17rem;
@@ -169,50 +112,28 @@
     padding-bottom: 2rem; }
 
   section#plans {
-
     padding-top: 4.3rem;
-
     padding-bottom: 0; }
 
     section#plans .heart-workers {
-
       margin-bottom: 2.6rem; }
 
-
-
   section#plans .row.features-items .feature-item-ico-holder {
-
     margin-top: -10.5rem; }
 
-
-
   section#plans .row.features-items {
-
     padding-top: 0.2rem;
-
     padding-left: 2.4rem;
-
     padding-right: 4.5rem; }
 
-
-
   section#plans .row.features-items .feature-item p {
-
     margin-bottom: 2.1rem; }
 
-
-
   section#plans .row.features-items .col-4.feature-item.text-center.express-div p {
-
     margin-bottom: 1.45rem; }
 
-
-
   section#plans .row.features-items .col-4.feature-item.text-center.premium-div p {
-
     margin-bottom: 2rem; }
-
-
 
   section#plans .more-btn-wrap {
     margin-top: 2.5rem;
@@ -222,10 +143,9 @@
     margin-left: 1rem;
   }
 
-
   section#contact {
-    padding-top: 3rem;
-    padding-bottom: 3.2rem;
+    /*padding-top: 3rem;*/
+    /*padding-bottom: 3.2rem;*/
     margin-top: -0.8rem;
   }
 
