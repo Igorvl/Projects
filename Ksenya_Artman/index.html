@@ -304,7 +304,7 @@
                      <div
                              v-if="pagination.next != pagination.max && pagination.next < pagination.max"
                              @click="nextPagination()"
-                             class="more-btn-wrap"
+                             class="more-btn-wrap  show-more"
                              style="text-align: center;"
                      >
                         <!-- class="portfolio__more" -->
@@ -468,15 +468,12 @@
 
 <!--=++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ Documents Section ++++++++++++++++++++-->
 
-            <section class="about doc">
+            <section id="doc" class="doc">
                <div class="container">
-                  <div class="row features-items">
-                     <div class="WeE11 col-3 feature-item about-item text-center neVidno"
+                  <div class="doc-items">
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner super-ico-inner">
                                  <img src="img/downbrif.svg" alt="brif_download_icon">
@@ -486,12 +483,9 @@
                         <h4>СКАЧАТЬ БРИФ</h4>
                         <span class="workes-status">СКАЧАЙТЕ PDF-ФАЙЛ <br> размер 5 Mb</span>
                        </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner uniq-spes-ico-inner ">
                                  <img src="img/conditions.svg" alt="УСЛОВИЯ РАБОТЫ">
@@ -501,12 +495,9 @@
                         <h4>УСЛОВИЯ РАБОТЫ</h4>
                         <span class="workes-status">СКАЧАЙТЕ PDF-ФАЙЛ <br>размер 1 Mb</span>
                      </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner clock-ico-inner">
                                  <img src="img/downprice.svg" alt="СКАЧАТЬ ПРАЙС">
@@ -516,12 +507,9 @@
                         <h4>СКАЧАТЬ ПРАЙС</h4>
                         <span class="workes-status">СКАЧАЙТЕ PDF-ФАЙЛ <br>размер 1 Mb</span>
                      </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner">
                                  <img src="img/instagram.svg" alt="МОЙ INSTAGRAM иконка">
@@ -531,21 +519,9 @@
                         <h4>МОЙ INSTAGRAM</h4>
                         <span class="workes-status">ДЕЛЮСЬ ОПЫТОМ <br>полезные посты и ресурсы</span>
                      </div>
-                  </div>
-               </div>
-            </section>
-
-
-
-            <section class="about doc2">
-               <div class="container">
-                  <div class="row features-items">
-                     <div class="WeE11 col-3 feature-item text-center neVidno"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner super-ico-inner">
                                  <img src="img/education.svg" alt="ОБРАЗОВАНИЕ_icon">
@@ -555,12 +531,9 @@
                         <h4>ОБРАЗОВАНИЕ</h4>
                         <span class="workes-status">НИИ ВШЭ «Дизайн» 2009г.<br>Магистр</span>
                      </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner uniq-spes-ico-inner ">
                                  <img src="img/process.svg" alt="КАК Я РАБОТАЮ">
@@ -570,12 +543,9 @@
                         <h4>КАК Я РАБОТАЮ</h4>
                         <span class="workes-status">МОЙ СТИЛЬ<br>и особенности работы</span>
                      </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner clock-ico-inner">
                                  <img src="img/resume.svg" alt="МОЁ РЕЗЮМЕ">
@@ -585,12 +555,9 @@
                         <h4>МОЁ РЕЗЮМЕ</h4>
                         <span class="workes-status">ОПЫТ РАБОТЫ 15 ЛЕТ<br>на фрилансе с 2009г</span>
                      </div>
-                     <div class="col-3 feature-item about-item text-center"
+                     <div class="feature-item doc-item"
                           data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">
                         <div class="feature-item-ico">
-<!--                           <div class="ico-glow">-->
-<!--                              <img src="img/glow.png" alt="">-->
-<!--                           </div>-->
                            <div class="feature-item-ico-holder">
                               <div class="feature-item-ico-inner">
                                  <img src="img/scheme.svg" alt="СХЕМА РАБОТЫ иконка">
@@ -603,6 +570,63 @@
                   </div>
                </div>
             </section>
+
+
+
+<!--            <section class="doc2">-->
+<!--               <div class="container">-->
+<!--                  <div class="row features-items">-->
+<!--                     <div class="WeE11 col-3 feature-item text-center neVidno"-->
+<!--                          data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">-->
+<!--                        <div class="feature-item-ico">-->
+<!--                           <div class="feature-item-ico-holder">-->
+<!--                              <div class="feature-item-ico-inner super-ico-inner">-->
+<!--                                 <img src="img/education.svg" alt="ОБРАЗОВАНИЕ_icon">-->
+<!--                              </div>-->
+<!--                           </div>-->
+<!--                        </div>-->
+<!--                        <h4>ОБРАЗОВАНИЕ</h4>-->
+<!--                        <span class="workes-status">НИИ ВШЭ «Дизайн» 2009г.<br>Магистр</span>-->
+<!--                     </div>-->
+<!--                     <div class="col-3 feature-item about-item text-center"-->
+<!--                          data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">-->
+<!--                        <div class="feature-item-ico">-->
+<!--                           <div class="feature-item-ico-holder">-->
+<!--                              <div class="feature-item-ico-inner uniq-spes-ico-inner ">-->
+<!--                                 <img src="img/process.svg" alt="КАК Я РАБОТАЮ">-->
+<!--                              </div>-->
+<!--                           </div>-->
+<!--                        </div>-->
+<!--                        <h4>КАК Я РАБОТАЮ</h4>-->
+<!--                        <span class="workes-status">МОЙ СТИЛЬ<br>и особенности работы</span>-->
+<!--                     </div>-->
+<!--                     <div class="col-3 feature-item about-item text-center"-->
+<!--                          data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">-->
+<!--                        <div class="feature-item-ico">-->
+<!--                           <div class="feature-item-ico-holder">-->
+<!--                              <div class="feature-item-ico-inner clock-ico-inner">-->
+<!--                                 <img src="img/resume.svg" alt="МОЁ РЕЗЮМЕ">-->
+<!--                              </div>-->
+<!--                           </div>-->
+<!--                        </div>-->
+<!--                        <h4>МОЁ РЕЗЮМЕ</h4>-->
+<!--                        <span class="workes-status">ОПЫТ РАБОТЫ 15 ЛЕТ<br>на фрилансе с 2009г</span>-->
+<!--                     </div>-->
+<!--                     <div class="col-3 feature-item about-item text-center"-->
+<!--                          data-anijs="if: load, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim; if: scroll, on: window, do: fadeInUp animated, before: scrollReveal, after: removeAnim">-->
+<!--                        <div class="feature-item-ico">-->
+<!--                           <div class="feature-item-ico-holder">-->
+<!--                              <div class="feature-item-ico-inner">-->
+<!--                                 <img src="img/scheme.svg" alt="СХЕМА РАБОТЫ иконка">-->
+<!--                              </div>-->
+<!--                           </div>-->
+<!--                        </div>-->
+<!--                        <h4>СХЕМА РАБОТЫ</h4>-->
+<!--                        <span class="workes-status">ЭТАПЫ РАБОТЫ<br>над проектом</span>-->
+<!--                     </div>-->
+<!--                  </div>-->
+<!--               </div>-->
+<!--            </section>-->
 
             <!-- =================================================================== Otz slider Section -->
             <section id="testim" class="testim">
@@ -817,7 +841,7 @@
                               связи
                               с Вами</p>
 
-                           <div class="more-btn-wrap">
+                           <div class="more-btn-wrap btn-form">
                               <a class="more-btn-wrap btn-light"><span><input type="submit"
                                                                               value="ОТПРАВИТЬ"></span></a>
                            </div>

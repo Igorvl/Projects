@@ -99,6 +99,10 @@
     padding-left: 5.5rem;
   }
 
+  section#workes .vert-title .text-workers {
+    left: 0.1rem;
+  }
+
   section#all_workes {
     padding-top: 11rem;
     margin-bottom: 0rem;
@@ -139,9 +143,9 @@
     margin-top: 2.5rem;
   }
 
-  .heart-workers > img {
-    margin-left: 1rem;
-  }
+  /*.heart-workers > img {*/
+  /*  margin-left: 1rem;*/
+  /*}*/
 
   section#contact {
     /*padding-top: 3rem;*/
@@ -155,7 +159,7 @@
   }
 
   section#contact .vert-title span {
-    left: calc(50% - 16.2rem);
+    left: calc(50% - 16.6rem);
   }
 
   .top-menu-block {
