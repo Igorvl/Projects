@@ -724,6 +724,11 @@ section#plans .feature-item-ico .ico-glow img {
     padding-top: 3rem;
     z-index: 1;
     font-size: 1.42rem; }
+
+.doc-item.feature-item h4 {
+  margin: 0 auto;
+}
+
   .feature-item p {
     margin: 0 auto;
     margin-bottom: 2.9rem;

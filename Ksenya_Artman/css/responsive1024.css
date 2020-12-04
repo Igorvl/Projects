@@ -1,6 +1,6 @@
 @media screen and (max-width: 1024px) {
   body {
-    background: url(../img/main-1024-top.jpg) no-repeat;
+    background: url(../img/main-1024-top.webp) no-repeat;
     background-size: 100%; }
 
   .bottom_bgr {
@@ -57,14 +57,25 @@
     padding-right: 0; }
 
   section#about {
-    padding-bottom: 13rem; }
+    padding-bottom: 13rem;
+    /*padding: 1rem 8rem 19rem 8rem*/
+  }
 
   .doc {
     margin-top: 25rem;
   }
 
-  .feature-item {
-    grid-template-rows: 16rem 4rem 10rem 4rem;
+  section#about .holder-right p {
+    font-size: 1.75rem;
+    max-width: 31rem;
+  }
+
+  /*.feature-item {*/
+  /*  grid-template-rows: 16rem 4rem 10rem 4rem;*/
+  /*}*/
+
+  .feature-item h4 {
+    margin: 0;
   }
 
   .about-item{
@@ -81,23 +92,32 @@
     max-width: 89rem; }
 
   section#external_dif p {
-    font-size: 1.3rem;
-    max-width: 44%;
-    line-height: 1.8rem;
-    margin-top: 2.5rem; }
+    font-size: 1.6rem;
+    max-width: 50%;
+    line-height: 2rem;
+    margin-top: 2.5rem;
+  }
 
   section#external_dif {
     padding-bottom: 14.3rem;
-    padding-top: 1rem; }
+    padding-top: 4rem; }
 
   section#portfolio .more-btn-wrap.see-more-btn {
     margin-top: 2.1rem; }
 
+
+  section#live_position {
+    padding-bottom: 8em;
+  }
+
+
   section#live_position .section-text p {
-    font-size: 1.35rem;
-    line-height: 1.8rem;
+    font-size: 1.45rem;
+    line-height: 2.2rem;
     padding-left: 0;
-    margin-right: 0; }
+    margin-right: 0;
+    margin-top: 2.5rem;
+  }
 
   section#live_position .section-text h4 {
     margin-bottom: 1.3rem; }
@@ -108,12 +128,29 @@
   section#live_position .section-header h3 {
     margin-bottom: 2.3rem; }
 
+  section#live_position .container .col-7 {
+    padding-left: 8rem;
+  }
+
+  section#doc {
+     margin-top: 0rem;
+    padding-top: 13rem;
+  }
+
+
   .filter-numb {
     font-size: 1.6rem; }
 
+  /*.feature-item {*/
+  /*  grid-template-rows: 4rem 13rem;*/
+  /*}*/
+
   section#about .feature-item p {
-    line-height: 1.8rem;
-    margin-bottom: 1rem; }
+    line-height: 2.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.6rem;
+    padding: 1.4rem 1rem 0rem 0rem;
+  }
 
   section#about .row.features-items .more-btn-wrap {
     margin-top: 1.6rem; }
@@ -133,9 +170,9 @@
 
   section#workes .direktor p.direktor-text-1 {
     padding-left: .4rem;
-    line-height: 1.8rem;
+    line-height: 2.2rem;
     margin-bottom: 1.3rem;
-    font-size: 1.3rem; }
+    font-size: 1.45rem; }
 
   section#workes .direktor p.direktor-text-2 {
     padding-left: .4rem;
@@ -193,7 +230,7 @@
   }
 
   section#contact {
-    /*padding-top: 14rem; */
+    padding-top: 0rem;
   }
 
   section#contact p {
@@ -201,6 +238,10 @@
     max-width: 35rem;
     font-size: 1.5rem;
     line-height: 1.7rem; }
+
+  section#contact .col-6 {
+    padding-top: 5rem;
+  }
 
   form#form2 input.btn-sub {
     font-size: 1.1rem; }
@@ -238,7 +279,7 @@
     padding: 0 1.45rem; }
 
   footer.footer {
-    padding-top: 12.5rem;
+    padding-top: 7rem;
     padding-bottom: 7.5rem; }
 
   .scroll-to-top {
@@ -260,7 +301,7 @@
     display: block !important; }
 
   section#contact .vert-title span {
-    left: calc(50% - 19rem); }
+    left: calc(50% - 19.5rem); }
 }
 @media screen and (max-width: 768px) {
     .category__item  {
