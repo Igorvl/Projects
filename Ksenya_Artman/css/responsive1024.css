@@ -1,6 +1,6 @@
 @media screen and (max-width: 1024px) {
   body {
-    background: url(../img/main-1024-top.webp) no-repeat;
+    background: url(../img/main-1024-top.jpg) no-repeat;
     background-size: 100%; }
 
   .bottom_bgr {
@@ -63,6 +63,14 @@
 
   .doc {
     margin-top: 25rem;
+  }
+
+  .doc-items {
+    row-gap: 10rem;
+  }
+
+  .doc-item {
+    padding-top: 2rem;
   }
 
   section#about .holder-right p {
