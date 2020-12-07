@@ -5,8 +5,8 @@ body {
 
 .bottom_bgr {
   background: url(../img/main-720-bot.jpg) no-repeat;
-  /*margin-top: -9rem;*/
-
+  position: center;
+  background-size: 100%;
 }
 
 
@@ -395,7 +395,7 @@ section#live_position .container .col-7 {
 }
 
 section#live_position .section-header h3 {
-  margin-top: 21rem;
+  margin-top: 14rem;
   margin-bottom: 4.6rem;
   text-align: center !important;
   font-size: 4.27rem;
@@ -495,7 +495,7 @@ p.direktor-text-1 {
 
 .doc-items {
   grid-template-columns: 1fr;
-  grid-template-rows: repeat(8, 1fr);
+  grid-template-rows: repeat(5, 1fr);
   row-gap: 10rem;
 }
 
@@ -516,7 +516,11 @@ p.direktor-text-1 {
 }
 
 section#doc {
-  padding-top: 10rem;
+  padding-top: 7rem;
+}
+
+.doc-item:last-child, .doc-item:nth-child(7), .doc-item:nth-child(6) {
+  display: none;
 }
 
 section#workes .direktor p.direktor-text-1 {
@@ -558,7 +562,8 @@ section#plans .row.features-items .col-4.feature-item.text-center.express-div p 
   margin-bottom: 2.9rem; }
 
 div#contact-anch .heart-workers {
-  top: -5.5rem; }
+  top: -8rem;
+}
 
 section#plans .section-header h3 {
   font-size: 3.78rem;
@@ -637,7 +642,7 @@ section#plans .row.features-items .feature-item p.price {
   margin-bottom: 3.6rem; }
 
 section#contact {
-  padding-top: 8rem;
+  padding-top: 16rem;
   margin-top: 0; }
 
 section#contact .vert-title {
@@ -709,7 +714,7 @@ footer.footer {
 
 .mobile-footer.d-none {
   display: block !important;
-  margin-top: 21.5rem; }
+  margin-top: 43rem; }
   .mobile-footer.d-none .h3 {
     font-family: 'MuseoSansCyrl-700';
     font-size: 4rem;
