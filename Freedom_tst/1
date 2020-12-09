@@ -1,0 +1,76 @@
+<script type="text/javascript">
+	$("#iChart").on("iguanaChartEvents", function(e, name, data){
+		if(name == "drawComplete") {
+			$("[name='SelectInstrument']").removeClass("active");
+		}
+	})
+		.iguanaChart(
+			{
+				ticker:"LKOH",
+				period: "M8",
+				chartOptions: {
+					minHeight: $('#iChart').height()
+				},
+				dataSource: $.extend(true, {}, iChartDataSource)
+			}
+		);
+
+$(document).on("click", "[name='SelectInstrument']", function(){
+	$("#iChart").iguanaChart("toolStart", $(this).data("instrument"));
+	$("[name='SelectInstrument']").removeClass("active");
+	$(this).addClass("active");
+});
+
+</script>
+
+<span class="chartTool" name="SelectInstrument" data-instrument="Line" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Free line ">
+	<i class="icon-free-line"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="HorizontalLine" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Horizontal line ">
+	<i class="icon-h-line"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="VerticalLine" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Vertical line ">
+	<i class="icon-v-line"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Channel" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Channel ">
+	<i class="icon-channel"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Trend" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Corner trend ">
+	<i class="icon-angle-trend"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Arrow" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Arrow ">
+	<i class="icon-arrow-line"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Polygon" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Polygon ">
+	<i class="icon-f-poligon"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Rectangle" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Rectangle ">
+	<i class="icon-f-square"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Triangle" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Triangle ">
+	<i class="icon-f-triangle"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Ellipse" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Ellipse ">
+	<i class="icon-f-ellipse"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="FibonacciArc" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Fibonacci Arcs ">
+	<i class="icon-f-fibonacci-arcs"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="FibonacciFan" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Fibonacci Fan ">
+	<i class="icon-f-fibonacci-fan"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="FibonacciCorrection" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Fibonacci Retracement ">
+	<i class="icon-f-fibonacci-correction"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Text" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Add text ">
+	<i class="icon-font"></i>
+	</span>
+	<span class="chartTool" name="SelectInstrument" data-instrument="Bubble" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Text with a pointer ">
+	<i class="icon-f-comment"></i>
+	</span>
+	<span class="chartTool" onclick="$('#iChart').data('iguanaChart').removeAllInstruments_onClick();" data-uk-tooltip="{cls:'left-chart-bar-tip'}" title=" Clear chart ">
+	<i class="icon-trash"></i>
+	</span>
+	
+	<div id="iChart" style="height: 500px; position: relative;"></div>
+ 

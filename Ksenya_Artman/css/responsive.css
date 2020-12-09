@@ -193,37 +193,29 @@
 
     display: none; }
 
-
-
   form#form2 {
 
     display: block; }
-
-
 
   img.big {
 
     display: none; }
 
-
-
   img.mid {
-
     display: block !important; }
 
-
+  section#workes {
+    background-size: 100%;
+    margin-top: -3rem;
+  }
 
   section#workes .vert-title {
-
-    top: 12rem; }
-
-
+    top: 12rem;
+  }
 
   .more-btn-wrap.see-more-btn a.btn-light span {
 
     font-size: 0.8rem; }
-
-
 
   .filter-numb {
 

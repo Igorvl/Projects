@@ -519,9 +519,11 @@ section#doc {
   padding-top: 7rem;
 }
 
-.doc-item:last-child, .doc-item:nth-child(7), .doc-item:nth-child(6) {
+.doc-items > .feature-item:nth-child(2), .doc-items > .feature-item:nth-child(3), .doc-items > .feature-item:nth-child(4) {
   display: none;
 }
+
+/*, .doc-item:nth-child(2), .doc-item:nth-child(3)*/
 
 section#workes .direktor p.direktor-text-1 {
   padding-left: 0;
@@ -763,8 +765,7 @@ footer.footer .phone.phone-mob {
 section#plans .feature-item:nth-child(2) .feature-item-ico-holder .feature-item-ico-inner {
   padding: 2.5rem; }
 
-/*.feature-item:nth-child(3) .feature-item-ico-holder .feature-item-ico-inner {*/
-/*  padding: 1rem !important; }*/
+
 
 .remodal-wrapper .remodal1 {
   background: #fff url(../img/forms-bg-mob.jpg) no-repeat bottom;
