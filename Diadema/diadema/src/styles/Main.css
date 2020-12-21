@@ -1,0 +1,339 @@
+@import url('/src/fonts/fonts.css');
+@charset "UTF-8";
+
+html{
+    font-size: 1vw;
+    color: #834358;
+}
+
+h1{
+    font-family: 'Merriweather', sans-serif;
+    font-size: 2.3rem;
+    font-weight: normal;
+    /*color: #834358;*/
+}
+
+.main{
+    background: url('../img/diadema-verstka-1920.webp') #fdd4db no-repeat;
+    background-size: 100%;
+    width: 100%;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: .5fr 5.5fr .5fr;
+    /*grid-template-rows: 0.8fr 0.9fr 1.9fr repeat(2, 1.3fr) 0.6fr 0.3fr;*/
+    gap: 0px 0px;
+    grid-template-areas:
+            ". Top-Menu ."
+            ". Diadema ."
+            ". Sale ."
+            ". Celebrate ."
+            ". HelpChoose ."
+            ". ChooseWithUs ."
+            ". Copyright .";
+    width: 100%;
+}
+
+.Top-Menu {
+    display: grid;
+    grid-template-columns: 0.5fr 1.9fr 0.9fr;
+    padding: 3rem 4.5rem 3.5rem 5rem;
+    gap: 0px 0px;
+    grid-template-areas:
+            "TopMenu-Logo TopMenu-Menu TopMenu-Phone";
+    grid-area: Top-Menu;
+}
+
+.TopMenu-Logo {
+    grid-area: TopMenu-Logo;
+    /*padding-left: 5rem;*/
+}
+.TopMenu-Logo > img{
+    width: 10rem;
+}
+
+.TopMenu-Menu {
+    grid-area: TopMenu-Menu;
+
+}
+.TopMenu-Menu > ul {
+    display: flex;
+    list-style-type: none;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+
+.TopMenu-Link{
+    text-decoration: none;
+    color: #834358;
+    font-family: 'MuseoSansCyrl-700', sans-serif;
+    font-size: 0.9rem;
+}
+.TopMenu-Phone {
+    grid-area: TopMenu-Phone;
+    padding-left: 5rem;
+    justify-items: start;
+    text-align: start;
+}
+
+.TopMenu-Phone span:first-child{
+    font-size: 1.6rem;
+    font-family: 'Merriweather', sans-serif;
+    font-weight: bold;
+    width: 15rem;
+
+}
+.PhoneCode {
+    color: #c59266;
+}
+
+.TopMenu-Phone span:nth-child(2){
+    display: block;
+    font-size: 0.9rem;
+    font-family: 'MuseoSansCyrl-500', sans-serif;
+    padding-top: 0.5rem;
+}
+
+.Diadema {
+    display: grid;
+    grid-template-columns: 0.95fr 1.4fr;
+    grid-template-rows: 35rem;
+    gap: 0px 0px;
+    grid-template-areas:
+            "Diadema-Simbol .";
+    grid-area: Diadema;
+}
+
+.Diadema-Simbol {
+    grid-area: Diadema-Simbol;
+    padding-top: 10.5rem;
+}
+
+.Diadema-Simbol > img{
+    width: 10.5rem;
+}
+
+.Sale {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 0.7fr 1.3fr;
+    gap: 0px 0px;
+    grid-template-areas:
+            "Sale-Title"
+            "Sale-Items";
+    grid-area: Sale;
+}
+
+.Sale-Title {
+    grid-area: Sale-Title;
+    min-height: 17rem;
+    align-content: center;
+    font-size: 1.2rem;
+    color: #834358;
+}
+.Sale-Title > h1{
+    padding-top: 4rem;
+    margin-bottom: 0.5rem;
+}
+
+.Sale-Title_code{
+    display: block;
+}
+
+.Sale-Title_code span{
+    color: #c59266;
+    font-family: 'MuseoSansCyrl-500',sans-serif;
+
+}
+
+.Sale-Items {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: 1fr;
+    gap: 0px 0px;
+    grid-template-areas:
+            "Item . . . . .";
+    grid-area: Sale-Items;
+    margin: 0 6rem;
+    padding-top: 4rem;
+    column-gap: 0.9rem;
+}
+
+.Item {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1.2fr 0.8fr;
+    /*gap: 0px 0px;*/
+    grid-template-areas:
+            "Item-Photo"
+            "Item-Price";
+    /*grid-area: Item;*/
+    background: url('../img/price_sep.webp') no-repeat  50% 89%;
+    background-size: 60%
+}
+
+.Item-Photo { grid-area: Item-Photo; }
+.Item-Photo img{
+    width: 11.5rem;
+}
+.Item-Price {
+    grid-area: Item-Price;
+    font-family: 'MuseoSansCyrl-100',sans-serif;
+    font-size: 1.2rem;
+    padding-top: 2rem;
+    /*color: #834358;*/
+}
+.Item-Price span{
+    display: block;
+    font-family: 'Merriweather', sans-serif;
+    font-size: 1.7rem;
+    padding-top: .7rem;
+}
+
+
+.Celebrate {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 2fr 1fr;
+    gap: 0px 0px;
+    grid-template-areas:
+            "Celebrate-Text"
+            "Celebrate-Filter";
+    grid-area: Celebrate;
+    padding: 0 30rem 0 6rem;
+}
+
+.Celebrate-Text {
+    grid-area: Celebrate-Text;
+    padding: 8.5rem 9.5rem 0 0;
+    text-align: left;
+    font-size: 1.2rem;
+    font-family: 'MuseoSansCyrl-100', sans-serif;
+    line-height: 1.7rem;
+}
+.Celebrate-Text h1{
+    /*margin-bottom: 1.2rem;*/
+}
+
+.Celebrate-Filter {
+    grid-area: Celebrate-Filter;
+    display: flex;
+    justify-content: space-around;
+    padding-top: 2.4rem;
+}
+
+.filterLink{
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: #834358;
+    text-transform: uppercase;
+    width: 12.9rem;
+}
+
+.filter{
+    background: url("../img/filterButton.webp") no-repeat center;
+    background-size: 95%;
+    padding: 0.7rem 1.9rem;
+}
+
+.HelpChoose {
+    display: grid;
+    grid-template-columns: 50rem 20rem;
+    grid-template-rows: 6.5rem 8.7rem 16rem;
+    grid-template-areas:
+            "HelpChoose-Shoes HelpChoose-Shoes"
+            "HelpChoose-Txt HelpChoose-Txt"
+            "HelpChoose-Form bootsFor";
+    grid-area: HelpChoose;
+    width: 55rem;
+    padding: 5rem 0 0 7rem;
+    text-align: left;
+    font-size: 1.25rem;
+    font-family: 'MuseoSansCyrl-100', sans-serif;
+}
+
+.HelpChoose-Shoes { grid-area: HelpChoose-Shoes; }
+
+.HelpChoose-Txt {
+    grid-area: HelpChoose-Txt;
+    column-count: 2;
+    column-gap: 2.5rem;
+    padding: 0 23rem 0 0;
+    line-height: 1.75rem;
+}
+
+.HelpChoose-Form {
+    grid-area: HelpChoose-Form;
+    display: flex;
+    flex-wrap: wrap;
+    align-self: center;
+    padding: 1rem 0 0 0 ;
+}
+.HelpChoose-Form h1{
+    margin: 0;
+    line-height: 2.3rem;
+}
+.ChooseForm{
+    display: flex;
+    align-content: center;
+    padding: 0 0 0 2.5rem;
+}
+
+.FormField{
+    flex-wrap: nowrap;
+    font-size: 1.2rem;
+    border: none;
+    padding: .7rem 0 0 2rem;
+    outline: none;
+    resize: none;
+    background-color: transparent;
+}
+.fieldWrap{
+    height: 3rem;
+    width: 10rem;
+    background: url("../img/filterButton.webp") no-repeat center;
+    background-size: 100% 85%;
+    margin: 0 0 0 .9rem;
+}
+.FormButton{
+    height: 3rem;
+    width: 10rem;
+    font-size: .9rem;
+    outline: none;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0 0 0 .9rem;
+    background: url("../img/filterButton.webp") no-repeat center;
+    background-size: 100% 85%;
+}
+.HelpChoose-Form span{
+    display: block;
+    font-size: 1rem;
+    margin: -1rem 0 0 16rem;
+}
+
+.bootsFor{
+    margin: -3rem 0 0 -1rem;
+    width: 25rem;
+}
+
+
+
+.ChooseWithUs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+    gap: 0px 0px;
+    grid-template-areas:
+            "ChooseWithUs-Txt ChooseWithUs-Phone";
+    grid-area: ChooseWithUs;
+}
+
+.ChooseWithUs-Txt { grid-area: ChooseWithUs-Txt; }
+
+.ChooseWithUs-Phone { grid-area: ChooseWithUs-Phone; }
+
+.Copyright { grid-area: Copyright; }
