@@ -12,7 +12,7 @@
     "gulp-sass": "^4.*",
     "jquery-autocomplete": "^1.2.8",
     "prettier": "^1.*",
-    "yarn": "^1.21.1"
+    "yarn": "^1.22.0"
   },
   "devDependencies": {
     "gulp": "^4.*",
