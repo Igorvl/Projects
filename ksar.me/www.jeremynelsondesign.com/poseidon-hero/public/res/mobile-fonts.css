@@ -1,0 +1,39 @@
+@media screen and (max-width: 480px) {
+
+    /* Improve base font size for better readability */
+    body,
+    p,
+    li,
+    .intro-text {
+        font-size: 16px !important;
+        line-height: 1.5;
+    }
+
+    /* Make headings punchier on mobile */
+    h2,
+    .anatomy-v-title,
+    .section-title {
+        font-size: 26px !important;
+    }
+
+    /* Ensure proper hierarchy for subtitles */
+    h3,
+    h4 {
+        font-size: 20px !important;
+        margin-top: 1.5rem !important;
+    }
+
+    /* Footer readability fixes */
+    .footer,
+    .footer-bottom,
+    footer {
+        font-size: 14px !important;
+        color: #b0b0b0 !important;
+        /* Lighter grey for better contrast */
+    }
+
+    /* Ensure silhouette text has breathing room */
+    .silhouette-text {
+        margin-bottom: 2rem;
+    }
+}
