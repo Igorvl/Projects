@@ -14,12 +14,13 @@ import Contact from './pages/Contact'
 import GenericPage from './pages/GenericPage'
 import MagnifierDemo from './pages/MagnifierDemo'
 import VortexDemo from './pages/VortexDemo'
+import ElementzDemo from './pages/ElementzDemo'
 import './index.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('vortex')
+  const [currentPage, setCurrentPage] = useState('elementz')
   const [transitionPhase, setTransitionPhase] = useState(null) // 'out' | 'in' | null
   const [pendingPage, setPendingPage] = useState(null)
 
@@ -53,7 +54,9 @@ function App() {
     if (target === currentPage || transitionPhase) return
 
     // Skip transition animation for WebGL demo pages
-    if (target === 'magnifier' || currentPage === 'magnifier' || target === 'vortex' || currentPage === 'vortex') {
+    if (target === 'magnifier' || currentPage === 'magnifier' ||
+      target === 'vortex' || currentPage === 'vortex' ||
+      target === 'elementz' || currentPage === 'elementz') {
       setCurrentPage(target)
       window.scrollTo(0, 0)
       return
@@ -145,6 +148,15 @@ function App() {
                   Vortex
                 </a>
               </li>
+              <li>
+                <a
+                  href="#"
+                  onClick={(e) => handleNavClick(e, 'elementz')}
+                  className={currentPage === 'elementz' ? 'active' : ''}
+                >
+                  Elementz
+                </a>
+              </li>
             </ul>
           </nav>
         </div>
@@ -167,6 +179,7 @@ function App() {
         {currentPage === 'contact' && <Contact key="contact" />}
         {currentPage === 'magnifier' && <MagnifierDemo key="magnifier" />}
         {currentPage === 'vortex' && <VortexDemo key="vortex" />}
+        {currentPage === 'elementz' && <ElementzDemo key="elementz" />}
       </AnimatePresence>
     </>
   )

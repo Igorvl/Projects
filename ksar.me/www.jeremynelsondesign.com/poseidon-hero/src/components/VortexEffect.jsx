@@ -140,7 +140,7 @@ void main() {
     vec3 normalColor = texture2D(uTexture, zoomedUV).rgb;
     color = mix(color, normalColor, insideMask);
     
-    // Black outside - use lagging radius
+    // Black outside - using original reliable mask
     float totalMask = smoothstep(laggingRadius + stretchZone * 2.5, laggingRadius, dist);
     color *= totalMask;
     
