@@ -102,7 +102,7 @@ function ElementzCrystalMesh() {
             rotationIntensity={0.2}
             floatIntensity={0.3}
         >
-            <group ref={crystalRef} scale={[0.75, 1.0, 0.75]}>
+            <group ref={crystalRef} scale={[0.75, 1.0, 0.75]} position={[0, -0.5, 0]}>
 
                 {/* TOP PYRAMID - 4 sided */}
                 <mesh position={[0, 1.0, 0]}>
@@ -127,9 +127,9 @@ function ElementzCrystalMesh() {
                     />
                 </mesh>
 
-                {/* BOTTOM PYRAMID - 4 sided, flipped - aligned with top */}
-                <mesh position={[0, -1.0, 0]} rotation={[Math.PI, 0, 0]}>
-                    <coneGeometry args={[1.5, 2.0, 4]} />
+                {/* BOTTOM PYRAMID - 4 sided, shorter */}
+                <mesh position={[0, -0.6, 0]} rotation={[Math.PI, 0, 0]}>
+                    <coneGeometry args={[1.5, 1.2, 4]} />
                     <MeshTransmissionMaterial
                         ior={1.6}
                         transmission={1}
@@ -164,8 +164,8 @@ function ElementzCrystalMesh() {
                 </mesh>
 
                 {/* EDGE HIGHLIGHTS - Bottom wireframe */}
-                <mesh position={[0, -1.0, 0]} rotation={[Math.PI, 0, 0]} scale={[1.005, 1.005, 1.005]}>
-                    <coneGeometry args={[1.5, 2.0, 4]} />
+                <mesh position={[0, -0.6, 0]} rotation={[Math.PI, 0, 0]} scale={[1.005, 1.005, 1.005]}>
+                    <coneGeometry args={[1.5, 1.2, 4]} />
                     <meshBasicMaterial
                         wireframe
                         color="#ffffff"
@@ -224,7 +224,7 @@ function BrandText() {
         <>
             {/* Main ELEMENTZ text - behind crystal, vertical */}
             <Text
-                position={[0, 0.8, -3]}
+                position={[0, 0.3, -3]}
                 fontSize={1.8}
                 color="#ffffff"
                 font="/fonts/lemon-tuesday.woff"
@@ -310,12 +310,23 @@ export default function ElementzCrystal() {
                 <color attach="background" args={['#000000']} />
 
                 {/* Minimal ambient */}
-                <ambientLight intensity={0.05} />
+                <ambientLight intensity={0.03} />
 
-                {/* Directional lights for edge highlights */}
-                <directionalLight position={[5, 5, 5]} intensity={0.4} color="#ffffff" />
-                <directionalLight position={[-5, 3, -3]} intensity={0.2} color="#88ccff" />
-                <pointLight position={[0, 8, 3]} intensity={0.3} color="#ffffff" />
+                {/* Key light - top right, stronger */}
+                <directionalLight position={[5, 8, 5]} intensity={0.6} color="#ffffff" />
+
+                {/* Fill light - left, cool */}
+                <directionalLight position={[-5, 3, -3]} intensity={0.15} color="#88ccff" />
+
+                {/* Spotlight from top - creates the "beam" effect */}
+                <spotLight
+                    position={[0, 12, 4]}
+                    intensity={1.5}
+                    angle={0.4}
+                    penumbra={0.5}
+                    color="#ffffff"
+                    castShadow={false}
+                />
 
                 <Suspense fallback={<Loader />}>
                     <StudioEnvironment />
