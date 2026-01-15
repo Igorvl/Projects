@@ -102,74 +102,76 @@ function ElementzCrystalMesh() {
             rotationIntensity={0.2}
             floatIntensity={0.3}
         >
-            <group ref={crystalRef} scale={[1, 1.5, 1]}>
+            <group ref={crystalRef} scale={[0.75, 1.0, 0.75]}>
 
-                {/* LAYER 1: CLEAN TRANSPARENT GLASS */}
-                <mesh>
-                    <octahedronGeometry args={[1.8, 0]} />
+                {/* TOP PYRAMID - 4 sided */}
+                <mesh position={[0, 1.0, 0]}>
+                    <coneGeometry args={[1.5, 2.0, 4]} />
                     <MeshTransmissionMaterial
-                        // Maximum transparency
+                        ior={1.6}
                         transmission={1}
-                        thickness={0.1}
+                        thickness={0.6}
                         roughness={0}
-
-                        // Very subtle chromatic aberration
-                        chromaticAberration={0.02}
-
-                        // Minimal distortion for clean text visibility
+                        chromaticAberration={0.25}
                         anisotropicBlur={0}
                         distortion={0}
+                        distortionScale={0}
                         temporalDistortion={0}
-
-                        // Standard glass IOR
-                        ior={1.5}
-
-                        // Backside for proper glass
                         backside={true}
-                        backsideThickness={0.05}
-
-                        // Clear glass
+                        backsideThickness={0.5}
                         color="#ffffff"
-
-                        // Subtle reflections
-                        envMapIntensity={0.3}
-
-                        // High quality
+                        envMapIntensity={0.8}
                         samples={16}
                         resolution={2048}
                         backsideResolution={1024}
                     />
                 </mesh>
 
-                {/* LAYER 2: PRISMATIC RAINBOW SHELL */}
-                {/* Slightly larger shell with rainbow refraction effect */}
-                <mesh scale={[1.02, 1.02, 1.02]} ref={prismRef} material={prismMaterial}>
-                    <octahedronGeometry args={[1.8, 0]} />
+                {/* BOTTOM PYRAMID - 4 sided, flipped - aligned with top */}
+                <mesh position={[0, -1.0, 0]} rotation={[Math.PI, 0, 0]}>
+                    <coneGeometry args={[1.5, 2.0, 4]} />
+                    <MeshTransmissionMaterial
+                        ior={1.6}
+                        transmission={1}
+                        thickness={0.6}
+                        roughness={0}
+                        chromaticAberration={0.25}
+                        anisotropicBlur={0}
+                        distortion={0}
+                        distortionScale={0}
+                        temporalDistortion={0}
+                        backside={true}
+                        backsideThickness={0.5}
+                        color="#ffffff"
+                        envMapIntensity={0.8}
+                        samples={16}
+                        resolution={2048}
+                        backsideResolution={1024}
+                    />
                 </mesh>
 
-                {/* LAYER 3: SHARP WHITE EDGES */}
-                <mesh scale={[1.01, 1.01, 1.01]}>
-                    <octahedronGeometry args={[1.8, 0]} />
+                {/* EDGE HIGHLIGHTS - Top wireframe */}
+                <mesh position={[0, 1.0, 0]} scale={[1.005, 1.005, 1.005]}>
+                    <coneGeometry args={[1.5, 2.0, 4]} />
                     <meshBasicMaterial
                         wireframe
                         color="#ffffff"
                         transparent
-                        opacity={0.35}
+                        opacity={0.8}
                         blending={THREE.AdditiveBlending}
                         depthWrite={false}
                     />
                 </mesh>
 
-                {/* LAYER 4: SUBTLE INNER REFLECTIONS */}
-                <mesh scale={[0.99, 0.99, 0.99]}>
-                    <octahedronGeometry args={[1.8, 0]} />
-                    <meshPhysicalMaterial
+                {/* EDGE HIGHLIGHTS - Bottom wireframe */}
+                <mesh position={[0, -1.0, 0]} rotation={[Math.PI, 0, 0]} scale={[1.005, 1.005, 1.005]}>
+                    <coneGeometry args={[1.5, 2.0, 4]} />
+                    <meshBasicMaterial
+                        wireframe
+                        color="#ffffff"
                         transparent
-                        opacity={0.05}
-                        metalness={1}
-                        roughness={0}
-                        envMapIntensity={2}
-                        side={THREE.BackSide}
+                        opacity={0.8}
+                        blending={THREE.AdditiveBlending}
                         depthWrite={false}
                     />
                 </mesh>
@@ -198,10 +200,10 @@ function StudioEnvironment() {
                     <meshBasicMaterial color="#aaddff" toneMapped={false} />
                 </mesh>
 
-                {/* Rim - behind right, warm */}
+                {/* Rim - behind right, neutral cool */}
                 <mesh position={[6, -2, -10]} scale={[8, 15, 1]}>
                     <planeGeometry />
-                    <meshBasicMaterial color="#ffbb77" toneMapped={false} />
+                    <meshBasicMaterial color="#eeeeff" toneMapped={false} />
                 </mesh>
 
                 {/* Top soft fill */}
@@ -215,24 +217,24 @@ function StudioEnvironment() {
 }
 
 /**
- * Background text - ELEMENTZ
+ * Background text - ELEMENTZ (Script style, vertical)
  */
 function BrandText() {
     return (
         <>
-            {/* Main ELEMENTZ text - behind crystal */}
+            {/* Main ELEMENTZ text - behind crystal, vertical */}
             <Text
-                position={[0, 0, -5]}
-                fontSize={4.8}
+                position={[0, 0.8, -3]}
+                fontSize={1.8}
                 color="#ffffff"
-                font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
+                font="/fonts/lemon-tuesday.woff"
                 anchorX="center"
                 anchorY="middle"
                 fillOpacity={1}
                 fontWeight={900}
-                letterSpacing={-0.05}
+                rotation={[0, 0, Math.PI / 9]}
             >
-                ELEMENTZ
+                Elementz
             </Text>
 
             {/* Product info - left */}
