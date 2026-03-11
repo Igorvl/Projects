@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project DNA — Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- ============================================================== -->
+  <!-- HEADER: Logo + Connection Status                                -->
+  <!-- ============================================================== -->
+  <header class="header" id="header">
+    <div class="header__logo">
+      <div class="header__icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- DNA Helix SVG icon -->
+          <path d="M7 4C7 4 7.5 7 12 10C16.5 13 17 16 17 16" stroke="url(#grad1)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M17 4C17 4 16.5 7 12 10C7.5 13 7 16 7 16" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7 8C7 8 7.5 11 12 14C16.5 17 17 20 17 20" stroke="url(#grad1)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+          <path d="M17 8C17 8 16.5 11 12 14C7.5 17 7 20 7 20" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+          <!-- Nodes -->
+          <circle cx="9.5" cy="7" r="1.5" fill="#00d4ff"/>
+          <circle cx="14.5" cy="7" r="1.5" fill="#8b5cf6"/>
+          <circle cx="12" cy="10" r="1.5" fill="#00d4ff"/>
+          <circle cx="9.5" cy="13" r="1.5" fill="#8b5cf6"/>
+          <circle cx="14.5" cy="13" r="1.5" fill="#00d4ff"/>
+          <defs>
+            <linearGradient id="grad1" x1="7" y1="4" x2="17" y2="20">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+            <linearGradient id="grad2" x1="17" y1="4" x2="7" y2="20">
+              <stop offset="0%" stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#00d4ff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="header__text">
+        <h1 class="header__title">Project DNA</h1>
+        <span class="header__subtitle">AI Studio Capture</span>
+      </div>
+    </div>
+    <div class="header__status" id="connectionStatus">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-text" id="statusText">Checking...</span>
+    </div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- STATS ROW: Quick metrics                                        -->
+  <!-- ============================================================== -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <span class="stat-value" id="statCaptures">0</span>
+      <span class="stat-label">Captures</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="statQueue">0</span>
+      <span class="stat-label">In Queue</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value" id="statLatency">—</span>
+      <span class="stat-label">Latency</span>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- CAPTURE TOGGLE                                                  -->
+  <!-- ============================================================== -->
+  <div class="toggle-section" id="toggleSection">
+    <div class="toggle-info">
+      <span class="toggle-label">Auto-Capture</span>
+      <span class="toggle-desc" id="toggleDesc">Capturing AI Studio generations</span>
+    </div>
+    <button class="toggle-btn" id="captureToggle" aria-label="Toggle auto-capture">
+      <span class="toggle-thumb"></span>
+    </button>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- PROJECT SELECTOR                                                -->
+  <!-- ============================================================== -->
+  <div class="section" id="projectSection">
+    <div class="section__header">
+      <span class="section__icon">📁</span>
+      <span class="section__title">Active Project</span>
+    </div>
+    <div class="project-selector">
+      <select id="projectSelect" class="project-select">
+        <option value="">— Select project —</option>
+      </select>
+      <button id="refreshProjects" class="btn-icon" title="Refresh projects">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+          <path d="M4 12a8 8 0 0114.93-4M20 12a8 8 0 01-14.93 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M20 4v4h-4M4 20v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- RECENT CAPTURES                                                 -->
+  <!-- ============================================================== -->
+  <div class="section" id="recentSection">
+    <div class="section__header">
+      <span class="section__icon">🧬</span>
+      <span class="section__title">Recent Captures</span>
+    </div>
+    <div class="recent-list" id="recentList">
+      <div class="empty-state">
+        <span class="empty-icon">🔬</span>
+        <span class="empty-text">No captures yet. Open AI Studio and start generating!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- SETTINGS (API URL)                                              -->
+  <!-- ============================================================== -->
+  <div class="section section--collapsed" id="settingsSection">
+    <div class="section__header section__header--clickable" id="settingsToggle">
+      <span class="section__icon">⚙️</span>
+      <span class="section__title">Settings</span>
+      <span class="section__chevron" id="settingsChevron">▼</span>
+    </div>
+    <div class="settings-body" id="settingsBody">
+      <label class="settings-label" for="apiUrlInput">API URL</label>
+      <div class="settings-row">
+        <input type="text" id="apiUrlInput" class="settings-input"
+               placeholder="http://172.25.9.33:8000">
+        <button id="saveApiUrl" class="btn-sm">Save</button>
+      </div>
+      <div class="settings-row" style="margin-top: 8px;">
+        <button id="retryQueue" class="btn-sm btn-secondary" style="width: 100%;">
+          🔄 Retry Queued Captures
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- FOOTER                                                          -->
+  <!-- ============================================================== -->
+  <footer class="footer">
+    <span class="footer__text">v1.0.0 • Project DNA</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

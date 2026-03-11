@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Project DNA — AI Studio Capture",
+  "version": "1.0.0",
+  "description": "Intercepts Google AI Studio generations and captures prompts, parameters, and outputs to Project DNA knowledge base. Part of AI Design Infrastructure Lab portfolio.",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "https://aistudio.google.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://aistudio.google.com/*"],
+      "js": ["src/content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/dna-16.png",
+      "48": "icons/dna-48.png",
+      "128": "icons/dna-128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/dna-16.png",
+    "48": "icons/dna-48.png",
+    "128": "icons/dna-128.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/page-script.js"],
+      "matches": ["https://aistudio.google.com/*"]
+    }
+  ]
+}
