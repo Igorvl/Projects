@@ -133,7 +133,8 @@
         setStatus('online', `Online (${result.latency}ms)`);
         elements.statLatency.textContent = `${result.latency}ms`;
       } else {
-        setStatus('offline', 'Offline');
+        const errText = result?.error || 'Offline';
+        setStatus('offline', errText.length > 25 ? errText.substring(0, 25) + '...' : errText);
         elements.statLatency.textContent = '—';
       }
     });
@@ -179,11 +180,15 @@
         // Add project options
         for (const project of projects) {
           const option = document.createElement('option');
-          option.value = project.slug;
-          option.textContent = project.name || project.slug;
+          // Support multiple potential backend formats, or generate a slug from the name
+          const nameStr = String(project.name || '');
+          const fallbackSlug = nameStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          const projectId = project.project_slug || project.slug || fallbackSlug || project.id;
+          option.value = projectId;
+          option.textContent = project.name || projectId;
 
           // Restore previous selection
-          if (project.slug === activeProject) {
+          if (projectId === activeProject) {
             option.selected = true;
           }
 

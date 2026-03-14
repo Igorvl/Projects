@@ -52,19 +52,7 @@
   // CONFIGURATION
   // =========================================================================
 
-  /**
-   * URL patterns that indicate an AI Studio generation API call.
-   * These are the endpoints where AI Studio sends prompts to Gemini.
-   *
-   * We match against these patterns to decide which fetch() calls to intercept.
-   * Non-matching calls pass through untouched for zero performance impact.
-   */
-  const API_PATTERNS = [
-    'generativelanguage.googleapis.com',       // Main Gemini API
-    'generativelanguage.googleapis.com/v1beta', // Beta API (common in AI Studio)
-    'generativelanguage.googleapis.com/v1',     // Stable API
-    'alkali-abstractedai-pa.googleapis.com',     // Internal AI Studio endpoint
-  ];
+  // We don't use a simple array anymore because we want to be more specific.
 
   /**
    * Message type used for window.postMessage communication.
@@ -109,18 +97,22 @@
    * @param {object} [init]           - Optional fetch init options (method, body, headers)
    * @returns {Promise<Response>}     - The original fetch response (unmodified)
    */
-  window.fetch = async function (resource, init) {
-    // Extract URL string from either a string or a Request object
-    const url = typeof resource === 'string' ? resource : resource.url;
+  window.fetch = async function () {
+    const resource = arguments[0];
+    const init = arguments[1];
+    const url = typeof resource === 'string' ? resource : (resource ? resource.url : '');
 
     // -----------------------------------------------------------------------
     // Fast path: if URL doesn't match our patterns, skip interception entirely.
     // This ensures ZERO performance impact on all other page requests
     // (stylesheets, images, tracking, etc.)
     // -----------------------------------------------------------------------
-    const isTargetAPI = API_PATTERNS.some(pattern => url.includes(pattern));
+    const isGoogleAPI = url.includes('generativelanguage.googleapis') || url.includes('alkali') || url.includes('makersuite') || url.includes('gemini.google.com');
+    const isGeneration = url.includes('GenerateContent') || url.includes('streamGenerateContent') || url.includes('batched');
+    const isTargetAPI = isGoogleAPI && isGeneration;
+
     if (!isTargetAPI) {
-      return originalFetch.call(this, resource, init);
+      return originalFetch.apply(this, arguments);
     }
 
     // -----------------------------------------------------------------------
@@ -155,7 +147,7 @@
     // -----------------------------------------------------------------------
     let response;
     try {
-      response = await originalFetch.call(this, resource, init);
+      response = await originalFetch.apply(this, arguments);
     } catch (fetchError) {
       // If the original fetch fails, we don't interfere — just re-throw
       console.warn('[Project DNA] Original fetch failed:', fetchError.message);
@@ -178,6 +170,111 @@
     // Return the ORIGINAL response to AI Studio — completely unmodified
     return response;
   };
+
+  // =========================================================================
+  // XHR INTERCEPTOR (Monkey-Patching)
+  // =========================================================================
+  
+  const originalXhrOpen = XMLHttpRequest.prototype.open;
+  const originalXhrSend = XMLHttpRequest.prototype.send;
+
+  // Use WeakMap to store state completely invisibly from the XHR object itself
+  // This prevents ANY interference with Google's framework and prevents 403 errors
+  const xhrStateMap = new WeakMap();
+
+  XMLHttpRequest.prototype.open = function() {
+    xhrStateMap.set(this, { 
+      url: arguments[1] ? arguments[1].toString() : '',
+      text: '',
+      captured: false
+    });
+    return originalXhrOpen.apply(this, arguments);
+  };
+
+  XMLHttpRequest.prototype.send = function() {
+    const defaultState = { url: '' };
+    const state = xhrStateMap.get(this) || defaultState;
+    const url = state.url || '';
+    const bodyArgs = arguments[0];
+    
+    // Check if it's a target internal API
+    const isGoogleAPI = url.includes('generativelanguage.googleapis') || url.includes('alkali') || url.includes('makersuite') || url.includes('gemini.google.com');
+    const isGeneration = url.includes('GenerateContent') || url.includes('streamGenerateContent') || url.includes('batched');
+
+    if (isGoogleAPI && isGeneration) {
+      console.log('[Project DNA] 🧬 Intercepted AI Studio XHR call:', url);
+      
+      let requestBody = null;
+      try {
+        if (typeof bodyArgs === 'string') {
+          requestBody = JSON.parse(bodyArgs);
+        } else if (bodyArgs instanceof ArrayBuffer) {
+           const str = new TextDecoder().decode(bodyArgs);
+           try { requestBody = JSON.parse(str); } catch(e) {}
+        }
+      } catch (e) {}
+
+      // Ensure state exists
+      let state = xhrStateMap.get(this);
+      if (!state) {
+        state = { url: url, text: '', captured: false };
+        xhrStateMap.set(this, state);
+      }
+
+      // We log ALL states to diagnose gRPC-Web streaming lifecycle
+      this.addEventListener('readystatechange', function() {
+        let currentState = xhrStateMap.get(this) || { text: '', captured: false };
+        if (currentState.captured) return; // Already processed this request
+        
+        let currentText = '';
+        try {
+          if (!this.responseType || this.responseType === 'text' || this.responseType === '') {
+               currentText = this.responseText;
+          } else if (this.responseType === 'arraybuffer' && this.response instanceof ArrayBuffer) {
+               currentText = new TextDecoder('utf-8').decode(this.response);
+          }
+        } catch(err) {}
+
+        // Accumulate the largest chunk of text (streaming builds it up)
+        if (currentText && currentText.length > currentState.text.length) {
+            currentState.text = currentText;
+            xhrStateMap.set(this, currentState);
+        }
+
+        if (this.readyState === 4 || (this.readyState === 0 && currentState.text.length > 0)) {
+            console.log(`[Project DNA] 🧬 Triggering capture! Final text length: ${currentState.text.length}, Triggered on state: ${this.readyState}`);
+            currentState.captured = true; // Mark as done
+            xhrStateMap.set(this, currentState);
+            
+            const capturedText = currentState.text;
+            setTimeout(() => {
+                let responseData = null;
+                try {
+                    responseData = JSON.parse(capturedText);
+                } catch {
+                    responseData = { rawText: capturedText };
+                }
+                
+                processInterceptedCall(url, requestBody, { text: async () => capturedText });
+            }, 10);
+        }
+      });
+
+      this.addEventListener('error', () => { 
+        const s = xhrStateMap.get(this);
+        if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Error on: ${url}`);
+      });
+      this.addEventListener('abort', () => { 
+        const s = xhrStateMap.get(this);
+        if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Aborted on: ${url}`);
+      });
+    }
+
+    return originalXhrSend.apply(this, arguments);
+  };
+
+
+
 
   // =========================================================================
   // DATA EXTRACTION
@@ -215,15 +312,6 @@
         capturedData.timestamp = new Date().toISOString();
         capturedData.sourceUrl = window.location.href;
 
-        // ---------------------------------------------------------------
-        // RELAY TO CONTENT SCRIPT via window.postMessage
-        // ---------------------------------------------------------------
-        // window.postMessage sends a message to the window itself.
-        // Our content script listens for this message type.
-        // The second argument ('*') is the target origin — we use '*'
-        // because both sender (page) and receiver (content script)
-        // are on the same page (aistudio.google.com).
-        // ---------------------------------------------------------------
         window.postMessage({
           type: MESSAGE_TYPE,
           payload: capturedData,
@@ -234,6 +322,10 @@
           capturedData.model,
           `| prompt: ${(capturedData.promptText || '').substring(0, 80)}...`
         );
+      } else {
+        console.warn(`[Project DNA] ⚠️ Generation data extraction returned null (empty prompt/output) for url: ${url}`);
+        console.warn('Raw Request:', JSON.stringify(requestBody).substring(0, 500));
+        console.warn('Raw Response:', JSON.stringify(responseData).substring(0, 500));
       }
     } catch (err) {
       console.error('[Project DNA] Error processing intercepted call:', err);
@@ -256,23 +348,53 @@
     if (!requestBody) return null;
 
     // ----- Extract model name from URL or request body -----
-    // URL pattern: .../models/gemini-2.0-flash:generateContent
     const modelMatch = url.match(/models\/([^:/?]+)/);
-    const model = modelMatch ? modelMatch[1] : (requestBody.model || 'unknown');
+    let model = modelMatch ? modelMatch[1] : (requestBody.model || 'unknown');
+    
+    // New 2026 format often nests model deep in RPC payload
+    if (model === 'unknown' && Array.isArray(requestBody)) {
+       // Search for any string starting with "models/"
+       const flatStr = JSON.stringify(requestBody);
+       const nestedModelMatch = flatStr.match(/"models\/([^"]+)"/);
+       if (nestedModelMatch) model = nestedModelMatch[1];
+    }
 
     // ----- Extract prompt text -----
     // AI Studio format: { contents: [{ parts: [{ text: "..." }], role: "user" }] }
     let promptText = '';
     let systemInstruction = '';
 
+    // AI Studio format 1: standard generative language
     if (requestBody.contents && Array.isArray(requestBody.contents)) {
-      // Collect all user messages as the prompt
       const userParts = requestBody.contents
         .filter(c => c.role === 'user')
         .flatMap(c => c.parts || [])
         .filter(p => p.text)
         .map(p => p.text);
       promptText = userParts.join('\n\n');
+    } 
+    // AI Studio format 2: 2026 internal RPC payload (array of nested arrays)
+    else if (Array.isArray(requestBody)) {
+        // Deep search the JSON array for any readable prompt text from the user
+        // This is a robust fallback for undocumented RPC arrays
+        try {
+            const flatStr = JSON.stringify(requestBody);
+            // Search for {"text": "something"} patterns in the nested array map
+            // First, try standard "text":"value" matches
+            const textMatches = Array.from(flatStr.matchAll(/{"text":"(.*?)"}|"text":"(.*?)"/g));
+            if (textMatches.length > 0) {
+                const possiblePrompts = textMatches.map(m => m[1] || m[2]).filter(t => t && t.length > 2);
+                if (possiblePrompts.length > 0) promptText = possiblePrompts.join('\n\n');
+            }
+            
+            // If that failed, this is an aggressive RPC format (just arrays). Extract all long strings!
+            if (!promptText) {
+                const allStrings = Array.from(flatStr.matchAll(/"([^"]{10,})"/g))
+                   .map(m => m[1])
+                   .filter(t => !t.includes("models/") && !t.includes("generatelanguage") && t !== "GenerateContent");
+                if (allStrings.length > 0) promptText = allStrings.join('\n\n');
+            }
+        } catch(e) {}
     }
 
     // Extract system instruction if present
@@ -299,10 +421,24 @@
           .join('');
       }
       finishReason = candidate?.finishReason || '';
+    } else if (Array.isArray(responseData) && responseData.length > 0 && Array.isArray(responseData[0])) {
+      // New 2026 internal RPC response (deeply nested arrays)
+      try {
+          const flatStr = JSON.stringify(responseData);
+          // Look for text segments in the output response payload
+          const outMatches = Array.from(flatStr.matchAll(/"([^"]+)"/g))
+               .map(m => m[1])
+               .filter(t => t.length > 10 && !t.includes("models/")); // rudimentary filter for actual generated text
+           
+           if (outMatches.length > 0) {
+               // The longest string in the array structure is usually the generated text
+               outputText = outMatches.reduce((a, b) => a.length > b.length ? a : b);
+           }
+      } catch(e) {}
     } else if (responseData && Array.isArray(responseData)) {
-      // Streaming response (array of chunks)
+      // Streaming response (array of chunks), e.g., standard API stream
       outputText = responseData
-        .filter(chunk => chunk.candidates)
+        .filter(chunk => chunk && typeof chunk === 'object' && chunk.candidates)
         .flatMap(chunk => chunk.candidates)
         .flatMap(c => (c.content?.parts || []))
         .filter(p => p.text)
@@ -313,7 +449,11 @@
       outputText = parseSSEResponse(responseData.rawText);
     }
 
-    // Don't capture empty generations
+    // Ultimate fallback for missing text so we don't lose the generation metric
+    if (!promptText && requestBody) promptText = '(RPC Prompt data)';
+    if (!outputText && responseData) outputText = '(RPC Generation data)';
+
+    // Only skip if it's literally empty (which shouldn't happen now)
     if (!promptText && !outputText) return null;
 
     // ----- Build normalized capture object -----

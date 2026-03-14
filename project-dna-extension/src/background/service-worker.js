@@ -133,9 +133,11 @@ async function sendToProjectDNA(capturedData) {
   // Transform intercepted data to our API format
   const apiPayload = {
     project_slug: config.activeProject,
+    prompt: capturedData.promptText || '',
     prompt_text: capturedData.promptText || '',
     model_name: capturedData.model || 'unknown',
     parameters: capturedData.parameters || {},
+    output: capturedData.outputText || '',
     output_text: capturedData.outputText || '',
     system_instruction: capturedData.systemInstruction || '',
     source: 'ai-studio-extension',
@@ -211,7 +213,6 @@ async function fetchProjects() {
   try {
     const response = await fetch(`${apiUrl}/v1/dna/projects`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {

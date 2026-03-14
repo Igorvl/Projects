@@ -12,7 +12,9 @@
 
   "host_permissions": [
     "https://aistudio.google.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://gemini.google.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "<all_urls>"
   ],
 
   "background": {
@@ -22,7 +24,7 @@
 
   "content_scripts": [
     {
-      "matches": ["https://aistudio.google.com/*"],
+      "matches": ["https://aistudio.google.com/*", "https://gemini.google.com/*"],
       "js": ["src/content/content-script.js"],
       "run_at": "document_idle"
     }
@@ -46,7 +48,7 @@
   "web_accessible_resources": [
     {
       "resources": ["src/content/page-script.js"],
-      "matches": ["https://aistudio.google.com/*"]
+      "matches": ["https://aistudio.google.com/*", "https://gemini.google.com/*"]
     }
   ]
 }

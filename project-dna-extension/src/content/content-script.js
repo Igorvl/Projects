@@ -60,8 +60,8 @@
   /** Must match the STATUS_TYPE in page-script.js */
   const STATUS_TYPE = 'PROJECT_DNA_STATUS';
 
-  /** Expected origin for messages (AI Studio domain) */
-  const EXPECTED_ORIGIN = 'https://aistudio.google.com';
+  /** Expected origins for messages */
+  const EXPECTED_ORIGINS = ['https://aistudio.google.com', 'https://gemini.google.com'];
 
   // =========================================================================
   // STEP 1: INJECT PAGE-SCRIPT INTO THE PAGE CONTEXT
@@ -87,7 +87,8 @@
 
     // chrome.runtime.getURL converts "src/content/page-script.js"
     // to something like "chrome-extension://abc123/src/content/page-script.js"
-    script.src = chrome.runtime.getURL('src/content/page-script.js');
+    // We add a timestamp query parameter to bypass browser caching of the injected script!
+    script.src = chrome.runtime.getURL('src/content/page-script.js?t=' + Date.now());
 
     // Execute as soon as possible
     script.async = false;
@@ -127,8 +128,8 @@
    */
   function handlePageMessage(event) {
     // SECURITY: Verify the message origin
-    // Only accept messages from AI Studio's own domain
-    if (event.origin !== EXPECTED_ORIGIN) return;
+    // Only accept messages from allowed domains
+    if (!EXPECTED_ORIGINS.includes(event.origin)) return;
 
     // Ignore messages without our data structure
     if (!event.data || !event.data.type) return;
@@ -146,24 +147,33 @@
       // chrome.runtime.sendMessage sends a message to the extension's
       // service worker (background script). Unlike postMessage, this
       // uses Chrome's internal messaging channel — secure and fast.
-      chrome.runtime.sendMessage({
-        action: 'CAPTURE_GENERATION',
-        data: capturedData,
-      }, (response) => {
-        // Handle response from service worker (optional)
-        if (chrome.runtime.lastError) {
-          console.warn(
-            '[Project DNA] Service worker unavailable:',
-            chrome.runtime.lastError.message
-          );
-          return;
+      try {
+        chrome.runtime.sendMessage({
+          action: 'CAPTURE_GENERATION',
+          data: capturedData,
+        }, (response) => {
+          // Handle response from service worker (optional)
+          if (chrome.runtime.lastError) {
+            console.warn(
+              '[Project DNA] Service worker unavailable:',
+              chrome.runtime.lastError.message
+            );
+            return;
+          }
+          if (response && response.success) {
+            console.log(
+              `[Project DNA] ✅ Generation #${capturedData.captureIndex} sent to Project DNA API`
+            );
+          }
+        });
+      } catch (err) {
+        if (err.message && err.message.includes('Extension context invalidated')) {
+          console.error('[Project DNA] ❌ Extension was updated. The page must be refreshed.');
+          alert('[Project DNA AI Capture] Расширение было обновлено!\n\nПожалуйста, обновите страницу (F5), чтобы продолжить перехват генераций.');
+        } else {
+          console.error('[Project DNA] ❌ Error sending message to service worker:', err);
         }
-        if (response && response.success) {
-          console.log(
-            `[Project DNA] ✅ Generation #${capturedData.captureIndex} sent to Project DNA API`
-          );
-        }
-      });
+      }
     }
 
     // ----- Handle status messages -----
