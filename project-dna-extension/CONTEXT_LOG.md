@@ -41,6 +41,6 @@ The core of the work focused on `src/content/page-script.js`, which is injected 
 ## Current Status
 The extension is now equipped with a dual-layered, highly resilient interception engine (`fetch` + aggressive `XHR` state-drop scanning). It is capable of bypassing Google's strict auth protections without breaking the UI, reading binary array buffers, rescuing data from aborted streams, and reliably sending data to the AI-Router without 404/403 errors (by using 100% transparent WeakMap state and dynamically resolving project slugs). 
 
-**Result (March 14, 2026):** Full end-to-end functionality confirmed on `aistudio.google.com`. The extension successfully captures prompts, params, output, and transmits them cleanly to the Project DNA backend.
+**Result (March 14, 2026):** Full end-to-end functionality confirmed on both `aistudio.google.com` and `gemini.google.com`. The extension successfully captures prompts, params, output, and transmits them cleanly to the Project DNA backend.
 
-*Next steps:* Expand the interception logic to cover the consumer interface (`gemini.google.com`) by reverse-engineering the Google Batched Execute RPC format.
+For the consumer Gemini interface, we successfully reverse-engineered the Google Batched Execute RPC format (`)]}'`), parsing deeply nested JSON payloads and Server-Sent Events (SSE) to extract prompts and generated responses.

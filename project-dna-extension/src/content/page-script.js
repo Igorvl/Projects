@@ -107,8 +107,8 @@
     // This ensures ZERO performance impact on all other page requests
     // (stylesheets, images, tracking, etc.)
     // -----------------------------------------------------------------------
-    const isGoogleAPI = url.includes('generativelanguage.googleapis') || url.includes('alkali') || url.includes('makersuite') || url.includes('gemini.google.com');
-    const isGeneration = url.includes('GenerateContent') || url.includes('streamGenerateContent') || url.includes('batched');
+    const isGoogleAPI = url.includes('generativelanguage') || url.includes('alkali') || url.includes('makersuite') || url.includes('BardChatUi') || url.includes('BardFrontendService');
+    const isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate') || url.includes('batchexecute');
     const isTargetAPI = isGoogleAPI && isGeneration;
 
     if (!isTargetAPI) {
@@ -198,19 +198,27 @@
     const bodyArgs = arguments[0];
     
     // Check if it's a target internal API
-    const isGoogleAPI = url.includes('generativelanguage.googleapis') || url.includes('alkali') || url.includes('makersuite') || url.includes('gemini.google.com');
-    const isGeneration = url.includes('GenerateContent') || url.includes('streamGenerateContent') || url.includes('batched');
+    const isGoogleAPI = url.includes('generativelanguage') || url.includes('alkali') || url.includes('makersuite') || url.includes('BardChatUi') || url.includes('BardFrontendService');
+    const isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate') || url.includes('batchexecute');
 
     if (isGoogleAPI && isGeneration) {
-      console.log('[Project DNA] 🧬 Intercepted AI Studio XHR call:', url);
+      console.log('[Project DNA] 🧬 Intercepted AI Studio / Gemini XHR call:', url);
       
       let requestBody = null;
       try {
         if (typeof bodyArgs === 'string') {
-          requestBody = JSON.parse(bodyArgs);
+          try { requestBody = JSON.parse(bodyArgs); } catch(e) { requestBody = { _rawStr: bodyArgs }; }
+        } else if (window.FormData && bodyArgs instanceof FormData) {
+           let obj = {};
+           for (let key of bodyArgs.keys()) obj[key] = bodyArgs.get(key);
+           requestBody = obj;
+        } else if (window.URLSearchParams && bodyArgs instanceof URLSearchParams) {
+           requestBody = { _rawStr: bodyArgs.toString() };
         } else if (bodyArgs instanceof ArrayBuffer) {
            const str = new TextDecoder().decode(bodyArgs);
-           try { requestBody = JSON.parse(str); } catch(e) {}
+           try { requestBody = JSON.parse(str); } catch(e) { requestBody = { _rawStr: str }; }
+        } else {
+           requestBody = { _type: typeof bodyArgs, stringified: String(bodyArgs) };
         }
       } catch (e) {}
 
@@ -334,137 +342,191 @@
 
   /**
    * Extract structured generation data from raw API request/response.
-   *
-   * Google AI Studio sends different payload formats depending on the
-   * API version and the type of request (generateContent, streamGenerateContent).
-   * This function normalizes all formats into a single clean structure.
-   *
-   * @param {string} url          - The API URL (used to extract model name)
-   * @param {object} requestBody  - Parsed request JSON
-   * @param {object} responseData - Parsed response JSON
-   * @returns {object|null}       - Normalized capture data, or null if not a generation
    */
   function extractGenerationData(url, requestBody, responseData) {
-    if (!requestBody) return null;
+    if (!requestBody && !responseData) return null;
 
-    // ----- Extract model name from URL or request body -----
-    const modelMatch = url.match(/models\/([^:/?]+)/);
-    let model = modelMatch ? modelMatch[1] : (requestBody.model || 'unknown');
+    let model = 'gemini-web-consumer'; // Default for gemini.google.com
+    const modelMatch = url.match(/models\/([^:\/?]+)/);
+    if (modelMatch) model = modelMatch[1];
     
-    // New 2026 format often nests model deep in RPC payload
-    if (model === 'unknown' && Array.isArray(requestBody)) {
-       // Search for any string starting with "models/"
-       const flatStr = JSON.stringify(requestBody);
-       const nestedModelMatch = flatStr.match(/"models\/([^"]+)"/);
-       if (nestedModelMatch) model = nestedModelMatch[1];
-    }
+    if (requestBody && requestBody.model) model = requestBody.model;
 
-    // ----- Extract prompt text -----
-    // AI Studio format: { contents: [{ parts: [{ text: "..." }], role: "user" }] }
     let promptText = '';
     let systemInstruction = '';
-
-    // AI Studio format 1: standard generative language
-    if (requestBody.contents && Array.isArray(requestBody.contents)) {
-      const userParts = requestBody.contents
-        .filter(c => c.role === 'user')
-        .flatMap(c => c.parts || [])
-        .filter(p => p.text)
-        .map(p => p.text);
-      promptText = userParts.join('\n\n');
-    } 
-    // AI Studio format 2: 2026 internal RPC payload (array of nested arrays)
-    else if (Array.isArray(requestBody)) {
-        // Deep search the JSON array for any readable prompt text from the user
-        // This is a robust fallback for undocumented RPC arrays
-        try {
-            const flatStr = JSON.stringify(requestBody);
-            // Search for {"text": "something"} patterns in the nested array map
-            // First, try standard "text":"value" matches
-            const textMatches = Array.from(flatStr.matchAll(/{"text":"(.*?)"}|"text":"(.*?)"/g));
-            if (textMatches.length > 0) {
-                const possiblePrompts = textMatches.map(m => m[1] || m[2]).filter(t => t && t.length > 2);
-                if (possiblePrompts.length > 0) promptText = possiblePrompts.join('\n\n');
-            }
-            
-            // If that failed, this is an aggressive RPC format (just arrays). Extract all long strings!
-            if (!promptText) {
-                const allStrings = Array.from(flatStr.matchAll(/"([^"]{10,})"/g))
-                   .map(m => m[1])
-                   .filter(t => !t.includes("models/") && !t.includes("generatelanguage") && t !== "GenerateContent");
-                if (allStrings.length > 0) promptText = allStrings.join('\n\n');
-            }
-        } catch(e) {}
-    }
-
-    // Extract system instruction if present
-    if (requestBody.systemInstruction) {
-      const sysParts = requestBody.systemInstruction.parts || [];
-      systemInstruction = sysParts.map(p => p.text || '').join('\n');
-    }
-
-    // ----- Extract generation parameters -----
-    const generationConfig = requestBody.generationConfig || {};
-    const safetySettings = requestBody.safetySettings || [];
-
-    // ----- Extract generated output -----
     let outputText = '';
-    let finishReason = '';
+    let finishReason = 'SUCCESS';
+    let generationConfig = requestBody?.generationConfig || {};
+    let safetySettings = requestBody?.safetySettings || [];
 
-    if (responseData && responseData.candidates) {
-      // Standard response format
-      const candidate = responseData.candidates[0];
-      if (candidate && candidate.content && candidate.content.parts) {
-        outputText = candidate.content.parts
+    // ==========================================================
+    // 1. EXTRACT PROMPT
+    // ==========================================================
+    if (requestBody) {
+      // 1A. Standard AI Studio JSON Format
+      if (requestBody.contents && Array.isArray(requestBody.contents)) {
+        const userParts = requestBody.contents
+          .filter(c => c.role === 'user')
+          .flatMap(c => c.parts || [])
+          .filter(p => typeof p.text === 'string')
+          .map(p => p.text);
+        if (userParts.length > 0) promptText = userParts.join('\n\n');
+      } 
+      // 1B. Gemini Web Consumer Format (batchexecute / f.req)
+      else {
+        let rawStr = requestBody._rawStr || '';
+        let fReq = requestBody['f.req'];
+
+        if (!fReq && typeof rawStr === 'string' && rawStr.includes('f.req=')) {
+          try { fReq = new URLSearchParams(rawStr).get('f.req'); } catch(e) {}
+        }
+
+        if (fReq) {
+          try {
+            // f.req is a deeply nested JSON string
+            const reqArr = JSON.parse(fReq);
+            const flatStr = JSON.stringify(reqArr);
+            // In batchexecute, the prompt is often passed embedded deeply as a stringified JSON array itself!
+            // First, find embedded JSON strings
+            const embeddedJsonMatches = flatStr.match(/"\[\[.*?\]\]"/g);
+            if (embeddedJsonMatches) {
+               for (let match of embeddedJsonMatches) {
+                  try {
+                     const innerArr = JSON.parse(JSON.parse(match)); // Parse the string, then the array
+                     // Now find strings inside innerArr
+                     const innerFlat = JSON.stringify(innerArr);
+                     const textSnippets = Array.from(innerFlat.matchAll(/"([^"]{15,})"/g))
+                                              .map(m => m[1])
+                                              .filter(t => !t.includes("models/") && !t.includes("http"));
+                     if (textSnippets.length > 0) {
+                        promptText = textSnippets.join('\n\n');
+                        break;
+                     }
+                  } catch(e) {}
+               }
+            }
+
+            // Fallback: search all long strings
+            if (!promptText) {
+                const strings = Array.from(flatStr.matchAll(/"([^"]{20,})"/g))
+                  .map(m => m[1])
+                  .filter(t => !t.match(/^[a-zA-Z0-9_\\-]{20,}$/)); // Filter out base64/IDs
+                if (strings.length > 0) promptText = strings.join('\n\n');
+            }
+          } catch(e) {}
+        }
+        
+        // 1C. Unknown Nested Array API
+        if (!promptText && Array.isArray(requestBody)) {
+            try {
+                const flatStr = JSON.stringify(requestBody);
+                const textMatches = Array.from(flatStr.matchAll(/{"text":"(.*?)"}|"text":"(.*?)"/g));
+                if (textMatches.length > 0) {
+                    promptText = textMatches.map(m => m[1] || m[2]).filter(t => t && t.length > 2).join('\n\n');
+                }
+            } catch(e) {}
+        }
+      }
+
+      if (requestBody.systemInstruction?.parts) {
+        systemInstruction = requestBody.systemInstruction.parts.map(p => p.text || '').join('\n');
+      }
+    }
+
+    // ==========================================================
+    // 2. EXTRACT OUTPUT
+    // ==========================================================
+    if (responseData) {
+      // 2A. Standard AI Studio Format
+      if (responseData.candidates) {
+        const candidate = responseData.candidates[0];
+        if (candidate?.content?.parts) {
+          outputText = candidate.content.parts.filter(p => p.text).map(p => p.text).join('');
+        }
+        finishReason = candidate?.finishReason || 'SUCCESS';
+      } 
+      // 2B. AI Studio Streaming Array
+      else if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].candidates) {
+        outputText = responseData
+          .filter(chunk => chunk?.candidates)
+          .flatMap(chunk => chunk.candidates)
+          .flatMap(c => c.content?.parts || [])
           .filter(p => p.text)
           .map(p => p.text)
           .join('');
+      } 
+      // 2C. Batched Execute JSON / Text Output
+      else if (responseData.rawText) {
+        let text = responseData.rawText;
+        
+        // Handle SSE (Server-Sent Events)
+        if (text.startsWith('data: ')) {
+          outputText = parseSSEResponse(text);
+        } 
+        // Handle Google RPC Format, usually starts with )]}'
+        else {
+          let chunks = [];
+          if (text.includes(")]}'")) {
+            text = text.replace(/^\)\]\}'\n*/, ''); // Strip prefix
+            try {
+              // RPC streams are line-delimited arrays
+              const lines = text.split('\n');
+              for (let line of lines) {
+                 if (line.startsWith('[')) {
+                    const parsed = JSON.parse(line);
+                    // Standard batchexecute response envelopes have 'wrb.fr' followed by a stringified JSON array
+                    if (Array.isArray(parsed)) {
+                       for (const item of parsed) {
+                          if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
+                             try {
+                                const embedded = JSON.parse(item[2]);
+                                const flatEmbedded = JSON.stringify(embedded);
+                                // The generated response is generally the largest string block inside the embedded payload
+                                const strings = Array.from(flatEmbedded.matchAll(/"([^"]{30,})"/g))
+                                  .map(m => m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"')) // Unescape text
+                                  .filter(t => !t.includes("models/") && !t.match(/^[a-zA-Z0-9_\-]{30,}$/));
+                                
+                                if (strings.length > 0) chunks.push(strings[0]); // Usually the first long string is the markdown text
+                             } catch(err) {}
+                          }
+                       }
+                    }
+                 }
+              }
+            } catch(e) {}
+            if (chunks.length > 0) outputText = chunks.join('');
+          }
+        }
       }
-      finishReason = candidate?.finishReason || '';
-    } else if (Array.isArray(responseData) && responseData.length > 0 && Array.isArray(responseData[0])) {
-      // New 2026 internal RPC response (deeply nested arrays)
-      try {
-          const flatStr = JSON.stringify(responseData);
-          // Look for text segments in the output response payload
-          const outMatches = Array.from(flatStr.matchAll(/"([^"]+)"/g))
-               .map(m => m[1])
-               .filter(t => t.length > 10 && !t.includes("models/")); // rudimentary filter for actual generated text
-           
-           if (outMatches.length > 0) {
-               // The longest string in the array structure is usually the generated text
-               outputText = outMatches.reduce((a, b) => a.length > b.length ? a : b);
-           }
-      } catch(e) {}
-    } else if (responseData && Array.isArray(responseData)) {
-      // Streaming response (array of chunks), e.g., standard API stream
-      outputText = responseData
-        .filter(chunk => chunk && typeof chunk === 'object' && chunk.candidates)
-        .flatMap(chunk => chunk.candidates)
-        .flatMap(c => (c.content?.parts || []))
-        .filter(p => p.text)
-        .map(p => p.text)
-        .join('');
-    } else if (responseData && responseData.rawText) {
-      // SSE streaming response — parse newline-delimited JSON
-      outputText = parseSSEResponse(responseData.rawText);
     }
 
-    // Ultimate fallback for missing text so we don't lose the generation metric
-    if (!promptText && requestBody) promptText = '(RPC Prompt data)';
-    if (!outputText && responseData) outputText = '(RPC Generation data)';
+    // Ultimate fallback algorithm (Scrape longest text segments from raw representations)
+    if (!promptText && requestBody) {
+       try {
+         const s = JSON.stringify(requestBody);
+         const chunks = Array.from(s.matchAll(/"([^"]{15,})"/g)).map(m=>m[1]).filter(t=>t.includes(' '));
+         if (chunks.length) promptText = chunks.join('\n\n'); 
+       } catch(e) {}
+    }
+    
+    if (!outputText && responseData) {
+       try {
+         const s = typeof responseData.rawText === 'string' ? responseData.rawText : JSON.stringify(responseData);
+         const chunks = Array.from(s.matchAll(/"([^"]{50,})"/g)).map(m=>m[1]).filter(t=>t.includes(' '));
+         if (chunks.length) outputText = chunks.join('\n\n');
+       } catch(e) {}
+    }
 
-    // Only skip if it's literally empty (which shouldn't happen now)
-    if (!promptText && !outputText) return null;
+    // Force values to string if nothing was found
+    if (!promptText) promptText = '(Unable to parse prompt from RPC)';
+    if (!outputText) outputText = '(Unable to parse payload from RPC response)';
 
-    // ----- Build normalized capture object -----
     return {
-      model: model,
+      model: model || 'gemini',
       promptText: promptText,
       systemInstruction: systemInstruction,
       outputText: outputText,
       finishReason: finishReason,
-
-      // Generation parameters (important for reproducibility!)
       parameters: {
         temperature: generationConfig.temperature ?? null,
         topP: generationConfig.topP ?? null,
@@ -474,11 +536,7 @@
         stopSequences: generationConfig.stopSequences ?? null,
         seed: generationConfig.seed ?? null,
       },
-
-      // Safety settings (array of {category, threshold} objects)
       safetySettings: safetySettings,
-
-      // Metadata
       apiUrl: url,
     };
   }

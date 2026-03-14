@@ -72,7 +72,7 @@ Enterprise-система управления ИИ-пайплайнами дл�
 | 3 | Qdrant: embeddings, семантический поиск | ✅ |
 | 4 | Router API: /capture, /projects, /search, /dna | ✅ |
 | 5 | Safari Web/Chrome Extension: перехват AI Studio | ✅ |
-| 5.1 | Safari Web/Chrome Extension: перехват gemini.google.com | 🛠️ В работе |
+| 5.1 | Safari Web/Chrome Extension: перехват gemini.google.com | ✅ |
 | 6 | Auto-Summarize: Dual context (Strategic 50 + Tactical 10) | ✅ |
 | 7 | Dashboard: Web UI для просмотра проекта | ✅ |
 
