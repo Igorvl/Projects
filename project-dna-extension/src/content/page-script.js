@@ -541,17 +541,16 @@
                                     // Skip avatars and generic icons
                                     if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
                                     
-                                    // It appears Gemini sometimes ONLY returns the /gg-dl/ version of the URL in the response!
-                                    // Bypassing 403 authorization lock requires rewriting /gg-dl/ back to a public URL.
-                                    let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
+                                    // IGNORE protected endpoints entirely. Rewriting them produces 400 Bad Request.
+                                    if (url.includes('/gg-dl/') || url.includes('/rd-gg-dl/')) continue;
                                     
-                                    if (cleanUrl.length > 60) {
+                                    if (url.length > 60) {
                                         // The base URL without any size query params etc.
-                                        let baseUrl = cleanUrl.split('=')[0];
+                                        let baseUrl = url.split('=')[0];
                                         
-                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
+                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(url)) {
                                             snapshotUrls.add(baseUrl);
-                                            resultUrls.push(cleanUrl);
+                                            resultUrls.push(url);
                                         }
                                     }
                                 }
