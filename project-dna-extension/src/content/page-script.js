@@ -279,6 +279,21 @@
         const s = xhrStateMap.get(this);
         if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Aborted on: ${url}`);
       });
+      
+      // Ensure global set exists
+      if (!window._projectDnaCapturedUrls) {
+          window._projectDnaCapturedUrls = new Set();
+      }
+      
+      // Scrape DOM BEFORE request finishes to memorize historical images
+      try {
+          document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
+              if (img.src) {
+                  const baseUrl = img.src.split('=')[0]; 
+                  window._projectDnaCapturedUrls.add(baseUrl);
+              }
+          });
+      } catch(e) {}
     }
 
     return originalXhrSend.apply(this, arguments);
@@ -501,49 +516,45 @@
                                 const embedded = JSON.parse(item[2]);
                                 // Deep recursive extraction from nested arrays
                                 const deepStrings = [];
+                                const deepUrls = [];
                                 
                                 function extractDeep(obj, depth) {
                                   if (depth > 15 || !obj) return;
                                   
                                   if (typeof obj === 'string') {
-                                    if (obj.length > 30 && !obj.startsWith('http')) deepStrings.push(obj);
+                                    if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
+                                        deepUrls.push(obj);
+                                    } else if (obj.length > 30) {
+                                        deepStrings.push(obj);
+                                    }
                                   } else if (Array.isArray(obj)) {
-                                    let hasGgDl = false;
-                                    let publicUrl = null;
-                                    
-                                    // Check array elements for image signatures
-                                    for (let i = 0; i < obj.length; i++) {
-                                        const item = obj[i];
-                                        if (typeof item === 'string') {
-                                            if (item.includes('/gg-dl/') || item.includes('/rd-gg-dl/')) {
-                                                hasGgDl = true;
-                                            }
-                                            if (item.startsWith('http') && item.includes('googleusercontent.com') && !item.includes('/gg-dl/') && !item.includes('/a/')) {
-                                                publicUrl = item;
-                                            }
-                                        } else if (Array.isArray(item) && typeof item[0] === 'string') {
-                                            if (item[0].startsWith('http') && item[0].includes('googleusercontent.com') && !item[0].includes('/gg-dl/') && !item[0].includes('/a/')) {
-                                                publicUrl = item[0];
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (hasGgDl && publicUrl) {
-                                        if (!window._projectDnaCapturedUrls) window._projectDnaCapturedUrls = new Set();
-                                        if (!window._projectDnaCapturedUrls.has(publicUrl)) {
-                                            window._projectDnaCapturedUrls.add(publicUrl);
-                                            if (!resultUrls.includes(publicUrl)) {
-                                                resultUrls.push(publicUrl);
-                                            }
-                                        }
-                                    }
-                                    
                                     for (const child of obj) extractDeep(child, depth + 1);
                                   } else if (typeof obj === 'object') {
                                     for (const key in obj) extractDeep(obj[key], depth + 1);
                                   }
                                 }
                                 extractDeep(embedded, 0);
+                                
+                                // Process all collected URLs
+                                for (let url of deepUrls) {
+                                    // Skip avatars and generic icons
+                                    if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
+                                    
+                                    // Skip protected endpoints that require session cookies
+                                    if (url.includes('/gg-dl/') || url.includes('/rd-gg-dl/')) continue;
+                                    
+                                    if (url.length > 60) {
+                                        // The base URL without any size query params etc.
+                                        let baseUrl = url.split('=')[0];
+                                        
+                                        if (window._projectDnaCapturedUrls && !window._projectDnaCapturedUrls.has(baseUrl)) {
+                                            window._projectDnaCapturedUrls.add(baseUrl);
+                                            if (!resultUrls.includes(url)) {
+                                                resultUrls.push(url);
+                                            }
+                                        }
+                                    }
+                                }
 
                                 for (let str of deepStrings) {
                                   // Unescape
