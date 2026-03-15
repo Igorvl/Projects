@@ -85,6 +85,9 @@
    */
   let captureCount = 0;
 
+  const recentCaptures = new Map();
+  const DEDUP_WINDOW_MS = 6000;
+
   /**
    * Overridden fetch function.
    *
@@ -315,25 +318,34 @@
       const capturedData = extractGenerationData(url, requestBody, responseData);
 
       if (capturedData) {
-        captureCount++;
-        capturedData.captureIndex = captureCount;
-        capturedData.timestamp = new Date().toISOString();
-        capturedData.sourceUrl = window.location.href;
+        // DEDUPLICATION filtering out the English image string descriptions if we had the same payload earlier
+        const dedupStr = (capturedData.promptText || '') + '|||' + (capturedData.outputText || '').substring(0, 100) + '|||' + (capturedData.resultUrls || []).join(',');
+        
+        let hash = 0;
+        for (let i = 0; i < dedupStr.length; i++) hash = ((hash << 5) - hash) + dedupStr.charCodeAt(i);
+        const dedupKey = hash.toString();
 
-        window.postMessage({
-          type: MESSAGE_TYPE,
-          payload: capturedData,
-        }, '*');
+        const now = Date.now();
+        if (recentCaptures.has(dedupKey)) {
+            const timeSince = now - recentCaptures.get(dedupKey);
+            if (timeSince < DEDUP_WINDOW_MS) {
+                console.log(`[Project DNA] 🧬 Skipping duplicate capture: ${capturedData.model}`);
+                return; // Skip duplicate
+            }
+        }
+        recentCaptures.set(dedupKey, now);
 
-        console.log(
-          `[Project DNA] 🧬 Captured generation #${captureCount}:`,
-          capturedData.model,
-          `| prompt: ${(capturedData.promptText || '').substring(0, 80)}...`
-        );
+        // Keep map small
+        if (recentCaptures.size > 50) {
+            const keysToDelete = Array.from(recentCaptures.keys()).slice(0, 20);
+            keysToDelete.forEach(k => recentCaptures.delete(k));
+        }
+
+        finalizeAndSendCapture(capturedData);
+
       } else {
-        console.warn(`[Project DNA] ⚠️ Generation data extraction returned null (empty prompt/output) for url: ${url}`);
-        console.warn('Raw Request:', JSON.stringify(requestBody).substring(0, 500));
-        console.warn('Raw Response:', JSON.stringify(responseData).substring(0, 500));
+        // Suppress warning spam for normal background syncs
+        // console.warn(`[Project DNA] ⚠️ Generation data extraction returned null (empty prompt/output) for url: ${url}`);
       }
     } catch (err) {
       console.error('[Project DNA] Error processing intercepted call:', err);
@@ -358,6 +370,7 @@
     let finishReason = 'SUCCESS';
     let generationConfig = requestBody?.generationConfig || {};
     let safetySettings = requestBody?.safetySettings || [];
+    let resultUrls = [];
 
     // ==========================================================
     // 1. EXTRACT PROMPT
@@ -578,6 +591,11 @@
     if (!promptText) promptText = '(Unable to parse prompt from RPC)';
     if (!outputText) outputText = '(Unable to parse payload from RPC response)';
 
+    // DO NOT return parasite telemetry
+    if (promptText === '(Unable to parse prompt from RPC)' && outputText === '(Unable to parse payload from RPC response)' && resultUrls.length === 0) {
+        return null; 
+    }
+
     return {
       model: model || 'gemini',
       promptText: promptText,
@@ -594,7 +612,7 @@
         seed: generationConfig.seed ?? null,
       },
       safetySettings: safetySettings,
-      resultUrls: typeof resultUrls !== 'undefined' ? resultUrls : [],
+      resultUrls: resultUrls,
       apiUrl: url,
     };
   }
@@ -624,7 +642,7 @@
     return texts.join('');
   }
 
-  async function finalizeAndSendCapture(capturedData, promptSnippet) {
+  async function finalizeAndSendCapture(capturedData) {
     if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
         let finalUrls = [];
         for (let url of capturedData.resultUrls) {
@@ -659,6 +677,8 @@
       payload: capturedData,
     }, '*');
 
+    const promptSnippet = capturedData.promptText || '';
+    
     console.log(
       `[Project DNA] 🧬 Captured generation #${captureCount}:`,
       capturedData.model,
