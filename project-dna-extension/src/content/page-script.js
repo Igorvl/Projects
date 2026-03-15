@@ -517,8 +517,16 @@
 
                                 // Process image URLs
                                 for (let url of deepUrls) {
-                                  if (url.includes('googleusercontent.com/gg-dl') || url.includes('googleusercontent.com/rd-gg-dl')) {
-                                      if (!resultUrls.includes(url)) {
+                                  if (url.includes('googleusercontent.com')) {
+                                      // Skip avatars
+                                      if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
+                                      
+                                      // Skip the protected download endpoints
+                                      if (url.includes('/gg-dl/')) continue;
+                                      if (url.includes('/rd-gg-dl/')) continue;
+                                      
+                                      // Collect the direct public view URLs (they have very long IDs)
+                                      if (url.length > 60 && !resultUrls.includes(url)) {
                                           resultUrls.push(url);
                                       }
                                   }

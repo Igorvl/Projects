@@ -142,11 +142,12 @@ async function sendToProjectDNA(capturedData) {
                 imgRes = await fetch(sourceUrl);
                 if (!imgRes.ok) throw new Error(`HTTP Base64 ${imgRes.status}`);
             } else {
-                // By replacing /gg-dl/ or /rd-gg-dl/ we access the direct, unauthenticated version of the Google image
-                let directUrl = sourceUrl.replace(/\/(rd-)?gg-dl\//, '/'); 
-                // Add size parameter if it doesn't exist to ensure high-res download
+                let directUrl = sourceUrl;
+                // Add size parameter to fetch largest version if not present
                 if (!directUrl.includes('=')) {
                     directUrl += '=s2048'; 
+                } else {
+                    directUrl = directUrl.replace(/=[a-zA-Z0-9\-]+/, '=s2048');
                 }
                 
                 console.log(`[Project DNA] Fetching Google Image URL: ${directUrl}`);
