@@ -142,18 +142,18 @@ async function sendToProjectDNA(capturedData) {
                 imgRes = await fetch(sourceUrl);
                 if (!imgRes.ok) throw new Error(`HTTP Base64 ${imgRes.status}`);
             } else {
-                // By replacing /gg-dl/ or /rd-gg-dl/ we access the direct, unauthenticated version of the Google image
-                let directUrl = sourceUrl.replace(/\/(rd-)?gg-dl\//, '/'); 
+                let directUrl = sourceUrl;
+                // Add size parameter if it doesn't exist to ensure high-res download
                 if (!directUrl.includes('=')) {
-                    directUrl += '=s2048'; // Request a high resolution thumbnail
+                    directUrl += '=s2048'; 
                 }
                 
-                console.log(`[Project DNA] Trying direct unauthenticated Google Image URL: ${directUrl}`);
+                console.log(`[Project DNA] Fetching Google Image URL: ${directUrl}`);
                 try {
                     imgRes = await fetch(directUrl);
-                    if (!imgRes.ok) throw new Error(`Direct failed: ${imgRes.status}`);
+                    if (!imgRes.ok) throw new Error(`Fetch failed: ${imgRes.status}`);
                 } catch(e1) {
-                    console.log(`[Project DNA] Direct URL failed, trying original authenticated URL...`);
+                    console.log(`[Project DNA] First fetch failed, trying with credentials: ${e1.message}`);
                     try {
                         imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
                     } catch(e2) {
