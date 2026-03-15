@@ -517,18 +517,8 @@
 
                                 // Process image URLs
                                 for (let url of deepUrls) {
-                                  if (url.includes('googleusercontent.com')) {
-                                      // Skip small profile images or non-generations
-                                      if (url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
-                                      
-                                      // IMPORTANT: Skip the downloading /gg-dl/ endpoint completely.
-                                      // It strictly requires cookies/auth that cause 403.
-                                      // We instead capture the generic viewing URL which is also in the payload.
-                                      if (url.includes('/gg-dl/')) continue;
-                                      if (url.includes('/rd-gg-dl/')) continue;
-                                      
-                                      // Only grab URLs with long IDs, typical for generated images (often >60 chars)
-                                      if (url.length > 80 && !resultUrls.includes(url)) {
+                                  if (url.includes('googleusercontent.com/gg-dl') || url.includes('googleusercontent.com/rd-gg-dl')) {
+                                      if (!resultUrls.includes(url)) {
                                           resultUrls.push(url);
                                       }
                                   }
