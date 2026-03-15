@@ -601,8 +601,8 @@
     if (!promptText) promptText = '(Unable to parse prompt from RPC)';
     if (!outputText) outputText = '(Unable to parse payload from RPC response)';
 
-    // DO NOT return parasite telemetry
-    if (promptText.includes('Unable to parse prompt from RPC') && resultUrls.length === 0) {
+    // DO NOT return parasite telemetry or historical scroll loads
+    if (promptText.includes('Unable to parse prompt from RPC')) {
         return null; 
     }
 
