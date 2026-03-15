@@ -284,7 +284,8 @@
       try {
           document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
               if (img.src) {
-                  const baseUrl = img.src.split('=')[0]; 
+                  let baseUrl = img.src.split('=')[0]; 
+                  baseUrl = baseUrl.replace(/\/(rd-)?gg-dl\//, '/');
                   localSnapshotUrls.add(baseUrl);
               }
           });
@@ -540,16 +541,17 @@
                                     // Skip avatars and generic icons
                                     if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
                                     
-                                    // Skip protected endpoints that require session cookies
-                                    if (url.includes('/gg-dl/') || url.includes('/rd-gg-dl/')) continue;
+                                    // It appears Gemini sometimes ONLY returns the /gg-dl/ version of the URL in the response!
+                                    // Bypassing 403 authorization lock requires rewriting /gg-dl/ back to a public URL.
+                                    let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
                                     
-                                    if (url.length > 60) {
+                                    if (cleanUrl.length > 60) {
                                         // The base URL without any size query params etc.
-                                        let baseUrl = url.split('=')[0];
+                                        let baseUrl = cleanUrl.split('=')[0];
                                         
-                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(url)) {
+                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
                                             snapshotUrls.add(baseUrl);
-                                            resultUrls.push(url);
+                                            resultUrls.push(cleanUrl);
                                         }
                                     }
                                 }
