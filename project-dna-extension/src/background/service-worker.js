@@ -139,12 +139,20 @@ async function sendToProjectDNA(capturedData) {
             console.log(`[Project DNA] Downloading image ${i+1}/${capturedData.resultUrls.length}...`);
             let imgRes;
             if (sourceUrl.startsWith('data:image/')) {
-                // If the URL is Base64 data from the injected page-script.js
                 imgRes = await fetch(sourceUrl);
+                if (!imgRes.ok) throw new Error(`HTTP Base64 ${imgRes.status}`);
             } else {
-                imgRes = await fetch(sourceUrl, { credentials: 'include' });
+                // First try with credentials ignored (often works for signed URLs)
+                try {
+                    imgRes = await fetch(sourceUrl, { credentials: 'omit', redirect: 'follow' });
+                    if (!imgRes.ok) throw new Error('Omit failed');
+                } catch(e1) {
+                    // Fallback to credentials included
+                    console.log(`[Project DNA] Fetch omit failed, trying include...`);
+                    imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
+                }
+                if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch ${imgRes?.status}`);
             }
-            if (!imgRes.ok) throw new Error(`HTTP/fetch ${imgRes.status}`);
             
             const arrayBuffer = await imgRes.arrayBuffer();
             const blob = new Blob([arrayBuffer], { type: 'image/png' });

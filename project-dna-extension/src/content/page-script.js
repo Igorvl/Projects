@@ -592,7 +592,7 @@
     if (!outputText) outputText = '(Unable to parse payload from RPC response)';
 
     // DO NOT return parasite telemetry
-    if (promptText === '(Unable to parse prompt from RPC)' && outputText === '(Unable to parse payload from RPC response)' && resultUrls.length === 0) {
+    if (promptText.includes('Unable to parse prompt from RPC') && resultUrls.length === 0) {
         return null; 
     }
 
@@ -642,31 +642,7 @@
     return texts.join('');
   }
 
-  async function finalizeAndSendCapture(capturedData) {
-    if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
-        let finalUrls = [];
-        for (let url of capturedData.resultUrls) {
-            try {
-                // Fetch in the web page context where cookies and Referer naturally apply
-                const res = await fetch(url, { credentials: 'omit' });
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const base64 = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    });
-                    finalUrls.push(base64);
-                } else {
-                    finalUrls.push(url);
-                }
-            } catch(e) {
-                finalUrls.push(url);
-            }
-        }
-        capturedData.resultUrls = finalUrls;
-    }
-
+  function finalizeAndSendCapture(capturedData) {
     captureCount++;
     capturedData.captureIndex = captureCount;
     capturedData.timestamp = new Date().toISOString();
