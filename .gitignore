@@ -12,6 +12,7 @@
 **/.next
 **/.nuxt
 **/.vite
+**/docs/learning
 
 # Logs
 **/logs

@@ -383,35 +383,41 @@
 
         if (fReq) {
           try {
-            // f.req is a deeply nested JSON string
             const reqArr = JSON.parse(fReq);
-            const flatStr = JSON.stringify(reqArr);
-            // In batchexecute, the prompt is often passed embedded deeply as a stringified JSON array itself!
-            // First, find embedded JSON strings
-            const embeddedJsonMatches = flatStr.match(/"\[\[.*?\]\]"/g);
-            if (embeddedJsonMatches) {
-               for (let match of embeddedJsonMatches) {
+            const potentialPrompts = [];
+            function findPrompts(obj) {
+              if (typeof obj === 'string') {
+                if (obj.length > 5) {
                   try {
-                     const innerArr = JSON.parse(JSON.parse(match)); // Parse the string, then the array
-                     // Now find strings inside innerArr
-                     const innerFlat = JSON.stringify(innerArr);
-                     const textSnippets = Array.from(innerFlat.matchAll(/"([^"]{15,})"/g))
-                                              .map(m => m[1])
-                                              .filter(t => !t.includes("models/") && !t.includes("http"));
-                     if (textSnippets.length > 0) {
-                        promptText = textSnippets.join('\n\n');
-                        break;
-                     }
-                  } catch(e) {}
-               }
+                    const parsed = JSON.parse(obj);
+                    findPrompts(parsed);
+                  } catch (e) {
+                    if (!obj.startsWith('http') && !obj.includes('googleusercontent.com')) {
+                      potentialPrompts.push(obj);
+                    }
+                  }
+                }
+              } else if (Array.isArray(obj)) {
+                for (const item of obj) findPrompts(item);
+              } else if (typeof obj === 'object' && obj !== null) {
+                for (const key in obj) findPrompts(obj[key]);
+              }
+            }
+            findPrompts(reqArr);
+
+            function cleanupPrompt(s) {
+              return s.replace(/\["data_analysis_tool"[\s\S]*$/, '')
+                      .replace(/\u0000/g, '')
+                      .trim();
             }
 
-            // Fallback: search all long strings
-            if (!promptText) {
-                const strings = Array.from(flatStr.matchAll(/"([^"]{20,})"/g))
-                  .map(m => m[1])
-                  .filter(t => !t.match(/^[a-zA-Z0-9_\\-]{20,}$/)); // Filter out base64/IDs
-                if (strings.length > 0) promptText = strings.join('\n\n');
+            const validTexts = potentialPrompts
+              .map(cleanupPrompt)
+              .filter(t => t.length > 10 && t.includes(' '))
+              .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/)); // Ignore base64 hashes
+
+            if (validTexts.length > 0) {
+              promptText = validTexts[validTexts.length - 1]; // Pick the last one which is usually the user's latest prompt
             }
           } catch(e) {}
         }
@@ -480,13 +486,44 @@
                           if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
                              try {
                                 const embedded = JSON.parse(item[2]);
-                                const flatEmbedded = JSON.stringify(embedded);
-                                // The generated response is generally the largest string block inside the embedded payload
-                                const strings = Array.from(flatEmbedded.matchAll(/"([^"]{30,})"/g))
-                                  .map(m => m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"')) // Unescape text
-                                  .filter(t => !t.includes("models/") && !t.match(/^[a-zA-Z0-9_\-]{30,}$/));
-                                
-                                if (strings.length > 0) chunks.push(strings[0]); // Usually the first long string is the markdown text
+                                // Deep recursive extraction from nested arrays
+                                const deepStrings = [];
+                                const deepUrls = [];
+                                function extractDeep(obj, depth) {
+                                  if (depth > 15) return;
+                                  if (typeof obj === 'string') {
+                                    if (obj.startsWith('http') && obj.includes('googleusercontent')) deepUrls.push(obj);
+                                    else if (obj.length > 30) deepStrings.push(obj);
+                                  } else if (Array.isArray(obj)) {
+                                    for (const child of obj) extractDeep(child, depth + 1);
+                                  } else if (typeof obj === 'object' && obj !== null) {
+                                    for (const key in obj) extractDeep(obj[key], depth + 1);
+                                  }
+                                }
+                                extractDeep(embedded, 0);
+
+                                // Process image URLs
+                                for (let url of deepUrls) {
+                                  if (url.includes('googleusercontent.com/gg-dl') || url.includes('.png') || url.includes('.webp')) {
+                                      if (!resultUrls.includes(url)) resultUrls.push(url);
+                                  }
+                                }
+
+                                for (let str of deepStrings) {
+                                  // Unescape
+                                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
+                                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+                                  // Strip Base64/binary tails appended to readable text
+                                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
+                                  if (str.length < 30) continue;
+                                  if (!str.includes(' ')) continue;
+                                  const spaceCount = (str.match(/ /g) || []).length;
+                                  if (spaceCount / str.length < 0.05) continue;
+                                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
+                                  if (/^https?:\/\//.test(str)) continue;
+                                  if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
+                                  chunks.push(str);
+                                }
                              } catch(err) {}
                           }
                        }
@@ -500,12 +537,32 @@
       }
     }
 
-    // Ultimate fallback algorithm (Scrape longest text segments from raw representations)
+    // Ultimate fallback algorithm
     if (!promptText && requestBody) {
        try {
-         const s = JSON.stringify(requestBody);
-         const chunks = Array.from(s.matchAll(/"([^"]{15,})"/g)).map(m=>m[1]).filter(t=>t.includes(' '));
-         if (chunks.length) promptText = chunks.join('\n\n'); 
+         const potentialPrompts = [];
+         function findPromptsFB(obj) {
+             if (typeof obj === 'string') {
+                 if (obj.length > 5) {
+                     try {
+                         const parsed = JSON.parse(obj);
+                         findPromptsFB(parsed);
+                     } catch(e) {
+                         if (!obj.startsWith('http') && !obj.includes('googleusercontent')) potentialPrompts.push(obj);
+                     }
+                 }
+             } else if (Array.isArray(obj)) {
+                 for (const item of obj) findPromptsFB(item);
+             } else if (typeof obj === 'object' && obj !== null) {
+                 for (const key in obj) findPromptsFB(obj[key]);
+             }
+         }
+         findPromptsFB(requestBody);
+         const validTexts = potentialPrompts
+             .map(s => s.replace(/\["data_analysis_tool"[\s\S]*$/, '').replace(/\u0000/g, '').trim())
+             .filter(t => t.length > 10 && t.includes(' '))
+             .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/));
+         if (validTexts.length > 0) promptText = validTexts[validTexts.length - 1];
        } catch(e) {}
     }
     
@@ -537,33 +594,19 @@
         seed: generationConfig.seed ?? null,
       },
       safetySettings: safetySettings,
+      resultUrls: typeof resultUrls !== 'undefined' ? resultUrls : [],
       apiUrl: url,
     };
   }
 
-  /**
-   * Parse Server-Sent Events (SSE) response format.
-   *
-   * When AI Studio uses streaming, the response comes as newline-delimited
-   * JSON objects, each prefixed with "data: ". We parse each chunk and
-   * extract the text parts.
-   *
-   * SSE Format Example:
-   *   data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]...}}]}
-   *   data: {"candidates":[{"content":{"parts":[{"text":" world"}]...}}]}
-   *
-   * @param {string} rawText - Raw SSE response text
-   * @returns {string}       - Concatenated output text
-   */
   function parseSSEResponse(rawText) {
     const lines = rawText.split('\n');
     const texts = [];
 
     for (const line of lines) {
-      // SSE data lines start with "data: "
       if (line.startsWith('data: ')) {
         try {
-          const jsonStr = line.substring(6); // Remove "data: " prefix
+          const jsonStr = line.substring(6);
           const data = JSON.parse(jsonStr);
           if (data.candidates) {
             for (const candidate of data.candidates) {
@@ -574,13 +617,53 @@
               }
             }
           }
-        } catch {
-          // Skip non-JSON lines (like empty lines or "[DONE]")
-        }
+        } catch {}
       }
     }
 
     return texts.join('');
+  }
+
+  async function finalizeAndSendCapture(capturedData, promptSnippet) {
+    if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
+        let finalUrls = [];
+        for (let url of capturedData.resultUrls) {
+            try {
+                // Fetch in the web page context where cookies and Referer naturally apply
+                const res = await fetch(url, { credentials: 'omit' });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    finalUrls.push(base64);
+                } else {
+                    finalUrls.push(url);
+                }
+            } catch(e) {
+                finalUrls.push(url);
+            }
+        }
+        capturedData.resultUrls = finalUrls;
+    }
+
+    captureCount++;
+    capturedData.captureIndex = captureCount;
+    capturedData.timestamp = new Date().toISOString();
+    capturedData.sourceUrl = window.location.href;
+
+    window.postMessage({
+      type: MESSAGE_TYPE,
+      payload: capturedData,
+    }, '*');
+
+    console.log(
+      `[Project DNA] 🧬 Captured generation #${captureCount}:`,
+      capturedData.model,
+      `| prompt: ${promptSnippet.substring(0, 80)}...`
+    );
   }
 
   // =========================================================================

@@ -44,3 +44,28 @@ The extension is now equipped with a dual-layered, highly resilient interception
 **Result (March 14, 2026):** Full end-to-end functionality confirmed on both `aistudio.google.com` and `gemini.google.com`. The extension successfully captures prompts, params, output, and transmits them cleanly to the Project DNA backend.
 
 For the consumer Gemini interface, we successfully reverse-engineered the Google Batched Execute RPC format (`)]}'`), parsing deeply nested JSON payloads and Server-Sent Events (SSE) to extract prompts and generated responses.
+
+## 🔴 CRITICAL BUG: Long Context Multi-Capture (March 14, 2026)
+During testing with long prompts at `gemini.google.com`, a serious regression was found:
+- **Issue:** One user interaction triggers 50+ backend capture requests instead of one.
+- **Root Cause:** `batchexecute` is an umbrella endpoint for all Google activities (telemetry, drafts, context updates). Filter `url.includes('batchexecute')` was too broad.
+- **Impact:** Backend spam, duplicated data, potential rate limiting.
+
+### Fix Applied (March 14, 2026) — 3-Layer Defense:
+1. **LAYER 1: Body-based pre-filtering** (`isBatchExecuteGeneration()`):
+   - Parses `f.req` from request body before interception
+   - Checks payload size (telemetry < 100 chars, generation >> 100 chars)
+   - Looks for natural language strings (spaces, length > 20 chars)
+   - Filters out telemetry, drafts, UI updates at the earliest stage
+   
+2. **LAYER 2: Content validation** (in `extractGenerationData()`):
+   - Returns `null` when both promptText AND outputText are empty
+   - Previously always returned a result with fallback strings, causing noise
+
+3. **LAYER 3: Time+content deduplication** (in `processInterceptedCall()`):
+   - djb2 hash of first 300 chars of promptText
+   - 10-second dedup window (same prompt hash within 10s = skip)
+   - Auto-cleanup of old entries (max 50, TTL 30s)
+
+**Status:** Fix applied, awaiting manual testing on gemini.google.com.
+

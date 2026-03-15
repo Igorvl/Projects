@@ -130,6 +130,56 @@ async function sendToProjectDNA(capturedData) {
     return { success: false, error: 'No active project selected' };
   }
 
+  // Download and upload images to MinIO
+  let finalResultUrls = [];
+  if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
+    for (let i = 0; i < capturedData.resultUrls.length; i++) {
+        const sourceUrl = capturedData.resultUrls[i];
+        try {
+            console.log(`[Project DNA] Downloading image ${i+1}/${capturedData.resultUrls.length}...`);
+            let imgRes;
+            if (sourceUrl.startsWith('data:image/')) {
+                // If the URL is Base64 data from the injected page-script.js
+                imgRes = await fetch(sourceUrl);
+            } else {
+                imgRes = await fetch(sourceUrl, { credentials: 'include' });
+            }
+            if (!imgRes.ok) throw new Error(`HTTP/fetch ${imgRes.status}`);
+            
+            const arrayBuffer = await imgRes.arrayBuffer();
+            const blob = new Blob([arrayBuffer], { type: 'image/png' });
+            
+            const formData = new FormData();
+            formData.append('file', blob, `gemini_image_${Date.now()}_${i}.png`);
+            
+            console.log(`[Project DNA] Uploading image to MinIO...`);
+            const uploadRes = await fetch(`${config.API_URL}/v1/dna/upload/${config.activeProject}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                if (uploadData && uploadData.url) {
+                    // Rewrite internal docker DNS to the accessible IP to fix rendering in dashboard
+                    const apiHost = new URL(config.API_URL).hostname;
+                    const finalUrl = uploadData.url.replace('ai-minio:9000', `${apiHost}:9001`);
+                    finalResultUrls.push(finalUrl);
+                    console.log(`[Project DNA] Uploaded successfully: ${finalUrl.substring(0, 50)}...`);
+                } else {
+                    finalResultUrls.push(sourceUrl);
+                }
+            } else {
+                console.warn(`[Project DNA] Failed to upload image to MinIO, keeping original URL.`);
+                finalResultUrls.push(sourceUrl);
+            }
+        } catch (e) {
+            console.error(`[Project DNA] Failed to process image URL: ${sourceUrl}`, e);
+            finalResultUrls.push(sourceUrl);
+        }
+    }
+  }
+
   // Transform intercepted data to our API format
   const apiPayload = {
     project_slug: config.activeProject,
@@ -139,7 +189,9 @@ async function sendToProjectDNA(capturedData) {
     parameters: capturedData.parameters || {},
     output: capturedData.outputText || '',
     output_text: capturedData.outputText || '',
+    response_text: capturedData.outputText || '',
     system_instruction: capturedData.systemInstruction || '',
+    result_urls: finalResultUrls,
     source: 'ai-studio-extension',
     metadata: {
       captureIndex: capturedData.captureIndex,
