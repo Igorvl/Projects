@@ -142,16 +142,25 @@ async function sendToProjectDNA(capturedData) {
                 imgRes = await fetch(sourceUrl);
                 if (!imgRes.ok) throw new Error(`HTTP Base64 ${imgRes.status}`);
             } else {
-                // First try with credentials ignored (often works for signed URLs)
-                try {
-                    imgRes = await fetch(sourceUrl, { credentials: 'omit', redirect: 'follow' });
-                    if (!imgRes.ok) throw new Error('Omit failed');
-                } catch(e1) {
-                    // Fallback to credentials included
-                    console.log(`[Project DNA] Fetch omit failed, trying include...`);
-                    imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
+                // By replacing /gg-dl/ or /rd-gg-dl/ we access the direct, unauthenticated version of the Google image
+                let directUrl = sourceUrl.replace(/\/(rd-)?gg-dl\//, '/'); 
+                if (!directUrl.includes('=')) {
+                    directUrl += '=s2048'; // Request a high resolution thumbnail
                 }
-                if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch ${imgRes?.status}`);
+                
+                console.log(`[Project DNA] Trying direct unauthenticated Google Image URL: ${directUrl}`);
+                try {
+                    imgRes = await fetch(directUrl);
+                    if (!imgRes.ok) throw new Error('Direct failed');
+                } catch(e1) {
+                    console.log(`[Project DNA] Direct URL failed, trying original authenticated URL...`);
+                    try {
+                        imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
+                    } catch(e2) {
+                        imgRes = null;
+                    }
+                }
+                if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch failed`);
             }
             
             const arrayBuffer = await imgRes.arrayBuffer();
