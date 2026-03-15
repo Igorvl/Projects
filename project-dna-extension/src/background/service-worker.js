@@ -151,16 +151,16 @@ async function sendToProjectDNA(capturedData) {
                 console.log(`[Project DNA] Trying direct unauthenticated Google Image URL: ${directUrl}`);
                 try {
                     imgRes = await fetch(directUrl);
-                    if (!imgRes.ok) throw new Error('Direct failed');
+                    if (!imgRes.ok) throw new Error(`Direct failed: ${imgRes.status}`);
                 } catch(e1) {
                     console.log(`[Project DNA] Direct URL failed, trying original authenticated URL...`);
                     try {
                         imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
                     } catch(e2) {
-                        imgRes = null;
+                        throw new Error(`Fallback fetch failed: ${e2.message}`);
                     }
                 }
-                if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch failed`);
+                if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch failed: ${imgRes?.status}`);
             }
             
             const arrayBuffer = await imgRes.arrayBuffer();
@@ -184,15 +184,16 @@ async function sendToProjectDNA(capturedData) {
                     finalResultUrls.push(finalUrl);
                     console.log(`[Project DNA] Uploaded successfully: ${finalUrl.substring(0, 50)}...`);
                 } else {
-                    finalResultUrls.push(sourceUrl);
+                    finalResultUrls.push(sourceUrl + '#ERROR=No_URL_in_UploadRes');
                 }
             } else {
-                console.warn(`[Project DNA] Failed to upload image to MinIO, keeping original URL.`);
-                finalResultUrls.push(sourceUrl);
+                console.warn(`[Project DNA] Failed to upload image to MinIO.`);
+                const errText = await uploadRes.text().catch(()=>'');
+                finalResultUrls.push(sourceUrl + `#ERROR=Upload_${uploadRes.status}_${errText.substring(0,20)}`);
             }
         } catch (e) {
             console.error(`[Project DNA] Failed to process image URL: ${sourceUrl}`, e);
-            finalResultUrls.push(sourceUrl);
+            finalResultUrls.push(sourceUrl + `#ERROR_FETCH=${e.message}`);
         }
     }
   }
