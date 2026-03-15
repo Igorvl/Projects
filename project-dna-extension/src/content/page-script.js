@@ -501,36 +501,49 @@
                                 const embedded = JSON.parse(item[2]);
                                 // Deep recursive extraction from nested arrays
                                 const deepStrings = [];
-                                const deepUrls = [];
+                                
                                 function extractDeep(obj, depth) {
-                                  if (depth > 15) return;
+                                  if (depth > 15 || !obj) return;
+                                  
                                   if (typeof obj === 'string') {
-                                    if (obj.startsWith('http') && obj.includes('googleusercontent')) deepUrls.push(obj);
-                                    else if (obj.length > 30) deepStrings.push(obj);
+                                    if (obj.length > 30 && !obj.startsWith('http')) deepStrings.push(obj);
                                   } else if (Array.isArray(obj)) {
+                                    let hasGgDl = false;
+                                    let publicUrl = null;
+                                    
+                                    // Check array elements for image signatures
+                                    for (let i = 0; i < obj.length; i++) {
+                                        const item = obj[i];
+                                        if (typeof item === 'string') {
+                                            if (item.includes('/gg-dl/') || item.includes('/rd-gg-dl/')) {
+                                                hasGgDl = true;
+                                            }
+                                            if (item.startsWith('http') && item.includes('googleusercontent.com') && !item.includes('/gg-dl/') && !item.includes('/a/')) {
+                                                publicUrl = item;
+                                            }
+                                        } else if (Array.isArray(item) && typeof item[0] === 'string') {
+                                            if (item[0].startsWith('http') && item[0].includes('googleusercontent.com') && !item[0].includes('/gg-dl/') && !item[0].includes('/a/')) {
+                                                publicUrl = item[0];
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (hasGgDl && publicUrl) {
+                                        if (!window._projectDnaCapturedUrls) window._projectDnaCapturedUrls = new Set();
+                                        if (!window._projectDnaCapturedUrls.has(publicUrl)) {
+                                            window._projectDnaCapturedUrls.add(publicUrl);
+                                            if (!resultUrls.includes(publicUrl)) {
+                                                resultUrls.push(publicUrl);
+                                            }
+                                        }
+                                    }
+                                    
                                     for (const child of obj) extractDeep(child, depth + 1);
-                                  } else if (typeof obj === 'object' && obj !== null) {
+                                  } else if (typeof obj === 'object') {
                                     for (const key in obj) extractDeep(obj[key], depth + 1);
                                   }
                                 }
                                 extractDeep(embedded, 0);
-
-                                // Process image URLs
-                                for (let url of deepUrls) {
-                                  if (url.includes('googleusercontent.com')) {
-                                      // Skip avatars
-                                      if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
-                                      
-                                      // Skip the protected download endpoints
-                                      if (url.includes('/gg-dl/')) continue;
-                                      if (url.includes('/rd-gg-dl/')) continue;
-                                      
-                                      // Collect the direct public view URLs (they have very long IDs)
-                                      if (url.length > 60 && !resultUrls.includes(url)) {
-                                          resultUrls.push(url);
-                                      }
-                                  }
-                                }
 
                                 for (let str of deepStrings) {
                                   // Unescape
