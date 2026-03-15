@@ -265,8 +265,7 @@
                 } catch {
                     responseData = { rawText: capturedText };
                 }
-                
-                processInterceptedCall(url, requestBody, { text: async () => capturedText });
+                processInterceptedCall(url, requestBody, { text: async () => capturedText }, currentState.snapshotUrls || new Set());
             }, 10);
         }
       });
@@ -280,20 +279,20 @@
         if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Aborted on: ${url}`);
       });
       
-      // Ensure global set exists
-      if (!window._projectDnaCapturedUrls) {
-          window._projectDnaCapturedUrls = new Set();
-      }
-      
-      // Scrape DOM BEFORE request finishes to memorize historical images
+      // Scrape DOM BEFORE request finishes to memorize historical images for THIS request
+      let localSnapshotUrls = new Set();
       try {
           document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
               if (img.src) {
                   const baseUrl = img.src.split('=')[0]; 
-                  window._projectDnaCapturedUrls.add(baseUrl);
+                  localSnapshotUrls.add(baseUrl);
               }
           });
       } catch(e) {}
+      
+      const currentState = xhrStateMap.get(this) || { text: '', captured: false };
+      currentState.snapshotUrls = localSnapshotUrls;
+      xhrStateMap.set(this, currentState);
     }
 
     return originalXhrSend.apply(this, arguments);
@@ -315,8 +314,9 @@
    * @param {string} url           - The API endpoint URL
    * @param {object} requestBody   - The parsed JSON request body
    * @param {Response} clonedResp  - A cloned Response object to read
+   * @param {Set} snapshotUrls     - A Set of Google image URLs that were present on the page BEFORE the request was sent
    */
-  async function processInterceptedCall(url, requestBody, clonedResp) {
+  async function processInterceptedCall(url, requestBody, clonedResp, snapshotUrls) {
     try {
       // Read the response body as text
       const responseText = await clonedResp.text();
@@ -330,7 +330,7 @@
       }
 
       // Extract structured data from the request and response
-      const capturedData = extractGenerationData(url, requestBody, responseData);
+      const capturedData = extractGenerationData(url, requestBody, responseData, snapshotUrls);
 
       if (capturedData) {
         // DEDUPLICATION filtering out the English image string descriptions if we had the same payload earlier
@@ -370,7 +370,7 @@
   /**
    * Extract structured generation data from raw API request/response.
    */
-  function extractGenerationData(url, requestBody, responseData) {
+  function extractGenerationData(url, requestBody, responseData, snapshotUrls = new Set()) {
     if (!requestBody && !responseData) return null;
 
     let model = 'gemini-web-consumer'; // Default for gemini.google.com
@@ -547,11 +547,9 @@
                                         // The base URL without any size query params etc.
                                         let baseUrl = url.split('=')[0];
                                         
-                                        if (window._projectDnaCapturedUrls && !window._projectDnaCapturedUrls.has(baseUrl)) {
-                                            window._projectDnaCapturedUrls.add(baseUrl);
-                                            if (!resultUrls.includes(url)) {
-                                                resultUrls.push(url);
-                                            }
+                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(url)) {
+                                            snapshotUrls.add(baseUrl);
+                                            resultUrls.push(url);
                                         }
                                     }
                                 }
