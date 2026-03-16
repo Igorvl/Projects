@@ -541,16 +541,16 @@
                                     // Skip avatars and generic icons
                                     if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
                                     
-                                    // IGNORE protected endpoints entirely. Rewriting them produces 400 Bad Request.
-                                    if (url.includes('/gg-dl/') || url.includes('/rd-gg-dl/')) continue;
+                                    // Convert protected endpoints back to public URLs
+                                    let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
                                     
-                                    if (url.length > 60) {
+                                    if (cleanUrl.length > 60) {
                                         // The base URL without any size query params etc.
-                                        let baseUrl = url.split('=')[0];
+                                        let baseUrl = cleanUrl.split('=')[0];
                                         
-                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(url)) {
+                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
                                             snapshotUrls.add(baseUrl);
-                                            resultUrls.push(url);
+                                            resultUrls.push(cleanUrl);
                                         }
                                     }
                                 }

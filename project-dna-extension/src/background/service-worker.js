@@ -144,10 +144,8 @@ async function sendToProjectDNA(capturedData) {
             } else {
                 let directUrl = sourceUrl;
                 // Add size parameter to fetch largest version if not present
-                if (!directUrl.includes('=')) {
-                    directUrl += '=s2048'; 
-                } else {
-                    directUrl = directUrl.replace(/=[a-zA-Z0-9\-]+/, '=s2048');
+                if (directUrl.includes('=')) {
+                    directUrl = directUrl.replace(/=[a-zA-Z0-9\-]+/, '=w2048-h2048');
                 }
                 
                 console.log(`[Project DNA] Fetching Google Image URL: ${directUrl}`);
