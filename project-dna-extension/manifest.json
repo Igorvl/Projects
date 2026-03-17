@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Project DNA — AI Studio Capture",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Intercepts Google AI Studio generations and captures prompts, parameters, and outputs to Project DNA knowledge base. Part of AI Design Infrastructure Lab portfolio.",
 
   "permissions": [
@@ -26,7 +26,7 @@
     {
       "matches": ["https://aistudio.google.com/*", "https://gemini.google.com/*"],
       "js": ["src/content/content-script.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
 

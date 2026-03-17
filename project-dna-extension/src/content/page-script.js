@@ -52,8 +52,6 @@
   // CONFIGURATION
   // =========================================================================
 
-  // We don't use a simple array anymore because we want to be more specific.
-
   /**
    * Message type used for window.postMessage communication.
    * Must match the listener in content-script.js.
@@ -64,6 +62,29 @@
    * Message type for status/heartbeat messages.
    */
   const STATUS_TYPE = 'PROJECT_DNA_STATUS';
+
+  /**
+   * Known rpcids used by Gemini's batchexecute endpoint for actual AI generation.
+   * Every other rpcid is telemetry / drafts / UI metadata — we must ignore those.
+   *
+   * HOW TO FIND NEW IDs:
+   *   DevTools → Network → filter "batchexecute" → look at the URL query param
+   *   "rpcids=" right after sending a prompt. Update this list if Google rotates them.
+   *
+   * Currently confirmed generation rpcids for gemini.google.com:
+   *   ESY5D  — standard text generation
+   *   MBAWBf — image generation (Imagen 3 / image-3)
+   *   dpMR6b — continuation / multi-turn
+   *   CZS3Bc — image+text multi-modal generation
+   */
+  const GEMINI_GENERATION_RPCIDS = new Set([
+    'ESY5D',   // text generation
+    'MBAWBf',  // image generation (Imagen 3)
+    'dpMR6b',  // continuation / multi-turn
+    'CZS3Bc',  // image+text generation
+    'BiSymb',  // alt text generation rpcid (observed in some regions)
+    'GNzX8b',  // streaming text alt
+  ]);
 
   // =========================================================================
   // FETCH INTERCEPTOR (Monkey-Patching)
@@ -111,7 +132,22 @@
     // (stylesheets, images, tracking, etc.)
     // -----------------------------------------------------------------------
     const isGoogleAPI = url.includes('generativelanguage') || url.includes('alkali') || url.includes('makersuite') || url.includes('BardChatUi') || url.includes('BardFrontendService');
-    const isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate') || url.includes('batchexecute');
+
+    // For batchexecute (Gemini web consumer) we ONLY intercept if the URL
+    // contains a known generation rpcid. This prevents capturing the dozens
+    // of telemetry/draft/UI-metadata requests that also hit batchexecute.
+    let isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate');
+    if (!isGeneration && url.includes('batchexecute')) {
+      // Extract rpcids param from URL: ...&rpcids=ESY5D,other,...
+      try {
+        const rpcidsMatch = url.match(/[?&]rpcids=([^&]+)/);
+        if (rpcidsMatch) {
+          const rpcids = rpcidsMatch[1].split(',');
+          isGeneration = rpcids.some(id => GEMINI_GENERATION_RPCIDS.has(id));
+        }
+      } catch (e) { /* ignore */ }
+    }
+
     const isTargetAPI = isGoogleAPI && isGeneration;
 
     if (!isTargetAPI) {
@@ -200,9 +236,18 @@
     const url = state.url || '';
     const bodyArgs = arguments[0];
     
-    // Check if it's a target internal API
+    // Check if it's a target internal API (same rpcids whitelist as fetch interceptor)
     const isGoogleAPI = url.includes('generativelanguage') || url.includes('alkali') || url.includes('makersuite') || url.includes('BardChatUi') || url.includes('BardFrontendService');
-    const isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate') || url.includes('batchexecute');
+    let isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate');
+    if (!isGeneration && url.includes('batchexecute')) {
+      try {
+        const rpcidsMatch = url.match(/[?&]rpcids=([^&]+)/);
+        if (rpcidsMatch) {
+          const rpcids = rpcidsMatch[1].split(',');
+          isGeneration = rpcids.some(id => GEMINI_GENERATION_RPCIDS.has(id));
+        }
+      } catch (e) { /* ignore */ }
+    }
 
     if (isGoogleAPI && isGeneration) {
       console.log('[Project DNA] 🧬 Intercepted AI Studio / Gemini XHR call:', url);
@@ -285,7 +330,6 @@
           document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
               if (img.src) {
                   let baseUrl = img.src.split('=')[0]; 
-                  baseUrl = baseUrl.replace(/\/(rd-)?gg-dl\//, '/');
                   localSnapshotUrls.add(baseUrl);
               }
           });
@@ -334,9 +378,14 @@
       const capturedData = extractGenerationData(url, requestBody, responseData, snapshotUrls);
 
       if (capturedData) {
-        // DEDUPLICATION filtering out the English image string descriptions if we had the same payload earlier
-        const dedupStr = (capturedData.promptText || '') + '|||' + (capturedData.outputText || '').substring(0, 100) + '|||' + (capturedData.resultUrls || []).join(',');
-        
+        // DEDUPLICATION: key is based only on the first 300 chars of the prompt
+        // (plus any result image URLs). This ensures that the same prompt sent
+        // from multiple batchexecute sub-requests collapses into one capture,
+        // while genuinely different prompts still get through.
+        const promptKey = (capturedData.promptText || '').substring(0, 300);
+        const imagesKey = (capturedData.resultUrls || []).join(',').substring(0, 200);
+        const dedupStr = promptKey + '|||' + imagesKey;
+
         let hash = 0;
         for (let i = 0; i < dedupStr.length; i++) hash = ((hash << 5) - hash) + dedupStr.charCodeAt(i);
         const dedupKey = hash.toString();
@@ -345,7 +394,7 @@
         if (recentCaptures.has(dedupKey)) {
             const timeSince = now - recentCaptures.get(dedupKey);
             if (timeSince < DEDUP_WINDOW_MS) {
-                console.log(`[Project DNA] 🧬 Skipping duplicate capture: ${capturedData.model}`);
+                console.log(`[Project DNA] 🔁 Skipping duplicate capture (same prompt within ${DEDUP_WINDOW_MS}ms)`);
                 return; // Skip duplicate
             }
         }
@@ -357,7 +406,7 @@
             keysToDelete.forEach(k => recentCaptures.delete(k));
         }
 
-        finalizeAndSendCapture(capturedData);
+        finalizeAndSendCapture(capturedData, snapshotUrls);
 
       } else {
         // Suppress warning spam for normal background syncs
@@ -442,11 +491,27 @@
 
             const validTexts = potentialPrompts
               .map(cleanupPrompt)
-              .filter(t => t.length > 10 && t.includes(' '))
-              .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/)); // Ignore base64 hashes
+              // Must have at least one space (= at least 2 words)
+              // Minimum length 3 to allow short prompts like "OK", "Hi"
+              // but skip empty / single-char strings from telemetry
+              .filter(t => t.length > 3 && t.includes(' '))
+              // Reject pure base64 / token strings (long, no spaces, alphanumeric)
+              .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/))
+              // Reject JSON-like strings (start with { or [)
+              .filter(t => !t.startsWith('{') && !t.startsWith('['))
+              // Require at least 2 words (redundant with space check, but explicit)
+              .filter(t => t.split(' ').length >= 2);
 
             if (validTexts.length > 0) {
-              promptText = validTexts[validTexts.length - 1]; // Pick the last one which is usually the user's latest prompt
+              // For image generation prompts the user text may be split across
+              // multiple entries — join them all (dedup adjacent duplicates)
+              const uniqueTexts = validTexts.filter((t, i, arr) => i === 0 || t !== arr[i - 1]);
+              promptText = uniqueTexts.join(' ');
+              // But if the last entry is much longer (it usually IS the full prompt), prefer it alone
+              const lastText = uniqueTexts[uniqueTexts.length - 1];
+              if (lastText.length > promptText.length * 0.6) {
+                promptText = lastText;
+              }
             }
           } catch(e) {}
         }
@@ -503,81 +568,104 @@
           let chunks = [];
           if (text.includes(")]}'")) {
             text = text.replace(/^\)\]\}'\n*/, ''); // Strip prefix
-            try {
-              // RPC streams are line-delimited arrays
-              const lines = text.split('\n');
-              for (let line of lines) {
-                 if (line.startsWith('[')) {
-                    const parsed = JSON.parse(line);
-                    // Standard batchexecute response envelopes have 'wrb.fr' followed by a stringified JSON array
-                    if (Array.isArray(parsed)) {
-                       for (const item of parsed) {
-                          if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
-                             try {
-                                const embedded = JSON.parse(item[2]);
-                                // Deep recursive extraction from nested arrays
-                                const deepStrings = [];
-                                const deepUrls = [];
-                                
-                                function extractDeep(obj, depth) {
-                                  if (depth > 15 || !obj) return;
-                                  
-                                  if (typeof obj === 'string') {
-                                    if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
-                                        deepUrls.push(obj);
-                                    } else if (obj.length > 30) {
-                                        deepStrings.push(obj);
-                                    }
-                                  } else if (Array.isArray(obj)) {
-                                    for (const child of obj) extractDeep(child, depth + 1);
-                                  } else if (typeof obj === 'object') {
-                                    for (const key in obj) extractDeep(obj[key], depth + 1);
-                                  }
-                                }
-                                extractDeep(embedded, 0);
-                                
-                                // Process all collected URLs
-                                for (let url of deepUrls) {
-                                    // Skip avatars and generic icons
-                                    if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
-                                    
-                                    // Convert protected endpoints back to public URLs
-                                    let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
-                                    
-                                    if (cleanUrl.length > 60) {
-                                        // The base URL without any size query params etc.
-                                        let baseUrl = cleanUrl.split('=')[0];
-                                        
-                                        if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
-                                            snapshotUrls.add(baseUrl);
-                                            resultUrls.push(cleanUrl);
-                                        }
-                                    }
-                                }
 
-                                for (let str of deepStrings) {
-                                  // Unescape
-                                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
-                                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
-                                  // Strip Base64/binary tails appended to readable text
-                                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
-                                  if (str.length < 30) continue;
-                                  if (!str.includes(' ')) continue;
-                                  const spaceCount = (str.match(/ /g) || []).length;
-                                  if (spaceCount / str.length < 0.05) continue;
-                                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
-                                  if (/^https?:\/\//.test(str)) continue;
-                                  if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
-                                  chunks.push(str);
-                                }
-                             } catch(err) {}
-                          }
-                       }
+            // IMPORTANT: Use the LAST wrb.fr block from the stream.
+            // Gemini sends streaming chunks where each chunk may carry the full
+            // conversation history for context. Parsing ALL lines would collect
+            // all that history. The LAST block has the final AI response only.
+            const lines = text.split('\n');
+            let lastWrbBlock = null;
+
+            for (let line of lines) {
+              if (!line.startsWith('[')) continue;
+              try {
+                const parsed = JSON.parse(line);
+                if (!Array.isArray(parsed)) continue;
+                for (const item of parsed) {
+                  if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
+                    lastWrbBlock = item[2]; // Keep overwriting — we want the LAST one
+                  }
+                }
+              } catch(e) { /* malformed line, skip */ }
+            }
+
+            if (lastWrbBlock) {
+              try {
+                const embedded = JSON.parse(lastWrbBlock);
+                const deepStrings = [];
+                const deepUrls = [];
+
+                function extractDeep(obj, depth) {
+                  // AI response is at depth 1-3 in wrb.fr structure.
+                  // Conversation history/context is nested at depth 6-12.
+                  // Limiting to depth 5 prevents picking up context dumps.
+                  if (depth > 5 || !obj) return;
+
+                  if (typeof obj === 'string') {
+                    if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
+                      deepUrls.push(obj);
+                    } else if (obj.length > 30) {
+                      deepStrings.push(obj);
                     }
-                 }
-              }
-            } catch(e) {}
-            if (chunks.length > 0) outputText = chunks.join('');
+                  } else if (Array.isArray(obj)) {
+                    for (const child of obj) extractDeep(child, depth + 1);
+                  } else if (typeof obj === 'object') {
+                    for (const key in obj) extractDeep(obj[key], depth + 1);
+                  }
+                }
+                extractDeep(embedded, 0);
+
+                // Process image URLs
+                for (let url of deepUrls) {
+                  if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
+                  let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
+                  if (cleanUrl.length > 60) {
+                    let baseUrl = cleanUrl.split('=')[0];
+                    if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
+                      snapshotUrls.add(baseUrl);
+                      resultUrls.push(cleanUrl);
+                    }
+                  }
+                }
+
+                // Process text strings — filter out telemetry, keep natural language
+                for (let str of deepStrings) {
+                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
+                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
+                  if (str.length < 30) continue;
+                  if (!str.includes(' ')) continue;
+                  const spaceCount = (str.match(/ /g) || []).length;
+                  if (spaceCount / str.length < 0.05) continue;
+                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
+                  if (/^https?:\/\//.test(str)) continue;
+                  if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
+                  chunks.push(str);
+                }
+              } catch(err) {}
+            }
+          }
+          if (chunks.length > 0) {
+            // === DEBUG: show what we collected ===
+            console.log(`[Project DNA DEBUG] ${chunks.length} chunk(s) before dedup:`);
+            chunks.forEach((c, i) =>
+              console.log(`  #${i} len=${c.length} starts: "${c.substring(0, 60).replace(/\n/g, '↵')}"`)
+            );
+
+            // Remove strings that are a substring of any longer string in the set.
+            const unique = chunks.filter(c =>
+              !chunks.some(other => other !== c && other.includes(c))
+            );
+
+            console.log(`[Project DNA DEBUG] ${unique.length} chunk(s) after dedup:`);
+            unique.forEach((c, i) =>
+              console.log(`  #${i} len=${c.length} starts: "${c.substring(0, 60).replace(/\n/g, '↵')}"`)
+            );
+
+            const candidates = unique.length > 0 ? unique : chunks;
+            candidates.sort((a, b) => b.length - a.length);
+            const best = candidates[0];
+            outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
           }
         }
       }
@@ -613,11 +701,46 @@
     }
     
     if (!outputText && responseData) {
-       try {
-         const s = typeof responseData.rawText === 'string' ? responseData.rawText : JSON.stringify(responseData);
-         const chunks = Array.from(s.matchAll(/"([^"]{50,})"/g)).map(m=>m[1]).filter(t=>t.includes(' '));
-         if (chunks.length) outputText = chunks.join('\n\n');
-       } catch(e) {}
+      try {
+        const raw = typeof responseData.rawText === 'string' ? responseData.rawText : JSON.stringify(responseData);
+
+        // DO NOT scan entire rawText — it contains ALL streaming chunks (progressive states).
+        // Find the LAST wrb.fr block (same logic as above), then pick the LONGEST quoted string
+        // from it. That string is the final complete AI response.
+        const stripped = raw.replace(/^\)\]\}'\n*/, '');
+        const lines = stripped.split('\n');
+        let lastWrbRaw = null;
+
+        for (const line of lines) {
+          if (!line.startsWith('[')) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (!Array.isArray(parsed)) continue;
+            for (const item of parsed) {
+              if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
+                lastWrbRaw = item[2]; // Keep overwriting — want the LAST one
+              }
+            }
+          } catch(e) {}
+        }
+
+        const searchTarget = lastWrbRaw || raw;
+        // Extract all quoted strings ≥ 50 chars with spaces (natural language)
+        const candidates = Array.from(searchTarget.matchAll(/"([^"]{50,})"/g))
+          .map(m => m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim())
+          .filter(t => t.includes(' ') && !t.startsWith('http'));
+
+        if (candidates.length > 0) {
+          // Remove strings that are substrings of longer ones (remove progressive states)
+          const unique = candidates.filter(c =>
+            !candidates.some(other => other !== c && other.includes(c))
+          );
+          const best = (unique.length > 0 ? unique : candidates)
+            .sort((a, b) => b.length - a.length)[0];
+          outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
+          console.log(`[Project DNA] 📝 Fallback response extraction: ${candidates.length} candidates → kept 1 (len=${outputText.length})`);
+        }
+      } catch(e) {}
     }
 
     // Force values to string if nothing was found
@@ -675,11 +798,159 @@
     return texts.join('');
   }
 
-  function finalizeAndSendCapture(capturedData) {
+  /**
+   * Fetch a Google image URL and convert it to a base64 data URL.
+   *
+   * lh3.googleusercontent.com URL format: /[token]=[size_param]
+   * WITHOUT a size param (e.g. URL ends in bare token like "xxx-") → server returns 400.
+   * We try up to 3 URL variants to handle this.
+   *
+   * @param {string} url - Google CDN image URL (may or may not have size param)
+   * @returns {Promise<string|null>} base64 data URL or null on failure
+   */
+  async function fetchImageAsBase64(url) {
+    // Build URL variants to try in order:
+    // 1. URL with =s4096 appended (highest quality, works when no size param present)
+    // 2. Original URL as-is
+    // 3. URL with =s0 (original size alias)
+    const hasEqualParam = /=[a-zA-Z0-9\-]+$/.test(url);
+    const urlVariants = hasEqualParam
+      ? [url]  // Already has param — use as-is
+      : [`${url}=s4096`, url, `${url}=s0`]; // No param — try with size first
+
+    for (const fetchUrl of urlVariants) {
+      try {
+        const response = await originalFetch(fetchUrl, {
+          credentials: 'include',
+          redirect: 'follow',
+        });
+
+        if (!response.ok) {
+          console.warn(`[Project DNA] 🖼️ ${response.status} for: ${fetchUrl.substring(0, 80)}`);
+          continue; // Try next variant
+        }
+
+        const blob = await response.blob();
+        if (!blob || blob.size < 1000) {
+          console.warn(`[Project DNA] 🖼️ Suspiciously small blob (${blob?.size}b), skipping`);
+          continue;
+        }
+
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn(`[Project DNA] 🖼️ fetch error for variant: ${e.message}`);
+      }
+    }
+    return null; // All variants failed
+  }
+
+  /**
+   * Wait for new images to appear in the DOM (rendered by Gemini after generation).
+   * This is the MOST RELIABLE source of image URLs — the browser already has them loaded.
+   *
+   * @param {Set} knownBaseUrls - Already-known base URLs to exclude
+   * @param {number} expectedCount - How many new images to wait for
+   * @param {number} timeoutMs - Max time to wait
+   * @returns {Promise<string[]>} Fresh img.src URLs from the DOM
+   */
+  function waitForDOMImages(knownBaseUrls, expectedCount, timeoutMs) {
+    return new Promise((resolve) => {
+      const found = new Set();
+
+      function scanDOM() {
+        document.querySelectorAll('img[src*="googleusercontent.com"]').forEach((img) => {
+          if (!img.src) return;
+          const base = img.src.split('=')[0];
+          if (!knownBaseUrls.has(base) && !found.has(img.src)) {
+            found.add(img.src);
+          }
+        });
+      }
+
+      // Immediate scan (image may already be in DOM)
+      scanDOM();
+      if (found.size >= expectedCount) {
+        resolve([...found]);
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        scanDOM();
+        if (found.size >= expectedCount) {
+          observer.disconnect();
+          clearTimeout(timer);
+          resolve([...found]);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+
+      const timer = setTimeout(() => {
+        observer.disconnect();
+        resolve([...found]);
+      }, timeoutMs);
+    });
+  }
+
+  /**
+   * Finalize captured data, download any images in page context, and post to content-script.
+   * Made async so we can await image downloads before sending.
+   */
+  async function finalizeAndSendCapture(capturedData, knownBaseUrls = new Set()) {
     captureCount++;
     capturedData.captureIndex = captureCount;
     capturedData.timestamp = new Date().toISOString();
     capturedData.sourceUrl = window.location.href;
+
+    // -----------------------------------------------------------------------
+    // Image capture strategy (in priority order):
+    // 1. Try fetching API response URLs with size param fix (fast, ~1s)
+    // 2. Wait for DOM MutationObserver to get live img.src URLs (reliable, ~3s)
+    // 3. Fallback: keep original URL for service worker to attempt later
+    // -----------------------------------------------------------------------
+    if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
+      console.log(`[Project DNA] 🖼️ Fetching ${capturedData.resultUrls.length} image(s)...`);
+      const base64Images = [];
+
+      // --- Strategy 1: fetch from API response URLs (with size param fix) ---
+      for (const imageUrl of capturedData.resultUrls) {
+        const b64 = await fetchImageAsBase64(imageUrl);
+        if (b64) {
+          base64Images.push(b64);
+          console.log(`[Project DNA] 🖼️ ✅ Strategy 1 OK (${Math.round(b64.length / 1024)}KB)`);
+        }
+      }
+
+      // --- Strategy 2: DOM MutationObserver (if Strategy 1 got nothing) ---
+      if (base64Images.length === 0) {
+        console.log(`[Project DNA] 🖼️ Strategy 1 failed, waiting for DOM images (up to 6s)...`);
+        const domUrls = await waitForDOMImages(knownBaseUrls, capturedData.resultUrls.length, 6000);
+
+        if (domUrls.length > 0) {
+          console.log(`[Project DNA] 🖼️ DOM observer found ${domUrls.length} live URL(s)`);
+          for (const domUrl of domUrls) {
+            const b64 = await fetchImageAsBase64(domUrl);
+            if (b64) {
+              base64Images.push(b64);
+              console.log(`[Project DNA] 🖼️ ✅ Strategy 2 OK — DOM src fetched (${Math.round(b64.length / 1024)}KB)`);
+            }
+          }
+          // Even if fetch failed, use the live DOM URL (it'll work for a few hours)
+          if (base64Images.length === 0) {
+            capturedData.resultUrls = domUrls;
+            console.warn(`[Project DNA] 🖼️ Using raw DOM URLs as fallback`);
+          }
+        }
+      }
+
+      if (base64Images.length > 0) {
+        capturedData.resultBase64Images = base64Images;
+      }
+    }
 
     window.postMessage({
       type: MESSAGE_TYPE,
@@ -687,11 +958,14 @@
     }, '*');
 
     const promptSnippet = capturedData.promptText || '';
-    
+    const imgInfo = capturedData.resultBase64Images
+      ? ` | 🖼️ ${capturedData.resultBase64Images.length} image(s) pre-fetched`
+      : '';
+
     console.log(
       `[Project DNA] 🧬 Captured generation #${captureCount}:`,
       capturedData.model,
-      `| prompt: ${promptSnippet.substring(0, 80)}...`
+      `| prompt: ${promptSnippet.substring(0, 80)}...${imgInfo}`
     );
   }
 

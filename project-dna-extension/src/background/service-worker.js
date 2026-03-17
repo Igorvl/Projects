@@ -130,69 +130,107 @@ async function sendToProjectDNA(capturedData) {
     return { success: false, error: 'No active project selected' };
   }
 
-  // Download and upload images to MinIO
+  // -----------------------------------------------------------------------
+  // Upload images to MinIO
+  // Priority: resultBase64Images (pre-fetched in page context with Google auth)
+  //           → fallback to resultUrls (may fail if expired or no auth)
+  // -----------------------------------------------------------------------
   let finalResultUrls = [];
-  if (capturedData.resultUrls && capturedData.resultUrls.length > 0) {
-    for (let i = 0; i < capturedData.resultUrls.length; i++) {
-        const sourceUrl = capturedData.resultUrls[i];
+
+  const base64Images = capturedData.resultBase64Images || [];
+  const sourceUrls   = capturedData.resultUrls || [];
+
+  if (base64Images.length > 0) {
+    // ✅ Fast path: page-script already downloaded the images as base64
+    console.log(`[Project DNA] 🖼️ Uploading ${base64Images.length} pre-fetched image(s) to MinIO...`);
+
+    for (let i = 0; i < base64Images.length; i++) {
+      try {
+        // Fetch the data: URL to get a Blob — supported in service workers
+        const dataRes = await fetch(base64Images[i]);
+        const blob    = await dataRes.blob();
+
+        const formData = new FormData();
+        formData.append('file', blob, `gemini_image_${Date.now()}_${i}.png`);
+
+        const uploadRes = await fetch(`${config.API_URL}/v1/dna/upload/${config.activeProject}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData && uploadData.url) {
+            const apiHost = new URL(config.API_URL).hostname;
+            const finalUrl = uploadData.url.replace('ai-minio:9000', `${apiHost}:9001`);
+            finalResultUrls.push(finalUrl);
+            console.log(`[Project DNA] ✅ Image ${i + 1} uploaded to MinIO: ${finalUrl.substring(0, 60)}...`);
+          }
+        } else {
+          const errText = await uploadRes.text().catch(() => '');
+          console.warn(`[Project DNA] ⚠️ MinIO upload failed (${uploadRes.status}): ${errText.substring(0, 60)}`);
+          // Keep the original Google URL as a fallback reference
+          if (sourceUrls[i]) finalResultUrls.push(sourceUrls[i] + `#ERROR=MinIO_${uploadRes.status}`);
+        }
+      } catch (e) {
+        console.error(`[Project DNA] ❌ Image ${i + 1} upload error:`, e.message);
+        if (sourceUrls[i]) finalResultUrls.push(sourceUrls[i] + `#ERROR_UPLOAD=${e.message}`);
+      }
+    }
+
+  } else if (sourceUrls.length > 0) {
+    // ⚠️ Fallback path: try to download from Google URL directly
+    // This often fails (400/403) because service worker has no Google auth cookies.
+    // Only works for public or non-auth-required URLs.
+    console.log(`[Project DNA] ⚠️ No pre-fetched images — attempting URL download (may fail for Google auth URLs)...`);
+
+    for (let i = 0; i < sourceUrls.length; i++) {
+        const sourceUrl = sourceUrls[i];
         try {
-            console.log(`[Project DNA] Downloading image ${i+1}/${capturedData.resultUrls.length}...`);
             let imgRes;
             if (sourceUrl.startsWith('data:image/')) {
                 imgRes = await fetch(sourceUrl);
                 if (!imgRes.ok) throw new Error(`HTTP Base64 ${imgRes.status}`);
             } else {
                 let directUrl = sourceUrl;
-                // Add size parameter to fetch largest version if not present
                 if (directUrl.includes('=')) {
                     directUrl = directUrl.replace(/=[a-zA-Z0-9\-]+/, '=w2048-h2048');
                 }
-                
-                console.log(`[Project DNA] Fetching Google Image URL: ${directUrl}`);
                 try {
                     imgRes = await fetch(directUrl);
                     if (!imgRes.ok) throw new Error(`Fetch failed: ${imgRes.status}`);
                 } catch(e1) {
-                    console.log(`[Project DNA] First fetch failed, trying with credentials: ${e1.message}`);
-                    try {
-                        imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
-                    } catch(e2) {
-                        throw new Error(`Fallback fetch failed: ${e2.message}`);
-                    }
+                    imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
                 }
                 if (!imgRes || !imgRes.ok) throw new Error(`HTTP/fetch failed: ${imgRes?.status}`);
             }
-            
+
             const arrayBuffer = await imgRes.arrayBuffer();
             const blob = new Blob([arrayBuffer], { type: 'image/png' });
-            
             const formData = new FormData();
             formData.append('file', blob, `gemini_image_${Date.now()}_${i}.png`);
-            
-            console.log(`[Project DNA] Uploading image to MinIO...`);
+
             const uploadRes = await fetch(`${config.API_URL}/v1/dna/upload/${config.activeProject}`, {
                 method: 'POST',
                 body: formData
             });
-            
+
             if (uploadRes.ok) {
                 const uploadData = await uploadRes.json();
                 if (uploadData && uploadData.url) {
-                    // Rewrite internal docker DNS to the accessible IP to fix rendering in dashboard
                     const apiHost = new URL(config.API_URL).hostname;
                     const finalUrl = uploadData.url.replace('ai-minio:9000', `${apiHost}:9001`);
                     finalResultUrls.push(finalUrl);
-                    console.log(`[Project DNA] Uploaded successfully: ${finalUrl.substring(0, 50)}...`);
+                    console.log(`[Project DNA] ✅ Image uploaded: ${finalUrl.substring(0, 50)}...`);
                 } else {
                     finalResultUrls.push(sourceUrl + '#ERROR=No_URL_in_UploadRes');
                 }
             } else {
-                console.warn(`[Project DNA] Failed to upload image to MinIO.`);
                 const errText = await uploadRes.text().catch(()=>'');
                 finalResultUrls.push(sourceUrl + `#ERROR=Upload_${uploadRes.status}_${errText.substring(0,20)}`);
             }
         } catch (e) {
-            console.error(`[Project DNA] Failed to process image URL: ${sourceUrl}`, e);
+            console.error(`[Project DNA] ❌ Failed to process image URL: ${sourceUrl.substring(0,60)}`, e.message);
             finalResultUrls.push(sourceUrl + `#ERROR_FETCH=${e.message}`);
         }
     }
