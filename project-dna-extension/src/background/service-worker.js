@@ -162,9 +162,10 @@ async function sendToProjectDNA(capturedData) {
           const uploadData = await uploadRes.json();
           if (uploadData && uploadData.url) {
             const apiHost = new URL(config.API_URL).hostname;
-            const finalUrl = uploadData.url.replace('ai-minio:9000', `${apiHost}:9001`);
+            // Strip signatures and map to external API host
+            const finalUrl = uploadData.url.split('?')[0].replace('ai-minio:9000', `${apiHost}:9000`);
             finalResultUrls.push(finalUrl);
-            console.log(`[Project DNA] ✅ Image ${i + 1} uploaded to MinIO: ${finalUrl.substring(0, 60)}...`);
+            console.log(`[Project DNA] ✅ Clean MinIO URL: ${finalUrl}`);
           }
         } else {
           const errText = await uploadRes.text().catch(() => '');
@@ -219,9 +220,10 @@ async function sendToProjectDNA(capturedData) {
                 const uploadData = await uploadRes.json();
                 if (uploadData && uploadData.url) {
                     const apiHost = new URL(config.API_URL).hostname;
-                    const finalUrl = uploadData.url.replace('ai-minio:9000', `${apiHost}:9001`);
+                    // Strip signatures and map
+                    const finalUrl = uploadData.url.split('?')[0].replace('ai-minio:9000', `${apiHost}:9000`);
                     finalResultUrls.push(finalUrl);
-                    console.log(`[Project DNA] ✅ Image uploaded: ${finalUrl.substring(0, 50)}...`);
+                    console.log(`[Project DNA] ✅ Clean MinIO URL: ${finalUrl}`);
                 } else {
                     finalResultUrls.push(sourceUrl + '#ERROR=No_URL_in_UploadRes');
                 }
