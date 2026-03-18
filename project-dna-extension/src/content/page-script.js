@@ -630,7 +630,6 @@
                 }
               }
 
-                let blockBest = '';
                 for (let str of deepStrings) {
                   str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
                            .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
@@ -641,10 +640,8 @@
                   
                   // Reject long technical tokens/IDs (long strings with no spaces)
                   if (str.length > 15 && !str.includes(' ')) continue;
-                  
                   if (str.length > 50 && !str.includes(' ')) continue;
 
-                  
                   const spaceCount = (str.match(/ /g) || []).length;
                   if (str.length > 50 && spaceCount / str.length < 0.05) continue; 
                   
@@ -652,9 +649,8 @@
                   if (/^https?:\/\//.test(str)) continue;
                   if (/[a-zA-Z0-9_\-\/\+\=]{100,}/.test(str)) continue; // Was 60, increased to avoid killing Russian text
                   
-                  if (str.length > blockBest.length) blockBest = str;
+                  chunks.push(str);
                 }
-                if (blockBest) chunks.push(blockBest);
             }
           }
 
@@ -679,10 +675,9 @@
             }
             const candidates = unique.length > 0 ? unique : chunks;
             // Join all distinct complete chunks rather than picking only the longest one.
-            // This ensures we capture both the conversational response AND the internal image prompt concepts.
-            // We sort by length descending just for consistent ordering (longest first).
             candidates.sort((a, b) => b.length - a.length);
-            const best = candidates.join('\n\n[Изолированный текстовый блок]\n');
+            const validCandidates = candidates.filter(c => c.length > 40 && !c.includes('Nano Banana'));
+            const best = validCandidates.join('\n\n---\n\n');
             
             // Beauty cleanup: remove Google's internal safety placeholders
             // and technical artifacts like "Chicago, IL, USA"
@@ -773,7 +768,8 @@
              }
           }
           const survived = (unique.length > 0 ? unique : candidates).sort((a, b) => b.length - a.length);
-          const best = survived.join('\n\n[Изолированный текстовый блок]\n');
+          const validCandidates = survived.filter(c => c.length > 40 && !c.includes('Nano Banana'));
+          const best = validCandidates.join('\n\n---\n\n');
           outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
           console.log(`[Project DNA] 📝 Fallback response extraction: ${candidates.length} candidates → kept 1 (len=${outputText.length})`);
         }
