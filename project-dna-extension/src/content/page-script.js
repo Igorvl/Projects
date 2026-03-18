@@ -503,15 +503,26 @@
               .filter(t => t.split(' ').length >= 2);
 
             if (validTexts.length > 0) {
-              // For image generation prompts the user text may be split across
-              // multiple entries — join them all (dedup adjacent duplicates)
-              const uniqueTexts = validTexts.filter((t, i, arr) => i === 0 || t !== arr[i - 1]);
-              promptText = uniqueTexts.join(' ');
-              // But if the last entry is much longer (it usually IS the full prompt), prefer it alone
-              const lastText = uniqueTexts[uniqueTexts.length - 1];
-              if (lastText.length > promptText.length * 0.6) {
-                promptText = lastText;
+              // Join all found texts while avoiding contiguous duplicates.
+              // In large Gemini requests, the prompt is often nested multiple times.
+              // We want to capture the FULL user text even if it's split.
+              const uniqueTexts = validTexts.filter((t, i, arr) => i === 0 || !arr[i - 1].includes(t));
+              
+              // 1. Find the longest single entry (usually the full text)
+              const sortedByLength = [...uniqueTexts].sort((a, b) => b.length - a.length);
+              const longest = sortedByLength[0];
+
+              // 2. If the longest entry is significantly large (>50% of sum), use it.
+              // Otherwise join all unique pieces.
+              const totalLen = uniqueTexts.join(' ').length;
+              if (longest.length > totalLen * 0.7) {
+                promptText = longest;
+              } else {
+                promptText = uniqueTexts.join('\n\n');
               }
+              
+              // Capping prompt to avoid DB overflow (max 20k)
+              if (promptText.length > 20000) promptText = promptText.substring(0, 20000) + '...[truncated]';
             }
           } catch(e) {}
         }
@@ -596,7 +607,7 @@
                 if (typeof obj === 'string') {
                   if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
                     deepUrls.push(obj);
-                  } else if (obj.length > 30) {
+                  } else if (obj.length > 4) {
                     deepStrings.push(obj);
                   }
                 } else if (Array.isArray(obj)) {
@@ -619,22 +630,31 @@
                 }
               }
 
-              // Find the longest valid natural-language string in this block
-              let blockBest = '';
-              for (let str of deepStrings) {
-                str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
-                         .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
-                str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
-                if (str.length < 30) continue;
-                if (!str.includes(' ')) continue;
-                const spaceCount = (str.match(/ /g) || []).length;
-                if (spaceCount / str.length < 0.05) continue;
-                if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
-                if (/^https?:\/\//.test(str)) continue;
-                if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
-                if (str.length > blockBest.length) blockBest = str;
-              }
-              if (blockBest) chunks.push(blockBest);
+                let blockBest = '';
+                for (let str of deepStrings) {
+                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
+                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+                  // Remove technical base64 debris at end of strings
+                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
+
+                  if (str.length < 5) continue;
+                  
+                  // Reject long technical tokens/IDs (long strings with no spaces)
+                  if (str.length > 15 && !str.includes(' ')) continue;
+                  
+                  if (str.length > 50 && !str.includes(' ')) continue;
+
+                  
+                  const spaceCount = (str.match(/ /g) || []).length;
+                  if (str.length > 50 && spaceCount / str.length < 0.05) continue; 
+                  
+                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
+                  if (/^https?:\/\//.test(str)) continue;
+                  if (/[a-zA-Z0-9_\-\/\+\=]{100,}/.test(str)) continue; // Was 60, increased to avoid killing Russian text
+                  
+                  if (str.length > blockBest.length) blockBest = str;
+                }
+                if (blockBest) chunks.push(blockBest);
             }
           }
 
@@ -653,7 +673,17 @@
             const candidates = unique.length > 0 ? unique : chunks;
             candidates.sort((a, b) => b.length - a.length);
             const best = candidates[0];
-            outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
+            
+            // Beauty cleanup: remove Google's internal safety placeholders
+            // and technical artifacts like "Chicago, IL, USA"
+            let cleaned = best
+                .replace(/(?:^|\n)(?:[*#\s]*)?\[[^\]]*(?:удален|removed)\][ \t]*(?:\r?\n[ \t]*[-*=_]{3,}[ \t]*)?\s*/gi, '\n')
+                .replace(/^Chicago, IL, USA[ \t]*\n*/i, '') // Remove location artifact
+                .replace(/^\s*[-*=_]{3,}\s*\n/gm, '') // Remove orphaned dividers
+                .replace(/\n{3,}/g, '\n\n') // Fix spacing
+                .trim();
+                
+            outputText = cleaned.length > 4000 ? cleaned.substring(0, 4000) + '…[truncated]' : cleaned;
             console.log(`[DNA 2C] ✅ response_text len=${outputText.length}: "${outputText.substring(0, 80).replace(/\n/g, '↵')}"`);
           }
         }
