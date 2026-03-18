@@ -664,12 +664,19 @@
           );
 
           if (chunks.length > 0) {
-            // Substring dedup: remove progressive partial states.
-            // Cumulative streaming gives us: ["Hello", "Hello world", "Hello world!"]
-            // "Hello" is contained in "Hello world!" → removed.
-            // "Hello world" is contained in "Hello world!" → removed.
-            // Only "Hello world!" (longest) survives.
-            const unique = chunks.filter(c => !chunks.some(other => other !== c && other.includes(c)));
+            // Substring dedup + prefix dedup: remove progressive partial states and duplicate artifacts.
+            const unique = [];
+            for (const c of chunks) {
+               const existingIdx = unique.findIndex(u => 
+                 u.includes(c) || c.includes(u) || 
+                 (u.length > 50 && c.length > 50 && u.substring(0, 50) === c.substring(0, 50))
+               );
+               if (existingIdx !== -1) {
+                  if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
+               } else {
+                  unique.push(c);
+               }
+            }
             const candidates = unique.length > 0 ? unique : chunks;
             // Join all distinct complete chunks rather than picking only the longest one.
             // This ensures we capture both the conversational response AND the internal image prompt concepts.
@@ -752,10 +759,19 @@
           .filter(t => t.includes(' ') && !t.startsWith('http'));
 
         if (candidates.length > 0) {
-          // Remove strings that are substrings of longer ones (remove progressive states)
-          const unique = candidates.filter(c =>
-            !candidates.some(other => other !== c && other.includes(c))
-          );
+          // Substring dedup + prefix dedup: remove progressive partial states and duplicate artifacts.
+          const unique = [];
+          for (const c of candidates) {
+             const existingIdx = unique.findIndex(u => 
+               u.includes(c) || c.includes(u) || 
+               (u.length > 50 && c.length > 50 && u.substring(0, 50) === c.substring(0, 50))
+             );
+             if (existingIdx !== -1) {
+                if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
+             } else {
+                unique.push(c);
+             }
+          }
           const survived = (unique.length > 0 ? unique : candidates).sort((a, b) => b.length - a.length);
           const best = survived.join('\n\n[Изолированный текстовый блок]\n');
           outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
