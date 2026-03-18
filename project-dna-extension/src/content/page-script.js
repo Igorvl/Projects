@@ -526,12 +526,13 @@
                 }
             } catch(e) {}
         }
-      }
+      } // Closes else block from line 454
 
+      // 1D. System Instruction
       if (requestBody.systemInstruction?.parts) {
         systemInstruction = requestBody.systemInstruction.parts.map(p => p.text || '').join('\n');
       }
-    }
+    } // Closes if (requestBody)
 
     // ==========================================================
     // 2. EXTRACT OUTPUT
@@ -544,9 +545,9 @@
           outputText = candidate.content.parts.filter(p => p.text).map(p => p.text).join('');
         }
         finishReason = candidate?.finishReason || 'SUCCESS';
-      } 
+
       // 2B. AI Studio Streaming Array
-      else if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].candidates) {
+      } else if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].candidates) {
         outputText = responseData
           .filter(chunk => chunk?.candidates)
           .flatMap(chunk => chunk.candidates)
@@ -554,123 +555,110 @@
           .filter(p => p.text)
           .map(p => p.text)
           .join('');
-      } 
-      // 2C. Batched Execute JSON / Text Output
-      else if (responseData.rawText) {
+
+      // 2C. Batched Execute / Google RPC Format (Gemini web batchexecute?rpcids=ESY5D)
+      } else if (responseData.rawText) {
         let text = responseData.rawText;
-        
-        // Handle SSE (Server-Sent Events)
+
         if (text.startsWith('data: ')) {
+          // SSE format
           outputText = parseSSEResponse(text);
-        } 
-        // Handle Google RPC Format, usually starts with )]}'
-        else {
-          let chunks = [];
-          if (text.includes(")]}'")) {
-            text = text.replace(/^\)\]\}'\n*/, ''); // Strip prefix
 
-            // IMPORTANT: Use the LAST wrb.fr block from the stream.
-            // Gemini sends streaming chunks where each chunk may carry the full
-            // conversation history for context. Parsing ALL lines would collect
-            // all that history. The LAST block has the final AI response only.
-            const lines = text.split('\n');
-            let lastWrbBlock = null;
+        } else if (text.includes(")]}'")) {
+          // Google batchexecute streaming format.
+          // Gemini streams multiple wrb.fr blocks:
+          //   - Early blocks: cumulative AI response (each contains the full text so far)
+          //   - Final block:  metadata marker [[null,null,null,null,true]] — NO text
+          //
+          // Strategy: scan ALL blocks, take the LONGEST valid text per block, collect in chunks[].
+          // Then substring-dedup removes progressive partial states, leaving the longest complete response.
+          text = text.replace(/^\)\]\}'\n*/, '');
+          const lines = text.split('\n');
+          const chunks = [];
 
-            for (let line of lines) {
-              if (!line.startsWith('[')) continue;
-              try {
-                const parsed = JSON.parse(line);
-                if (!Array.isArray(parsed)) continue;
-                for (const item of parsed) {
-                  if (Array.isArray(item) && item[0] === 'wrb.fr' && typeof item[2] === 'string') {
-                    lastWrbBlock = item[2]; // Keep overwriting — we want the LAST one
+          for (const line of lines) {
+            if (!line.startsWith('[')) continue;
+            let parsedLine;
+            try { parsedLine = JSON.parse(line); } catch(e) { continue; }
+            if (!Array.isArray(parsedLine)) continue;
+
+            for (const item of parsedLine) {
+              if (!Array.isArray(item) || item[0] !== 'wrb.fr' || typeof item[2] !== 'string') continue;
+
+              let embedded;
+              try { embedded = JSON.parse(item[2]); } catch(e) { continue; }
+
+              const deepStrings = [];
+              const deepUrls = [];
+
+              (function ext(obj, depth) {
+                if (depth > 12 || !obj) return;
+                if (typeof obj === 'string') {
+                  if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
+                    deepUrls.push(obj);
+                  } else if (obj.length > 30) {
+                    deepStrings.push(obj);
+                  }
+                } else if (Array.isArray(obj)) {
+                  for (const child of obj) ext(child, depth + 1);
+                } else if (typeof obj === 'object') {
+                  for (const key in obj) ext(obj[key], depth + 1);
+                }
+              })(embedded, 0);
+
+              // Collect image URLs
+              for (const url of deepUrls) {
+                if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
+                const cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
+                if (cleanUrl.length > 60) {
+                  const baseUrl = cleanUrl.split('=')[0];
+                  if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
+                    snapshotUrls.add(baseUrl);
+                    resultUrls.push(cleanUrl);
                   }
                 }
-              } catch(e) { /* malformed line, skip */ }
-            }
+              }
 
-            if (lastWrbBlock) {
-              try {
-                const embedded = JSON.parse(lastWrbBlock);
-                const deepStrings = [];
-                const deepUrls = [];
-
-                function extractDeep(obj, depth) {
-                  // AI response is at depth 1-3 in wrb.fr structure.
-                  // Conversation history/context is nested at depth 6-12.
-                  // Limiting to depth 5 prevents picking up context dumps.
-                  if (depth > 5 || !obj) return;
-
-                  if (typeof obj === 'string') {
-                    if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
-                      deepUrls.push(obj);
-                    } else if (obj.length > 30) {
-                      deepStrings.push(obj);
-                    }
-                  } else if (Array.isArray(obj)) {
-                    for (const child of obj) extractDeep(child, depth + 1);
-                  } else if (typeof obj === 'object') {
-                    for (const key in obj) extractDeep(obj[key], depth + 1);
-                  }
-                }
-                extractDeep(embedded, 0);
-
-                // Process image URLs
-                for (let url of deepUrls) {
-                  if (url.includes('/a/') || url.includes('/a-/') || url.includes('AATXAJ') || url.includes('photo.jpg')) continue;
-                  let cleanUrl = url.replace(/\/(rd-)?gg-dl\//, '/');
-                  if (cleanUrl.length > 60) {
-                    let baseUrl = cleanUrl.split('=')[0];
-                    if (!snapshotUrls.has(baseUrl) && !resultUrls.includes(cleanUrl)) {
-                      snapshotUrls.add(baseUrl);
-                      resultUrls.push(cleanUrl);
-                    }
-                  }
-                }
-
-                // Process text strings — filter out telemetry, keep natural language
-                for (let str of deepStrings) {
-                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
-                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
-                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
-                  if (str.length < 30) continue;
-                  if (!str.includes(' ')) continue;
-                  const spaceCount = (str.match(/ /g) || []).length;
-                  if (spaceCount / str.length < 0.05) continue;
-                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
-                  if (/^https?:\/\//.test(str)) continue;
-                  if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
-                  chunks.push(str);
-                }
-              } catch(err) {}
+              // Find the longest valid natural-language string in this block
+              let blockBest = '';
+              for (let str of deepStrings) {
+                str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
+                         .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+                str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
+                if (str.length < 30) continue;
+                if (!str.includes(' ')) continue;
+                const spaceCount = (str.match(/ /g) || []).length;
+                if (spaceCount / str.length < 0.05) continue;
+                if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
+                if (/^https?:\/\//.test(str)) continue;
+                if (/[a-zA-Z0-9_\-\/\+\=]{60,}/.test(str)) continue;
+                if (str.length > blockBest.length) blockBest = str;
+              }
+              if (blockBest) chunks.push(blockBest);
             }
           }
+
+          console.log(`[DNA 2C] ${chunks.length} candidate(s) from all blocks`);
+          chunks.slice(0, 3).forEach((c, i) =>
+            console.log(`  #${i} len=${c.length}: "${c.substring(0, 70).replace(/\n/g, '↵')}"`)
+          );
+
           if (chunks.length > 0) {
-            // === DEBUG: show what we collected ===
-            console.log(`[Project DNA DEBUG] ${chunks.length} chunk(s) before dedup:`);
-            chunks.forEach((c, i) =>
-              console.log(`  #${i} len=${c.length} starts: "${c.substring(0, 60).replace(/\n/g, '↵')}"`)
-            );
-
-            // Remove strings that are a substring of any longer string in the set.
-            const unique = chunks.filter(c =>
-              !chunks.some(other => other !== c && other.includes(c))
-            );
-
-            console.log(`[Project DNA DEBUG] ${unique.length} chunk(s) after dedup:`);
-            unique.forEach((c, i) =>
-              console.log(`  #${i} len=${c.length} starts: "${c.substring(0, 60).replace(/\n/g, '↵')}"`)
-            );
-
+            // Substring dedup: remove progressive partial states.
+            // Cumulative streaming gives us: ["Hello", "Hello world", "Hello world!"]
+            // "Hello" is contained in "Hello world!" → removed.
+            // "Hello world" is contained in "Hello world!" → removed.
+            // Only "Hello world!" (longest) survives.
+            const unique = chunks.filter(c => !chunks.some(other => other !== c && other.includes(c)));
             const candidates = unique.length > 0 ? unique : chunks;
             candidates.sort((a, b) => b.length - a.length);
             const best = candidates[0];
             outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
+            console.log(`[DNA 2C] ✅ response_text len=${outputText.length}: "${outputText.substring(0, 80).replace(/\n/g, '↵')}"`);
           }
         }
       }
     }
-
     // Ultimate fallback algorithm
     if (!promptText && requestBody) {
        try {
