@@ -671,8 +671,11 @@
             // Only "Hello world!" (longest) survives.
             const unique = chunks.filter(c => !chunks.some(other => other !== c && other.includes(c)));
             const candidates = unique.length > 0 ? unique : chunks;
+            // Join all distinct complete chunks rather than picking only the longest one.
+            // This ensures we capture both the conversational response AND the internal image prompt concepts.
+            // We sort by length descending just for consistent ordering (longest first).
             candidates.sort((a, b) => b.length - a.length);
-            const best = candidates[0];
+            const best = candidates.join('\n\n[Изолированный текстовый блок]\n');
             
             // Beauty cleanup: remove Google's internal safety placeholders
             // and technical artifacts like "Chicago, IL, USA"
@@ -753,8 +756,8 @@
           const unique = candidates.filter(c =>
             !candidates.some(other => other !== c && other.includes(c))
           );
-          const best = (unique.length > 0 ? unique : candidates)
-            .sort((a, b) => b.length - a.length)[0];
+          const survived = (unique.length > 0 ? unique : candidates).sort((a, b) => b.length - a.length);
+          const best = survived.join('\n\n[Изолированный текстовый блок]\n');
           outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
           console.log(`[Project DNA] 📝 Fallback response extraction: ${candidates.length} candidates → kept 1 (len=${outputText.length})`);
         }
