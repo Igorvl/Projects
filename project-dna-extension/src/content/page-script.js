@@ -436,6 +436,7 @@
     let generationConfig = requestBody?.generationConfig || {};
     let safetySettings = requestBody?.safetySettings || [];
     let resultUrls = [];
+    let resultBase64Images = [];
 
     // ==========================================================
     // 1. EXTRACT PROMPT
@@ -598,14 +599,12 @@
 
               let embedded;
               try { embedded = JSON.parse(item[2]); } catch(e) { continue; }
-
               const deepStrings = [];
               const deepUrls = [];
-
               (function ext(obj, depth) {
                 if (depth > 12 || !obj) return;
                 if (typeof obj === 'string') {
-                  if (obj.startsWith('http') && obj.includes('googleusercontent.com')) {
+                  if (obj.startsWith('http') && (obj.includes('googleusercontent.com') || obj.includes('aistudio.google.com/u/') || obj.includes('/image/'))) {
                     deepUrls.push(obj);
                   } else if (obj.length > 4) {
                     deepStrings.push(obj);
@@ -756,6 +755,7 @@
           .map(m => m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim())
           .filter(t => t.includes(' ') && !t.startsWith('http'));
 
+        if (candidates.length > 0) {
           const unique = [];
           for (const c of candidates) {
              const existingIdx = unique.findIndex(u => 
@@ -804,6 +804,7 @@
       },
       safetySettings: safetySettings,
       resultUrls: resultUrls,
+      resultBase64Images: resultBase64Images,
       apiUrl: url,
     };
   }
@@ -983,7 +984,7 @@
       }
 
       if (base64Images.length > 0) {
-        capturedData.resultBase64Images = base64Images;
+        capturedData.resultBase64Images = (capturedData.resultBase64Images || []).concat(base64Images);
       }
     }
 
