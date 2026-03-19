@@ -665,7 +665,8 @@
             for (const c of chunks) {
                const existingIdx = unique.findIndex(u => 
                  u.includes(c) || c.includes(u) || 
-                 (u.length > 50 && c.length > 50 && u.substring(0, 50) === c.substring(0, 50))
+                 (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
+                 (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
                );
                if (existingIdx !== -1) {
                   if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
@@ -674,10 +675,12 @@
                }
             }
             const candidates = unique.length > 0 ? unique : chunks;
-            // Join all distinct complete chunks rather than picking only the longest one.
+            // Sort by length but try to maintain a cohesive output.
             candidates.sort((a, b) => b.length - a.length);
             const validCandidates = candidates.filter(c => c.length > 40 && !c.includes('Nano Banana'));
-            const best = validCandidates.join('\n\n---\n\n');
+            // Remove the explicit "---" separator as it fragments the text too much.
+            // Use just double newlines for a cleaner integrated look.
+            const best = validCandidates.join('\n\n');
             
             // Beauty cleanup: remove Google's internal safety placeholders
             // and technical artifacts like "Chicago, IL, USA"
@@ -753,13 +756,12 @@
           .map(m => m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim())
           .filter(t => t.includes(' ') && !t.startsWith('http'));
 
-        if (candidates.length > 0) {
-          // Substring dedup + prefix dedup: remove progressive partial states and duplicate artifacts.
           const unique = [];
           for (const c of candidates) {
              const existingIdx = unique.findIndex(u => 
                u.includes(c) || c.includes(u) || 
-               (u.length > 50 && c.length > 50 && u.substring(0, 50) === c.substring(0, 50))
+               (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
+               (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
              );
              if (existingIdx !== -1) {
                 if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
@@ -769,7 +771,7 @@
           }
           const survived = (unique.length > 0 ? unique : candidates).sort((a, b) => b.length - a.length);
           const validCandidates = survived.filter(c => c.length > 40 && !c.includes('Nano Banana'));
-          const best = validCandidates.join('\n\n---\n\n');
+          const best = validCandidates.join('\n\n');
           outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
           console.log(`[Project DNA] 📝 Fallback response extraction: ${candidates.length} candidates → kept 1 (len=${outputText.length})`);
         }
