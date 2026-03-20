@@ -634,13 +634,30 @@
               aiStudioB64.push(`data:${mime};base64,${obj}`);
               return;
             }
-            // Natural language: has at least one space, not a URL, not a token
-            if (obj.length >= 2 && obj.includes(' ') &&
+            // Fallback for strings not caught by structure analyzer: allow incremental tokens (no space required)
+            if (obj.length >= 1 && obj.trim().length > 0 &&
               !obj.startsWith('http') && !obj.startsWith('{') && !obj.startsWith('[') &&
-              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj)) {
+              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj) && // base64
+              !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(obj) &&   // UUIDs
+              !obj.includes('google.internal') &&
+              !obj.includes('GenerateContent') &&
+              obj !== 'wrb.fr' && obj !== 'SUCCESS' &&
+              obj !== 'image/png' && obj !== 'image/jpeg' && obj !== 'image/webp'
+            ) {
               aiStudioFragments.push(obj);
             }
           } else if (Array.isArray(obj)) {
+            // ── Precise structural alignment for AI Studio text chunks ──
+            // Google gRPC streams text as `[null, "text chunk"]` or `[null, null, "text chunk"]`
+            if (obj.length >= 2 && obj[0] === null && typeof obj[1] === 'string' && obj[1].trim().length > 0) {
+              aiStudioFragments.push(obj[1]);
+              return; // Stop recursing to prevent duplicate fallback match
+            }
+            if (obj.length >= 3 && obj[0] === null && obj[1] === null && typeof obj[2] === 'string' && obj[2].trim().length > 0) {
+              aiStudioFragments.push(obj[2]);
+              return; // Stop recursing
+            }
+            // Otherwise, keep digging
             for (const item of obj) scanGrpcArray(item, depth + 1);
           } else if (typeof obj === 'object') {
             // Handle {mimeType, data} inline image objects
@@ -679,8 +696,9 @@
 
           // Step 3: assemble — conversational first, then technical with header
           let assembled = '';
+          // Because AI Studio sends purely incremental unspaced tokens, we join with no separator
           if (convFrags.length > 0) {
-            assembled = convFrags.join('\n');
+            assembled = convFrags.join('');
           }
           if (imagenFrags.length > 0) {
             const imagenBlock = imagenFrags.join('\n');
@@ -847,24 +865,34 @@
           console.log('[DNA 2D] AI Studio rawText path — scanning for fragments');
           const rawFragments = [];
 
-          // Extract all JSON-quoted strings (any length with at least one space)
-          Array.from(text.matchAll(/"((?:[^"\\]|\\.)*)"/g)).forEach(m => {
+          // 1. Precise structural extraction: Google gRPC text chunk `[null, "text"]` or `[null, null, "text"]`
+          const structRegex = /\[null(?:,\s*null)?,\s*"((?:[^"\\]|\\.)*)"/g;
+          for (const m of text.matchAll(structRegex)) {
             let s = m[1];
-            // Unescape JSON sequences
             try { s = JSON.parse('"' + s + '"'); } catch { s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"'); }
-            // Keep only natural language: must have space, no URLs, no base64 tokens
-            if (s.length >= 2 &&
-              s.includes(' ') &&
-              !s.startsWith('http') &&
-              !s.startsWith('{') &&
-              !s.startsWith('[') &&
-              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(s) &&
-              !s.includes('models/') &&
-              !s.includes('data_analysis_tool') &&
-              !s.includes('googleusercontent')) {
-              rawFragments.push(s);
-            }
-          });
+            if (s.trim().length > 0) rawFragments.push(s);
+          }
+
+          // 2. Fuzzy fallback: extract all JSON-quoted strings with spaces
+          if (rawFragments.length === 0) {
+            Array.from(text.matchAll(/"((?:[^"\\]|\\.)*)"/g)).forEach(m => {
+              let s = m[1];
+              // Unescape JSON sequences
+              try { s = JSON.parse('"' + s + '"'); } catch { s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"'); }
+              // Keep only natural language: must have space, no URLs, no base64 tokens
+              if (s.length >= 2 &&
+                s.includes(' ') &&
+                !s.startsWith('http') &&
+                !s.startsWith('{') &&
+                !s.startsWith('[') &&
+                !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(s) &&
+                !s.includes('models/') &&
+                !s.includes('data_analysis_tool') &&
+                !s.includes('googleusercontent')) {
+                rawFragments.push(s);
+              }
+            });
+          }
 
           if (rawFragments.length > 0) {
             // Substring-dedup: keep the longest when one includes another
