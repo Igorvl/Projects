@@ -634,24 +634,13 @@
               aiStudioB64.push(`data:${mime};base64,${obj}`);
               return;
             }
-            // Fallback for strings not caught by structure analyzer: allow incremental tokens (no space required)
-            if (obj.length >= 1 && obj.trim().length > 0 &&
-              !obj.startsWith('http') && !obj.startsWith('{') && !obj.startsWith('[') &&
-              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj) && // base64
-              !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(obj) &&   // UUIDs
-              !obj.includes('google.internal') &&
-              !obj.includes('GenerateContent') &&
-              obj !== 'wrb.fr' && obj !== 'SUCCESS' &&
-              obj !== 'image/png' && obj !== 'image/jpeg' && obj !== 'image/webp'
-            ) {
-              aiStudioFragments.push(obj);
-            }
           } else if (Array.isArray(obj)) {
             // ── Precise structural alignment for AI Studio text chunks ──
             // Google gRPC streams text as `[null, "text chunk"]` or `[null, null, "text chunk"]`
+            // We ONLY use this structural extraction to avoid grabbing metadata strings like "model" or timestamps.
             if (obj.length >= 2 && obj[0] === null && typeof obj[1] === 'string' && obj[1].trim().length > 0) {
               aiStudioFragments.push(obj[1]);
-              return; // Stop recursing to prevent duplicate fallback match
+              return; // Stop recursing
             }
             if (obj.length >= 3 && obj[0] === null && obj[1] === null && typeof obj[2] === 'string' && obj[2].trim().length > 0) {
               aiStudioFragments.push(obj[2]);
@@ -670,29 +659,14 @@
         })(responseData, 0);
 
         if (aiStudioFragments.length > 0) {
-          // Separate progressive-streaming dedup from multi-block combine.
-          //
-          // Problem: AI Studio gRPC streams each fragment CUMULATIVELY, e.g.:
-          //   "Вот" → "Вот ваш" → "Вот ваш кот" → ...
-          // Also, the response may contain MULTIPLE semantically separate paragraphs.
-          //
-          // Strategy:
-          //   1. Deduplicate within each "stream group" (prefix-includes check).
-          //   2. Keep ALL groups (not just the longest one) so we preserve multi-paragraph output.
-          //   3. Separate conversational text (native language, no IMAGE markers)
-          //      from technical Imagen-style text (English + IMAGE markers) if present.
+          // AI Studio gRPC streams text as purely INCREMENTAL, distinct tokens.
+          // Example: "Ко" -> "нечно, " -> "вот " -> "изображение".
+          // Because tokens are incremental and we use structural extraction, we DO NOT substring deduplicate,
+          // as that would incorrectly replace short tokens (like " в") with later words containing them ("дверь"), ruining order.
 
-          // Step 1: classic substring-dedup per stream group
-          const dedupedFrags = [];
-          for (const f of aiStudioFragments) {
-            const dup = dedupedFrags.findIndex(u => u.includes(f) || f.includes(u));
-            if (dup !== -1) { if (f.length > dedupedFrags[dup].length) dedupedFrags[dup] = f; }
-            else { dedupedFrags.push(f); }
-          }
-
-          // Step 2: split into conversational vs technical (Imagen-prompt-style) blocks
-          const imagenFrags = dedupedFrags.filter(f => /<IMAGE[_ ]\d/i.test(f));
-          const convFrags   = dedupedFrags.filter(f => !/<IMAGE[_ ]\d/i.test(f));
+          // Step 1: split into conversational vs technical (Imagen-prompt-style) blocks
+          const imagenFrags = aiStudioFragments.filter(f => /<IMAGE[_ ]\d/i.test(f));
+          const convFrags   = aiStudioFragments.filter(f => !/<IMAGE[_ ]\d/i.test(f));
 
           // Step 3: assemble — conversational first, then technical with header
           let assembled = '';
@@ -895,14 +869,10 @@
           }
 
           if (rawFragments.length > 0) {
-            // Substring-dedup: keep the longest when one includes another
-            const unique = [];
-            for (const f of rawFragments) {
-              const dup = unique.findIndex(u => u.includes(f) || f.includes(u));
-              if (dup !== -1) { if (f.length > unique[dup].length) unique[dup] = f; }
-              else unique.push(f);
-            }
-            outputText = unique.join('');
+            // Because fragments are purely incremental (e.g., extracted strictly via [null, "chunk"]),
+            // substring deduplication is destructive and reorders chunks sharing short tokens.
+            // Just join them.
+            outputText = rawFragments.join('');
             console.log(`[DNA 2D] ✅ ${rawFragments.length} frags → "${outputText.substring(0, 80)}"`);
           }
 
