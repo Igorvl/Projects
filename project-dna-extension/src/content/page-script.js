@@ -109,6 +109,11 @@
   const recentCaptures = new Map();
   const DEDUP_WINDOW_MS = 6000;
 
+  // URL-level XHR dedup: AI Studio fires many XHR per generation.
+  // We only process the FIRST one per endpoint within this window.
+  const processedXhrUrls = new Map();
+  const XHR_URL_DEDUP_MS = 20000;
+
   /**
    * Overridden fetch function.
    *
@@ -250,6 +255,19 @@
     }
 
     if (isGoogleAPI && isGeneration) {
+      // ── URL-level dedup ─────────────────────────────────────────────────
+      // AI Studio fires many XHR to the same endpoint per generation.
+      // Only process the FIRST call; let all subsequent ones pass through
+      // to Google unchanged (we don't block them, just skip our processing).
+      const urlBase = url.split('?')[0];
+      const prevCapture = processedXhrUrls.get(urlBase);
+      if (prevCapture && (Date.now() - prevCapture) < XHR_URL_DEDUP_MS) {
+        console.log('[Project DNA] ⏭ XHR url-dedup: already processing', urlBase.substring(0, 80));
+        return originalXhrSend.apply(this, arguments);
+      }
+      processedXhrUrls.set(urlBase, Date.now());
+      // ────────────────────────────────────────────────────────────────────
+
       console.log('[Project DNA] 🧬 Intercepted AI Studio / Gemini XHR call:', url);
       
       let requestBody = null;
@@ -558,7 +576,7 @@
         }
         finishReason = candidate?.finishReason || 'SUCCESS';
 
-      // 2B. AI Studio Streaming Array
+      // 2B. AI Studio Streaming Array (standard chunks with .candidates)
       } else if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].candidates) {
         outputText = responseData
           .filter(chunk => chunk?.candidates)
@@ -568,8 +586,63 @@
           .map(p => p.text)
           .join('');
 
+      // 2B-bis. AI Studio gRPC-Web — deeply nested array (MakerSuiteService/GenerateContent)
+      // Response format: [[[[null,"text frag1"]],null,[46,4,50,...]], ..., "session_token"]
+      // Fragments can be very short (< 50 chars), so we collect ALL natural language strings.
+      } else if (Array.isArray(responseData) && url.includes('GenerateContent')) {
+        const aiStudioFragments = [];
+        const aiStudioUrls = [];
+        const aiStudioB64 = [];
+        (function scanGrpcArray(obj, depth) {
+          if (depth > 20 || !obj) return;
+          if (typeof obj === 'string') {
+            // Image URL
+            if (obj.startsWith('http') &&
+                (obj.includes('googleusercontent') || obj.includes('aistudio.google.com/u/'))) {
+              aiStudioUrls.push(obj);
+              return;
+            }
+            // Base64 image (PNG/JPEG header)
+            if (obj.length > 200 && (obj.startsWith('iVBORw0') || obj.startsWith('/9j/'))) {
+              const mime = obj.startsWith('iVBORw0') ? 'image/png' : 'image/jpeg';
+              aiStudioB64.push(`data:${mime};base64,${obj}`);
+              return;
+            }
+            // Natural language: has at least one space, not a URL, not a token
+            if (obj.length >= 2 && obj.includes(' ') &&
+                !obj.startsWith('http') && !obj.startsWith('{') && !obj.startsWith('[') &&
+                !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj)) {
+              aiStudioFragments.push(obj);
+            }
+          } else if (Array.isArray(obj)) {
+            for (const item of obj) scanGrpcArray(item, depth + 1);
+          } else if (typeof obj === 'object') {
+            // Handle {mimeType, data} inline image objects
+            if (obj.mimeType && obj.data && obj.mimeType.startsWith('image/')) {
+              aiStudioB64.push(`data:${obj.mimeType};base64,${obj.data}`);
+            }
+            if (obj.text && typeof obj.text === 'string') aiStudioFragments.push(obj.text);
+            for (const key in obj) scanGrpcArray(obj[key], depth + 1);
+          }
+        })(responseData, 0);
+
+        if (aiStudioFragments.length > 0) {
+          // Substring-dedup: remove progressive partial states
+          const unique = [];
+          for (const f of aiStudioFragments) {
+            const dup = unique.findIndex(u => u.includes(f) || f.includes(u));
+            if (dup !== -1) { if (f.length > unique[dup].length) unique[dup] = f; }
+            else unique.push(f);
+          }
+          outputText = unique.join('');
+          console.log(`[DNA 2B-bis] AI Studio gRPC array: ${aiStudioFragments.length} frags → "${outputText.substring(0, 80)}"`);
+        }
+        for (const u of aiStudioUrls) { if (!resultUrls.includes(u)) resultUrls.push(u); }
+        for (const b of aiStudioB64) { if (!resultBase64Images.includes(b)) resultBase64Images.push(b); }
+
       // 2C. Batched Execute / Google RPC Format (Gemini web batchexecute?rpcids=ESY5D)
       } else if (responseData.rawText) {
+
         let text = responseData.rawText;
 
         if (text.startsWith('data: ')) {
@@ -693,6 +766,98 @@
             outputText = cleaned.length > 4000 ? cleaned.substring(0, 4000) + '…[truncated]' : cleaned;
             console.log(`[DNA 2C] ✅ response_text len=${outputText.length}: "${outputText.substring(0, 80).replace(/\n/g, '↵')}"`);
           }
+        }
+
+        // 2D. AI Studio gRPC-Web partial response (state:0 abort — JSON.parse failed)
+        // url includes GenerateContent but doesn't have )]}'  or wrb.fr.
+        // Text is partial: [[[[null,"Пожалуйста, вот"]],...  — fragments are short (< 50 chars).
+        // Strategy: scan ALL quoted strings with spaces using regex (any length >= 2).
+        if (!outputText && url.includes('GenerateContent')) {
+          console.log('[DNA 2D] AI Studio rawText path — scanning for fragments');
+          const rawFragments = [];
+
+          // Extract all JSON-quoted strings (any length with at least one space)
+          Array.from(text.matchAll(/"((?:[^"\\]|\\.)*)"/g)).forEach(m => {
+            let s = m[1];
+            // Unescape JSON sequences
+            try { s = JSON.parse('"' + s + '"'); } catch { s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"'); }
+            // Keep only natural language: must have space, no URLs, no base64 tokens
+            if (s.length >= 2 &&
+                s.includes(' ') &&
+                !s.startsWith('http') &&
+                !s.startsWith('{') &&
+                !s.startsWith('[') &&
+                !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(s) &&
+                !s.includes('models/') &&
+                !s.includes('data_analysis_tool') &&
+                !s.includes('googleusercontent')) {
+              rawFragments.push(s);
+            }
+          });
+
+          if (rawFragments.length > 0) {
+            // Substring-dedup: keep the longest when one includes another
+            const unique = [];
+            for (const f of rawFragments) {
+              const dup = unique.findIndex(u => u.includes(f) || f.includes(u));
+              if (dup !== -1) { if (f.length > unique[dup].length) unique[dup] = f; }
+              else unique.push(f);
+            }
+            outputText = unique.join('');
+            console.log(`[DNA 2D] ✅ ${rawFragments.length} frags → "${outputText.substring(0, 80)}"`);
+          }
+
+          // ── Inline image extraction (Strategy A + B) ─────────────────────────
+          // A: find   "data":"<b64>"  (works even without closing " at partial state:0)
+          const dataKeyMatch = text.match(/"data"\s*:\s*"([A-Za-z0-9+\/\\=\r\n]{400,})/);
+          if (dataKeyMatch) {
+            const b64clean = dataKeyMatch[1].replace(/\\/g, '').replace(/[\r\n\s]/g, '');
+            const mimeKM = text.match(/"mimeType"\s*:\s*"(image\/[^"]{1,30})"/);
+            const mimeA = mimeKM ? mimeKM[1] : 'image/png';
+            if (b64clean.length > 1000) {
+              const fullA = `data:${mimeA};base64,${b64clean}`;
+              if (!resultBase64Images.includes(fullA)) {
+                resultBase64Images.push(fullA);
+                console.log(`[DNA 2D] \uD83D\uDDBC inlineData key: ${mimeA} b64len=${b64clean.length}`);
+              }
+            } else {
+              console.log(`[DNA 2D] \u26A0 "data" key too short (${b64clean.length})`);
+            }
+          }
+
+          // B: bare PNG/JPEG magic in rawText (no quotes needed)
+          if (resultBase64Images.length === 0) {
+            ['iVBORw0', '/9j/'].forEach((magic, idx) => {
+              const mimeB = idx === 0 ? 'image/png' : 'image/jpeg';
+              const pos = text.indexOf(magic);
+              if (pos !== -1) {
+                const raw = text.substring(pos).match(/^([A-Za-z0-9+\/\\=]{200,})/);
+                if (raw) {
+                  const b64b = raw[1].replace(/\\/g, '').replace(/\s/g, '');
+                  if (b64b.length > 1000) {
+                    const fullB = `data:${mimeB};base64,${b64b}`;
+                    if (!resultBase64Images.includes(fullB)) {
+                      resultBase64Images.push(fullB);
+                      console.log(`[DNA 2D] \uD83D\uDDBC ${mimeB} bare header len=${b64b.length}`);
+                    }
+                  }
+                }
+              }
+            });
+          }
+
+          if (resultBase64Images.length === 0) {
+            console.log('[DNA 2D] \u2139 No inline images found');
+          }
+
+          // Scan for googleusercontent image URLs in rawText
+          Array.from(text.matchAll(/"(https?:\/\/[^"]*(?:googleusercontent|aistudio\.google\.com)[^"]*)"/g)).forEach(m => {
+            const u = m[1];
+            if (u.length > 60 && !u.includes('/a/') && !u.includes('AATXAJ') && !resultUrls.includes(u)) {
+              resultUrls.push(u);
+              console.log('[DNA 2D] \uD83D\uDD17 Image URL:', u.substring(0, 60));
+            }
+          });
         }
       }
     }

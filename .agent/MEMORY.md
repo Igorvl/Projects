@@ -71,7 +71,7 @@ Enterprise-система управления ИИ-пайплайнами дл�
 | 2 | MinIO: поднять, API для изображений | ✅ |
 | 3 | Qdrant: embeddings, семантический поиск | ✅ |
 | 4 | Router API: /capture, /projects, /search, /dna | ✅ |
-| 5 | Safari Web/Chrome Extension: перехват AI Studio | ✅ |
+| 5 | Safari Web/Chrome Extension: перехват AI Studio (Text + Image) | ✅ |
 | 5.1 | Safari Web/Chrome Extension: перехват gemini.google.com | 🛠️ Баг: мульти-захват |
 | 6 | Auto-Summarize: Dual context (Strategic 50 + Tactical 10) | ✅ |
 | 7 | Dashboard: Web UI для просмотра проекта | ✅ |
