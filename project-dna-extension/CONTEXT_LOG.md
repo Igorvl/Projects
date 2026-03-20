@@ -3,6 +3,13 @@
 **Date Range:** March 10 - March 20, 2026
 **Primary Goal:** Enable the "Project DNA" Chrome extension to reliably intercept and capture generated outputs from Google AI Studio and Gemini Pro.
 
+## ✅ T-08 STATUS: CLOSED (v2.0.35 — 2026-03-21)
+**Offline Capture (Outbox Pattern) validation completed.**
+- `chrome.alarms` API implemented to automatically process the `captureQueue` every 2 minutes.
+- Increased retry limit from 10 to 60 (approx 2 hours of resilience during server downtime).
+- `alarms` permission added to `manifest.json`.
+- The Outbox pattern is now fully self-healing and independent of user interaction or extension restarts.
+
 ## ✅ T-06 & T-07 STATUS: CLOSED (v2.0.34 — 2026-03-20)
 
 **T-06 (AI Studio Text+Image stream capture) & T-07 (AI Studio Binary Imagen Capture via XHR Buffer) are both completed!**

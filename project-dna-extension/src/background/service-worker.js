@@ -426,12 +426,12 @@ async function processQueue() {
     const result = await sendToProjectDNA(item.data);
     if (!result.success) {
       item.retryCount++;
-      // Keep items with fewer than 10 retries
-      if (item.retryCount < 10) {
+      // Keep items for up to 60 retries (approx 2 hours if retried every 2 minutes)
+      if (item.retryCount < 60) {
         remaining.push(item);
       } else {
         console.warn(
-          '[Project DNA] Dropping capture after 10 retries:',
+          '[Project DNA] Dropping capture after 60 retries:',
           item.data.captureIndex
         );
       }
@@ -440,6 +440,25 @@ async function processQueue() {
 
   await setConfig('captureQueue', remaining);
 }
+
+// =========================================================================
+// AUTO-RETRY ALARMS
+// =========================================================================
+
+/**
+ * Listen for the auto-retry alarm.
+ * This ensures the Outbox is processed automatically even if the user
+ * doesn't restart the browser or open the popup.
+ */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'retryCaptureQueue') {
+    const queue = await getConfig('captureQueue');
+    if (queue && queue.length > 0) {
+      console.log(`[Project DNA] ⏰ Auto-retry alarm triggered: processing ${queue.length} queued items`);
+      await processQueue();
+    }
+  }
+});
 
 // =========================================================================
 // RECENT CAPTURES (for popup display)
@@ -636,10 +655,20 @@ async function handleToggleCapture(sendResponse) {
 // =========================================================================
 
 /**
+ * Setup background alarms for periodic tasks (like queue retry).
+ */
+function setupAlarms() {
+  chrome.alarms.create('retryCaptureQueue', { periodInMinutes: 2 });
+  console.log('[Project DNA] ⏰ Auto-retry alarm configured (2m interval)');
+}
+
+/**
  * Extension installed or updated.
  * Initialize default settings if this is a fresh install.
  */
 chrome.runtime.onInstalled.addListener(async (details) => {
+  setupAlarms();
+
   if (details.reason === 'install') {
     console.log('[Project DNA] 🧬 Extension installed! Setting defaults...');
     await chrome.storage.local.set({
@@ -666,6 +695,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
  * Restore badge state from storage.
  */
 chrome.runtime.onStartup.addListener(async () => {
+  setupAlarms();
+
   const config = await getConfigs(['captureEnabled', 'totalCaptures']);
 
   if (!config.captureEnabled) {
