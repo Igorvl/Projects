@@ -1,7 +1,38 @@
-# Project DNA Extension - Context Summary (Last 3 Days)
+# Project DNA Extension - Context Summary
 
-**Date Range:** ~March 10 - March 13, 2026
-**Primary Goal:** Enable the "Project DNA" Chrome extension to reliably intercept and capture generated outputs directly from the Google AI Studio web interface and forward them to a local AI-Router backend.
+**Date Range:** March 10 - March 20, 2026
+**Primary Goal:** Enable the "Project DNA" Chrome extension to reliably intercept and capture generated outputs from Google AI Studio and Gemini Pro.
+
+## ✅ T-06 STATUS: CLOSED (v2.0.32 — 2026-03-20)
+
+**Both sources confirmed working:**
+- **Gemini Pro** (gemini.google.com → batchexecute/wrb.fr): text ✅ + images ✅
+- **AI Studio** (MakerSuiteService/GenerateContent): text ✅ + images ✅
+
+### Key fixes that closed T-06
+
+| Fix | Version | What it solved |
+|-----|---------|----------------|
+| URL-dedup XHR (`processedXhrUrls`) | 2.0.29 | `(prompt not captured)` × N spam records |
+| Path 2B-bis (JSON.parse success → Array) | 2.0.30 | AI Studio gRPC nested array text + images |
+| Path 2D (JSON.parse fail → rawText) | 2.0.31 | AI Studio partial response at state:0 abort |
+| Robust `"data":` regex (no closing `"` needed) | 2.0.32 | AI Studio inline base64 image from partial gRPC |
+
+### AI Studio response architecture (discovered)
+
+AI Studio's `MakerSuiteService/GenerateContent` XHR fires at **readyState 0** (premature state-drop anomaly).
+Two possible states at capture time:
+
+1. **JSON.parse succeeds** → `responseData = Array` → **Path 2B-bis** handles it
+   - Recursively scans nested array `[[[[null,"text"]],...]]` for natural language strings
+   - Also finds `{mimeType, data}` inline images and googleusercontent URLs
+
+2. **JSON.parse fails** (partial data) → `responseData = {rawText}` → **Path 2D** handles it
+   - Regex scan of rawText for quoted strings with spaces (any length, not just ≥50)
+   - Strategy A: `"data":"<b64>` key match — works WITHOUT closing quote
+   - Strategy B: bare `iVBORw0` / `/9j/` header in buffer
+
+
 
 ## Overview of Challenges & Discoveries
 

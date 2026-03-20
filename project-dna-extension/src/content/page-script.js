@@ -218,7 +218,7 @@
   // =========================================================================
   // XHR INTERCEPTOR (Monkey-Patching)
   // =========================================================================
-  
+
   const originalXhrOpen = XMLHttpRequest.prototype.open;
   const originalXhrSend = XMLHttpRequest.prototype.send;
 
@@ -226,8 +226,8 @@
   // This prevents ANY interference with Google's framework and prevents 403 errors
   const xhrStateMap = new WeakMap();
 
-  XMLHttpRequest.prototype.open = function() {
-    xhrStateMap.set(this, { 
+  XMLHttpRequest.prototype.open = function () {
+    xhrStateMap.set(this, {
       url: arguments[1] ? arguments[1].toString() : '',
       text: '',
       captured: false
@@ -235,12 +235,12 @@
     return originalXhrOpen.apply(this, arguments);
   };
 
-  XMLHttpRequest.prototype.send = function() {
+  XMLHttpRequest.prototype.send = function () {
     const defaultState = { url: '' };
     const state = xhrStateMap.get(this) || defaultState;
     const url = state.url || '';
     const bodyArgs = arguments[0];
-    
+
     // Check if it's a target internal API (same rpcids whitelist as fetch interceptor)
     const isGoogleAPI = url.includes('generativelanguage') || url.includes('alkali') || url.includes('makersuite') || url.includes('BardChatUi') || url.includes('BardFrontendService');
     let isGeneration = url.includes('GenerateContent') || url.includes('StreamGenerate');
@@ -269,24 +269,24 @@
       // ────────────────────────────────────────────────────────────────────
 
       console.log('[Project DNA] 🧬 Intercepted AI Studio / Gemini XHR call:', url);
-      
+
       let requestBody = null;
       try {
         if (typeof bodyArgs === 'string') {
-          try { requestBody = JSON.parse(bodyArgs); } catch(e) { requestBody = { _rawStr: bodyArgs }; }
+          try { requestBody = JSON.parse(bodyArgs); } catch (e) { requestBody = { _rawStr: bodyArgs }; }
         } else if (window.FormData && bodyArgs instanceof FormData) {
-           let obj = {};
-           for (let key of bodyArgs.keys()) obj[key] = bodyArgs.get(key);
-           requestBody = obj;
+          let obj = {};
+          for (let key of bodyArgs.keys()) obj[key] = bodyArgs.get(key);
+          requestBody = obj;
         } else if (window.URLSearchParams && bodyArgs instanceof URLSearchParams) {
-           requestBody = { _rawStr: bodyArgs.toString() };
+          requestBody = { _rawStr: bodyArgs.toString() };
         } else if (bodyArgs instanceof ArrayBuffer) {
-           const str = new TextDecoder().decode(bodyArgs);
-           try { requestBody = JSON.parse(str); } catch(e) { requestBody = { _rawStr: str }; }
+          const str = new TextDecoder().decode(bodyArgs);
+          try { requestBody = JSON.parse(str); } catch (e) { requestBody = { _rawStr: str }; }
         } else {
-           requestBody = { _type: typeof bodyArgs, stringified: String(bodyArgs) };
+          requestBody = { _type: typeof bodyArgs, stringified: String(bodyArgs) };
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Ensure state exists
       let state = xhrStateMap.get(this);
@@ -295,64 +295,90 @@
         xhrStateMap.set(this, state);
       }
 
-      // We log ALL states to diagnose gRPC-Web streaming lifecycle
-      this.addEventListener('readystatechange', function() {
-        let currentState = xhrStateMap.get(this) || { text: '', captured: false };
-        if (currentState.captured) return; // Already processed this request
-        
+      // Track gRPC-Web streaming lifecycle.
+      //
+      // AI Studio state-drop anomaly:
+      //   The response arrives in ORDER: [title text] → [image base64 ~2MB] → [description text]
+      //   readyState fires: 1, 2, 3(×N), 0(abort) — never 4.
+      //   The state:0 abort often fires BEFORE the description text arrives.
+      //
+      // Fix: at state:0, schedule a delayed capture (3s) so the description can arrive.
+      //      At state:4, capture immediately and cancel the pending timer.
+      this.addEventListener('readystatechange', function () {
+        let currentState = xhrStateMap.get(this) || { text: '', captured: false, state0Scheduled: false, state0Timer: null };
+        if (currentState.captured) return;
+
         let currentText = '';
         try {
           if (!this.responseType || this.responseType === 'text' || this.responseType === '') {
-               currentText = this.responseText;
+            currentText = this.responseText;
           } else if (this.responseType === 'arraybuffer' && this.response instanceof ArrayBuffer) {
-               currentText = new TextDecoder('utf-8').decode(this.response);
+            currentText = new TextDecoder('utf-8').decode(this.response);
           }
-        } catch(err) {}
+        } catch (err) { }
 
         // Accumulate the largest chunk of text (streaming builds it up)
         if (currentText && currentText.length > currentState.text.length) {
-            currentState.text = currentText;
-            xhrStateMap.set(this, currentState);
+          currentState.text = currentText;
+          xhrStateMap.set(this, currentState);
         }
 
-        if (this.readyState === 4 || (this.readyState === 0 && currentState.text.length > 0)) {
-            console.log(`[Project DNA] 🧬 Triggering capture! Final text length: ${currentState.text.length}, Triggered on state: ${this.readyState}`);
-            currentState.captured = true; // Mark as done
-            xhrStateMap.set(this, currentState);
-            
-            const capturedText = currentState.text;
-            setTimeout(() => {
-                let responseData = null;
-                try {
-                    responseData = JSON.parse(capturedText);
-                } catch {
-                    responseData = { rawText: capturedText };
-                }
-                processInterceptedCall(url, requestBody, { text: async () => capturedText }, currentState.snapshotUrls || new Set());
-            }, 10);
+        if (this.readyState === 4) {
+          // ── Complete response: cancel pending state:0 timer and capture now ──
+          if (currentState.state0Timer) clearTimeout(currentState.state0Timer);
+          console.log(`[Project DNA] 🧬 Triggering capture! Final text length: ${currentState.text.length}, Triggered on state: 4`);
+          currentState.captured = true;
+          xhrStateMap.set(this, currentState);
+          const self4 = this;
+          setTimeout(() => {
+            const st = xhrStateMap.get(self4) || currentState;
+            processInterceptedCall(url, requestBody, { text: async () => st.text }, st.snapshotUrls || new Set());
+          }, 10);
+
+        } else if (this.readyState === 0 && currentState.text.length > 0 && !currentState.state0Scheduled) {
+          // ── State-drop: schedule delayed capture ──────────────────────────────
+          // We do NOT mark as captured yet so text can keep accumulating.
+          currentState.state0Scheduled = true;
+          xhrStateMap.set(this, currentState);
+          const self0 = this;
+          // For AI Studio GenerateContent: description comes after image (use 3s delay).
+          // For other endpoints (Gemini batchexecute): state:4 will fire and cancel this.
+          const delay = url.includes('GenerateContent') ? 3000 : 500;
+          console.log(`[Project DNA] 🧬 State-drop detected — scheduling capture in ${delay}ms (text len: ${currentState.text.length})`);
+          const timer = setTimeout(() => {
+            const latestState = xhrStateMap.get(self0) || currentState;
+            if (!latestState.captured) {
+              console.log(`[Project DNA] 🧬 Triggering capture (state:0+${delay}ms)! Final text length: ${latestState.text.length}`);
+              latestState.captured = true;
+              xhrStateMap.set(self0, latestState);
+              processInterceptedCall(url, requestBody, { text: async () => latestState.text }, latestState.snapshotUrls || new Set());
+            }
+          }, delay);
+          currentState.state0Timer = timer;
+          xhrStateMap.set(this, currentState);
         }
       });
 
-      this.addEventListener('error', () => { 
+      this.addEventListener('error', () => {
         const s = xhrStateMap.get(this);
         if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Error on: ${url}`);
       });
-      this.addEventListener('abort', () => { 
+      this.addEventListener('abort', () => {
         const s = xhrStateMap.get(this);
         if (!s || !s.captured) console.warn(`[Project DNA] ⚠️ XHR Aborted on: ${url}`);
       });
-      
+
       // Scrape DOM BEFORE request finishes to memorize historical images for THIS request
       let localSnapshotUrls = new Set();
       try {
-          document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
-              if (img.src) {
-                  let baseUrl = img.src.split('=')[0]; 
-                  localSnapshotUrls.add(baseUrl);
-              }
-          });
-      } catch(e) {}
-      
+        document.querySelectorAll('img[src*="googleusercontent.com"]').forEach(img => {
+          if (img.src) {
+            let baseUrl = img.src.split('=')[0];
+            localSnapshotUrls.add(baseUrl);
+          }
+        });
+      } catch (e) { }
+
       const currentState = xhrStateMap.get(this) || { text: '', captured: false };
       currentState.snapshotUrls = localSnapshotUrls;
       xhrStateMap.set(this, currentState);
@@ -410,18 +436,18 @@
 
         const now = Date.now();
         if (recentCaptures.has(dedupKey)) {
-            const timeSince = now - recentCaptures.get(dedupKey);
-            if (timeSince < DEDUP_WINDOW_MS) {
-                console.log(`[Project DNA] 🔁 Skipping duplicate capture (same prompt within ${DEDUP_WINDOW_MS}ms)`);
-                return; // Skip duplicate
-            }
+          const timeSince = now - recentCaptures.get(dedupKey);
+          if (timeSince < DEDUP_WINDOW_MS) {
+            console.log(`[Project DNA] 🔁 Skipping duplicate capture (same prompt within ${DEDUP_WINDOW_MS}ms)`);
+            return; // Skip duplicate
+          }
         }
         recentCaptures.set(dedupKey, now);
 
         // Keep map small
         if (recentCaptures.size > 50) {
-            const keysToDelete = Array.from(recentCaptures.keys()).slice(0, 20);
-            keysToDelete.forEach(k => recentCaptures.delete(k));
+          const keysToDelete = Array.from(recentCaptures.keys()).slice(0, 20);
+          keysToDelete.forEach(k => recentCaptures.delete(k));
         }
 
         finalizeAndSendCapture(capturedData, snapshotUrls);
@@ -444,7 +470,7 @@
     let model = 'gemini-web-consumer'; // Default for gemini.google.com
     const modelMatch = url.match(/models\/([^:\/?]+)/);
     if (modelMatch) model = modelMatch[1];
-    
+
     if (requestBody && requestBody.model) model = requestBody.model;
 
     let promptText = '';
@@ -468,14 +494,14 @@
           .filter(p => typeof p.text === 'string')
           .map(p => p.text);
         if (userParts.length > 0) promptText = userParts.join('\n\n');
-      } 
+      }
       // 1B. Gemini Web Consumer Format (batchexecute / f.req)
       else {
         let rawStr = requestBody._rawStr || '';
         let fReq = requestBody['f.req'];
 
         if (!fReq && typeof rawStr === 'string' && rawStr.includes('f.req=')) {
-          try { fReq = new URLSearchParams(rawStr).get('f.req'); } catch(e) {}
+          try { fReq = new URLSearchParams(rawStr).get('f.req'); } catch (e) { }
         }
 
         if (fReq) {
@@ -504,8 +530,8 @@
 
             function cleanupPrompt(s) {
               return s.replace(/\["data_analysis_tool"[\s\S]*$/, '')
-                      .replace(/\u0000/g, '')
-                      .trim();
+                .replace(/\u0000/g, '')
+                .trim();
             }
 
             const validTexts = potentialPrompts
@@ -526,7 +552,7 @@
               // In large Gemini requests, the prompt is often nested multiple times.
               // We want to capture the FULL user text even if it's split.
               const uniqueTexts = validTexts.filter((t, i, arr) => i === 0 || !arr[i - 1].includes(t));
-              
+
               // 1. Find the longest single entry (usually the full text)
               const sortedByLength = [...uniqueTexts].sort((a, b) => b.length - a.length);
               const longest = sortedByLength[0];
@@ -539,22 +565,22 @@
               } else {
                 promptText = uniqueTexts.join('\n\n');
               }
-              
+
               // Capping prompt to avoid DB overflow (max 20k)
               if (promptText.length > 20000) promptText = promptText.substring(0, 20000) + '...[truncated]';
             }
-          } catch(e) {}
+          } catch (e) { }
         }
-        
+
         // 1C. Unknown Nested Array API
         if (!promptText && Array.isArray(requestBody)) {
-            try {
-                const flatStr = JSON.stringify(requestBody);
-                const textMatches = Array.from(flatStr.matchAll(/{"text":"(.*?)"}|"text":"(.*?)"/g));
-                if (textMatches.length > 0) {
-                    promptText = textMatches.map(m => m[1] || m[2]).filter(t => t && t.length > 2).join('\n\n');
-                }
-            } catch(e) {}
+          try {
+            const flatStr = JSON.stringify(requestBody);
+            const textMatches = Array.from(flatStr.matchAll(/{"text":"(.*?)"}|"text":"(.*?)"/g));
+            if (textMatches.length > 0) {
+              promptText = textMatches.map(m => m[1] || m[2]).filter(t => t && t.length > 2).join('\n\n');
+            }
+          } catch (e) { }
         }
       } // Closes else block from line 454
 
@@ -576,7 +602,7 @@
         }
         finishReason = candidate?.finishReason || 'SUCCESS';
 
-      // 2B. AI Studio Streaming Array (standard chunks with .candidates)
+        // 2B. AI Studio Streaming Array (standard chunks with .candidates)
       } else if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].candidates) {
         outputText = responseData
           .filter(chunk => chunk?.candidates)
@@ -586,9 +612,9 @@
           .map(p => p.text)
           .join('');
 
-      // 2B-bis. AI Studio gRPC-Web — deeply nested array (MakerSuiteService/GenerateContent)
-      // Response format: [[[[null,"text frag1"]],null,[46,4,50,...]], ..., "session_token"]
-      // Fragments can be very short (< 50 chars), so we collect ALL natural language strings.
+        // 2B-bis. AI Studio gRPC-Web — deeply nested array (MakerSuiteService/GenerateContent)
+        // Response format: [[[[null,"text frag1"]],null,[46,4,50,...]], ..., "session_token"]
+        // Fragments can be very short (< 50 chars), so we collect ALL natural language strings.
       } else if (Array.isArray(responseData) && url.includes('GenerateContent')) {
         const aiStudioFragments = [];
         const aiStudioUrls = [];
@@ -598,7 +624,7 @@
           if (typeof obj === 'string') {
             // Image URL
             if (obj.startsWith('http') &&
-                (obj.includes('googleusercontent') || obj.includes('aistudio.google.com/u/'))) {
+              (obj.includes('googleusercontent') || obj.includes('aistudio.google.com/u/'))) {
               aiStudioUrls.push(obj);
               return;
             }
@@ -610,8 +636,8 @@
             }
             // Natural language: has at least one space, not a URL, not a token
             if (obj.length >= 2 && obj.includes(' ') &&
-                !obj.startsWith('http') && !obj.startsWith('{') && !obj.startsWith('[') &&
-                !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj)) {
+              !obj.startsWith('http') && !obj.startsWith('{') && !obj.startsWith('[') &&
+              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(obj)) {
               aiStudioFragments.push(obj);
             }
           } else if (Array.isArray(obj)) {
@@ -627,20 +653,48 @@
         })(responseData, 0);
 
         if (aiStudioFragments.length > 0) {
-          // Substring-dedup: remove progressive partial states
-          const unique = [];
+          // Separate progressive-streaming dedup from multi-block combine.
+          //
+          // Problem: AI Studio gRPC streams each fragment CUMULATIVELY, e.g.:
+          //   "Вот" → "Вот ваш" → "Вот ваш кот" → ...
+          // Also, the response may contain MULTIPLE semantically separate paragraphs.
+          //
+          // Strategy:
+          //   1. Deduplicate within each "stream group" (prefix-includes check).
+          //   2. Keep ALL groups (not just the longest one) so we preserve multi-paragraph output.
+          //   3. Separate conversational text (native language, no IMAGE markers)
+          //      from technical Imagen-style text (English + IMAGE markers) if present.
+
+          // Step 1: classic substring-dedup per stream group
+          const dedupedFrags = [];
           for (const f of aiStudioFragments) {
-            const dup = unique.findIndex(u => u.includes(f) || f.includes(u));
-            if (dup !== -1) { if (f.length > unique[dup].length) unique[dup] = f; }
-            else unique.push(f);
+            const dup = dedupedFrags.findIndex(u => u.includes(f) || f.includes(u));
+            if (dup !== -1) { if (f.length > dedupedFrags[dup].length) dedupedFrags[dup] = f; }
+            else { dedupedFrags.push(f); }
           }
-          outputText = unique.join('');
-          console.log(`[DNA 2B-bis] AI Studio gRPC array: ${aiStudioFragments.length} frags → "${outputText.substring(0, 80)}"`);
+
+          // Step 2: split into conversational vs technical (Imagen-prompt-style) blocks
+          const imagenFrags = dedupedFrags.filter(f => /<IMAGE[_ ]\d/i.test(f));
+          const convFrags   = dedupedFrags.filter(f => !/<IMAGE[_ ]\d/i.test(f));
+
+          // Step 3: assemble — conversational first, then technical with header
+          let assembled = '';
+          if (convFrags.length > 0) {
+            assembled = convFrags.join('\n');
+          }
+          if (imagenFrags.length > 0) {
+            const imagenBlock = imagenFrags.join('\n');
+            assembled += (assembled ? '\n\n[Imagen Prompt]\n' : '[Imagen Prompt]\n') + imagenBlock;
+          }
+
+          outputText = assembled;
+          console.log(`[DNA 2B-bis] AI Studio: ${convFrags.length} conv + ${imagenFrags.length} imagen frags → "${outputText.substring(0, 100)}"`);
         }
+
         for (const u of aiStudioUrls) { if (!resultUrls.includes(u)) resultUrls.push(u); }
         for (const b of aiStudioB64) { if (!resultBase64Images.includes(b)) resultBase64Images.push(b); }
 
-      // 2C. Batched Execute / Google RPC Format (Gemini web batchexecute?rpcids=ESY5D)
+        // 2C. Batched Execute / Google RPC Format (Gemini web batchexecute?rpcids=ESY5D)
       } else if (responseData.rawText) {
 
         let text = responseData.rawText;
@@ -664,14 +718,14 @@
           for (const line of lines) {
             if (!line.startsWith('[')) continue;
             let parsedLine;
-            try { parsedLine = JSON.parse(line); } catch(e) { continue; }
+            try { parsedLine = JSON.parse(line); } catch (e) { continue; }
             if (!Array.isArray(parsedLine)) continue;
 
             for (const item of parsedLine) {
               if (!Array.isArray(item) || item[0] !== 'wrb.fr' || typeof item[2] !== 'string') continue;
 
               let embedded;
-              try { embedded = JSON.parse(item[2]); } catch(e) { continue; }
+              try { embedded = JSON.parse(item[2]); } catch (e) { continue; }
               const deepStrings = [];
               const deepUrls = [];
               (function ext(obj, depth) {
@@ -702,27 +756,27 @@
                 }
               }
 
-                for (let str of deepStrings) {
-                  str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
-                           .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
-                  // Remove technical base64 debris at end of strings
-                  str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
+              for (let str of deepStrings) {
+                str = str.replace(/\\n/g, '\n').replace(/\\"/g, '"')
+                  .replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+                // Remove technical base64 debris at end of strings
+                str = str.replace(/\n?[!]?[A-Za-z0-9_\-\/\+\.]{80,}[=]*\s*$/, '').trim();
 
-                  if (str.length < 5) continue;
-                  
-                  // Reject long technical tokens/IDs (long strings with no spaces)
-                  if (str.length > 15 && !str.includes(' ')) continue;
-                  if (str.length > 50 && !str.includes(' ')) continue;
+                if (str.length < 5) continue;
 
-                  const spaceCount = (str.match(/ /g) || []).length;
-                  if (str.length > 50 && spaceCount / str.length < 0.05) continue; 
-                  
-                  if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
-                  if (/^https?:\/\//.test(str)) continue;
-                  if (/[a-zA-Z0-9_\-\/\+\=]{100,}/.test(str)) continue; // Was 60, increased to avoid killing Russian text
-                  
-                  chunks.push(str);
-                }
+                // Reject long technical tokens/IDs (long strings with no spaces)
+                if (str.length > 15 && !str.includes(' ')) continue;
+                if (str.length > 50 && !str.includes(' ')) continue;
+
+                const spaceCount = (str.match(/ /g) || []).length;
+                if (str.length > 50 && spaceCount / str.length < 0.05) continue;
+
+                if (str.includes('models/') || str.includes('data_analysis_tool')) continue;
+                if (/^https?:\/\//.test(str)) continue;
+                if (/[a-zA-Z0-9_\-\/\+\=]{100,}/.test(str)) continue; // Was 60, increased to avoid killing Russian text
+
+                chunks.push(str);
+              }
             }
           }
 
@@ -735,36 +789,53 @@
             // Substring dedup + prefix dedup: remove progressive partial states and duplicate artifacts.
             const unique = [];
             for (const c of chunks) {
-               const existingIdx = unique.findIndex(u => 
-                 u.includes(c) || c.includes(u) || 
-                 (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
-                 (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
-               );
-               if (existingIdx !== -1) {
-                  if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
-               } else {
-                  unique.push(c);
-               }
+              const existingIdx = unique.findIndex(u =>
+                u.includes(c) || c.includes(u) ||
+                (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
+                (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
+              );
+              if (existingIdx !== -1) {
+                if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
+              } else {
+                unique.push(c);
+              }
             }
             const candidates = unique.length > 0 ? unique : chunks;
-            // Sort by length but try to maintain a cohesive output.
-            candidates.sort((a, b) => b.length - a.length);
-            const validCandidates = candidates.filter(c => c.length > 40 && !c.includes('Nano Banana'));
-            // Remove the explicit "---" separator as it fragments the text too much.
-            // Use just double newlines for a cleaner integrated look.
-            const best = validCandidates.join('\n\n');
-            
-            // Beauty cleanup: remove Google's internal safety placeholders
-            // and technical artifacts like "Chicago, IL, USA"
-            let cleaned = best
-                .replace(/(?:^|\n)(?:[*#\s]*)?\[[^\]]*(?:удален|removed)\][ \t]*(?:\r?\n[ \t]*[-*=_]{3,}[ \t]*)?\s*/gi, '\n')
-                .replace(/^Chicago, IL, USA[ \t]*\n*/i, '') // Remove location artifact
-                .replace(/^\s*[-*=_]{3,}\s*\n/gm, '') // Remove orphaned dividers
-                .replace(/\n{3,}/g, '\n\n') // Fix spacing
+            // Split into conversational (native language) and Imagen-prompt (English + <IMAGE> markers).
+            // Both are valuable for Project DNA analysis — keep both, labeled.
+            const imagenCands = candidates.filter(c => /<IMAGE[_ ]\d/i.test(c));
+            const convCands   = candidates.filter(c => !/<IMAGE[_ ]\d/i.test(c));
+
+            // Sort each group by length descending
+            convCands.sort((a, b) => b.length - a.length);
+            imagenCands.sort((a, b) => b.length - a.length);
+
+            const validConv   = convCands.filter(c => c.length > 40 && !c.includes('Nano Banana'));
+            const validImagen = imagenCands.filter(c => c.length > 40);
+
+            // Assemble: conversational first, then imagen block with section header
+            let assembled2C = '';
+            if (validConv.length > 0) {
+              assembled2C = validConv.join('\n\n')
+                .replace(/(?:^|\n)(?:[*#\s]*)?\[[^\]]*(?:удален|removed)\][\s\S]*?(?=\n|$)/gi, '\n')
+                .replace(/^Chicago, IL, USA[ \t]*\n*/i, '')
+                .replace(/\n{3,}/g, '\n\n')
                 .trim();
-                
-            outputText = cleaned.length > 4000 ? cleaned.substring(0, 4000) + '…[truncated]' : cleaned;
-            console.log(`[DNA 2C] ✅ response_text len=${outputText.length}: "${outputText.substring(0, 80).replace(/\n/g, '↵')}"`);
+            }
+            if (validImagen.length > 0) {
+              const imagenBlock = validImagen.join('\n\n').trim();
+              assembled2C += (assembled2C ? '\n\n[Imagen Prompt]\n' : '[Imagen Prompt]\n') + imagenBlock;
+            }
+
+            // Fallback: if both empty, use all candidates
+            if (!assembled2C) {
+              const allValid = candidates.filter(c => c.length > 40 && !c.includes('Nano Banana'));
+              assembled2C = allValid.join('\n\n').trim();
+            }
+
+            outputText = assembled2C.length > 8000 ? assembled2C.substring(0, 8000) + '…[truncated]' : assembled2C;
+            console.log(`[DNA 2C] ✅ ${validConv.length} conv + ${validImagen.length} imagen → len=${outputText.length}: "${outputText.substring(0, 80).replace(/\n/g, '↵')}"`);
+
           }
         }
 
@@ -783,14 +854,14 @@
             try { s = JSON.parse('"' + s + '"'); } catch { s = s.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"'); }
             // Keep only natural language: must have space, no URLs, no base64 tokens
             if (s.length >= 2 &&
-                s.includes(' ') &&
-                !s.startsWith('http') &&
-                !s.startsWith('{') &&
-                !s.startsWith('[') &&
-                !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(s) &&
-                !s.includes('models/') &&
-                !s.includes('data_analysis_tool') &&
-                !s.includes('googleusercontent')) {
+              s.includes(' ') &&
+              !s.startsWith('http') &&
+              !s.startsWith('{') &&
+              !s.startsWith('[') &&
+              !/^[a-zA-Z0-9_\-\/\+\=]{40,}$/.test(s) &&
+              !s.includes('models/') &&
+              !s.includes('data_analysis_tool') &&
+              !s.includes('googleusercontent')) {
               rawFragments.push(s);
             }
           });
@@ -863,33 +934,33 @@
     }
     // Ultimate fallback algorithm
     if (!promptText && requestBody) {
-       try {
-         const potentialPrompts = [];
-         function findPromptsFB(obj) {
-             if (typeof obj === 'string') {
-                 if (obj.length > 5) {
-                     try {
-                         const parsed = JSON.parse(obj);
-                         findPromptsFB(parsed);
-                     } catch(e) {
-                         if (!obj.startsWith('http') && !obj.includes('googleusercontent')) potentialPrompts.push(obj);
-                     }
-                 }
-             } else if (Array.isArray(obj)) {
-                 for (const item of obj) findPromptsFB(item);
-             } else if (typeof obj === 'object' && obj !== null) {
-                 for (const key in obj) findPromptsFB(obj[key]);
-             }
-         }
-         findPromptsFB(requestBody);
-         const validTexts = potentialPrompts
-             .map(s => s.replace(/\["data_analysis_tool"[\s\S]*$/, '').replace(/\u0000/g, '').trim())
-             .filter(t => t.length > 10 && t.includes(' '))
-             .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/));
-         if (validTexts.length > 0) promptText = validTexts[validTexts.length - 1];
-       } catch(e) {}
+      try {
+        const potentialPrompts = [];
+        function findPromptsFB(obj) {
+          if (typeof obj === 'string') {
+            if (obj.length > 5) {
+              try {
+                const parsed = JSON.parse(obj);
+                findPromptsFB(parsed);
+              } catch (e) {
+                if (!obj.startsWith('http') && !obj.includes('googleusercontent')) potentialPrompts.push(obj);
+              }
+            }
+          } else if (Array.isArray(obj)) {
+            for (const item of obj) findPromptsFB(item);
+          } else if (typeof obj === 'object' && obj !== null) {
+            for (const key in obj) findPromptsFB(obj[key]);
+          }
+        }
+        findPromptsFB(requestBody);
+        const validTexts = potentialPrompts
+          .map(s => s.replace(/\["data_analysis_tool"[\s\S]*$/, '').replace(/\u0000/g, '').trim())
+          .filter(t => t.length > 10 && t.includes(' '))
+          .filter(t => !t.match(/^[a-zA-Z0-9_\-\/\+\=]{40,}$/));
+        if (validTexts.length > 0) promptText = validTexts[validTexts.length - 1];
+      } catch (e) { }
     }
-    
+
     if (!outputText && responseData) {
       try {
         const raw = typeof responseData.rawText === 'string' ? responseData.rawText : JSON.stringify(responseData);
@@ -911,7 +982,7 @@
                 lastWrbRaw = item[2]; // Keep overwriting — want the LAST one
               }
             }
-          } catch(e) {}
+          } catch (e) { }
         }
 
         const searchTarget = lastWrbRaw || raw;
@@ -923,16 +994,16 @@
         if (candidates.length > 0) {
           const unique = [];
           for (const c of candidates) {
-             const existingIdx = unique.findIndex(u => 
-               u.includes(c) || c.includes(u) || 
-               (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
-               (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
-             );
-             if (existingIdx !== -1) {
-                if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
-             } else {
-                unique.push(c);
-             }
+            const existingIdx = unique.findIndex(u =>
+              u.includes(c) || c.includes(u) ||
+              (u.length > 20 && c.length > 20 && u.substring(0, 20) === c.substring(0, 20)) ||
+              (u.length > 20 && c.length > 20 && u.slice(-20) === c.slice(-20))
+            );
+            if (existingIdx !== -1) {
+              if (c.length > unique[existingIdx].length) unique[existingIdx] = c;
+            } else {
+              unique.push(c);
+            }
           }
           const survived = (unique.length > 0 ? unique : candidates).sort((a, b) => b.length - a.length);
           const validCandidates = survived.filter(c => c.length > 40 && !c.includes('Nano Banana'));
@@ -940,7 +1011,7 @@
           outputText = best.length > 4000 ? best.substring(0, 4000) + '…[truncated]' : best;
           console.log(`[Project DNA] 📝 Fallback response extraction: ${candidates.length} candidates → kept 1 (len=${outputText.length})`);
         }
-      } catch(e) {}
+      } catch (e) { }
     }
 
     // Force values to string if nothing was found
@@ -949,7 +1020,7 @@
 
     // DO NOT return parasite telemetry or historical scroll loads
     if (promptText.includes('Unable to parse prompt from RPC')) {
-        return null; 
+      return null;
     }
 
     return {
@@ -992,7 +1063,7 @@
               }
             }
           }
-        } catch {}
+        } catch { }
       }
     }
 
