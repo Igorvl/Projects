@@ -3,11 +3,12 @@
 **Date Range:** March 10 - March 20, 2026
 **Primary Goal:** Enable the "Project DNA" Chrome extension to reliably intercept and capture generated outputs from Google AI Studio and Gemini Pro.
 
-## ✅ T-06 STATUS: CLOSED (v2.0.32 — 2026-03-20)
+## ✅ T-06 & T-07 STATUS: CLOSED (v2.0.34 — 2026-03-20)
 
+**T-06 (AI Studio Text+Image stream capture) & T-07 (AI Studio Binary Imagen Capture via XHR Buffer) are both completed!**
 **Both sources confirmed working:**
 - **Gemini Pro** (gemini.google.com → batchexecute/wrb.fr): text ✅ + images ✅
-- **AI Studio** (MakerSuiteService/GenerateContent): text ✅ + images ✅
+- **AI Studio** (MakerSuiteService/GenerateContent): text ✅ + images ✅ (including inline base64 via buffer scan)
 
 ### Key fixes that closed T-06
 
