@@ -382,7 +382,10 @@
                 <div id="searchResults" style="margin-top: 1rem;"></div>
             </div>
             <div class="card">
-                <div class="card-title">📋 Projects</div>
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📋 Projects</span>
+                    <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="promptCreateProject()">+ New</button>
+                </div>
                 <div id="projectList"><div class="empty">Loading...</div></div>
             </div>
         </div>
@@ -407,7 +410,10 @@
             </div>
 
             <div class="card">
-                <div class="card-title">📊 Recent Generations</div>
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📊 Recent Generations</span>
+                    <button id="btnDeleteProject" class="btn btn-danger" style="display: none; padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="deleteCurrentProject()">🗑️ Delete Project</button>
+                </div>
                 <table class="gen-table">
                     <thead><tr><th>#</th><th>Prompt</th><th>Status</th><th>Date</th></tr></thead>
                     <tbody id="genTableBody"><tr><td colspan="4" class="empty">Select a project</td></tr></tbody>
@@ -503,6 +509,9 @@
         async function selectProject(slug) {
             currentSlug = slug;
             loadProjects(); // refresh active state
+            
+            const delBtn = document.getElementById('btnDeleteProject');
+            if (delBtn) delBtn.style.display = 'block';
 
             // Load DNA context
             try {
@@ -616,6 +625,66 @@
             } catch (e) {
                 console.error('Delete error:', e);
                 alert('Connection error');
+            }
+        }
+
+        // Project Management
+        async function promptCreateProject() {
+            const name = prompt("Enter project name (e.g., Ksar Project):");
+            if (!name) return;
+            const slug = prompt("Enter project ID/slug (e.g., ksar-me):");
+            if (!slug) return;
+
+            try {
+                const r = await fetch(`${API}/v1/dna/projects`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, slug })
+                });
+                if (r.ok) {
+                    alert("Project created successfully!");
+                    loadProjects();
+                } else {
+                    const err = await r.json();
+                    alert("Failed to create project: " + (err.detail || err.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert("Connection error: " + e.message);
+            }
+        }
+
+        async function deleteCurrentProject() {
+            if (!currentSlug) return;
+            const confirmName = prompt(`⚠️ STRICT CONFIRMATION:\nAre you absolutely sure you want to delete the project '${currentSlug}' and ALL its data?\n\nType the project ID ('${currentSlug}') exactly to confirm deletion:`);
+            
+            if (confirmName !== currentSlug) {
+                if (confirmName !== null) alert("Deletion cancelled: Project ID did not match exactly.");
+                return;
+            }
+
+            try {
+                const r = await fetch(`${API}/v1/dna/projects/${currentSlug}`, {
+                    method: 'DELETE'
+                });
+                if (r.ok) {
+                    alert("Project deleted successfully.");
+                    currentSlug = null;
+                    document.getElementById('btnDeleteProject').style.display = 'none';
+                    document.getElementById('genTableBody').innerHTML = '<tr><td colspan="4" class="empty">Select a project</td></tr>';
+                    
+                    document.getElementById('strategicText').textContent = 'No strategic context yet';
+                    document.getElementById('tacticalText').textContent = 'No tactical context yet';
+                    document.getElementById('statGens').textContent = '-';
+                    document.getElementById('statFiles').textContent = '-';
+                    document.getElementById('statDNA').textContent = '-';
+                    
+                    loadProjects();
+                } else {
+                    const err = await r.json();
+                    alert("Failed to delete project: " + (err.detail || err.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert("Connection error: " + e.message);
             }
         }
 
