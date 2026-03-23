@@ -454,6 +454,45 @@
         </div>
     </div>
 
+    <!-- Modal for Create Project -->
+    <div class="modal-overlay" id="createProjectModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>✨ Create Project</h2>
+                <button class="close-btn" onclick="document.getElementById('createProjectModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <label class="detail-label">Project Name</label>
+                    <input type="text" id="newProjectName" class="search-box" placeholder="e.g. Ksar Project">
+                </div>
+                <div class="detail-section">
+                    <label class="detail-label">Project ID (Slug)</label>
+                    <input type="text" id="newProjectSlug" class="search-box" placeholder="e.g. ksar-me">
+                </div>
+                <button class="btn btn-outline" style="justify-content: center; background: rgba(34,211,238,0.1); border-color: var(--accent); color: var(--accent); margin-top: 1rem;" onclick="submitCreateProject()">Create Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Delete Project -->
+    <div class="modal-overlay" id="deleteProjectModal">
+        <div class="modal-content" style="max-width: 400px; border-color: rgba(239, 68, 68, 0.3);">
+            <div class="modal-header">
+                <h2 style="color: var(--red);">⚠️ Delete Project</h2>
+                <button class="close-btn" onclick="document.getElementById('deleteProjectModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-dim);">Are you absolutely sure you want to delete <b id="delProjectName" style="color:var(--text)"></b> and ALL its generations data? This cannot be undone.</p>
+                <div class="detail-section" style="margin-top: 1rem;">
+                    <label class="detail-label">Type Project ID to confirm</label>
+                    <input type="text" id="confirmDeleteSlug" class="search-box" placeholder="Type ID here...">
+                </div>
+                <button class="btn btn-danger" style="justify-content: center; margin-top: 1rem;" onclick="submitDeleteProject()">Permanently Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = window.location.hostname === 'localhost'
             ? 'http://localhost:8000'
@@ -629,11 +668,17 @@
         }
 
         // Project Management
-        async function promptCreateProject() {
-            const name = prompt("Enter project name (e.g., Ksar Project):");
-            if (!name) return;
-            const slug = prompt("Enter project ID/slug (e.g., ksar-me):");
-            if (!slug) return;
+        function promptCreateProject() {
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectSlug').value = '';
+            document.getElementById('createProjectModal').style.display = 'flex';
+            document.getElementById('newProjectName').focus();
+        }
+
+        async function submitCreateProject() {
+            const name = document.getElementById('newProjectName').value.trim();
+            const slug = document.getElementById('newProjectSlug').value.trim();
+            if (!name || !slug) return;
 
             try {
                 const r = await fetch(`${API}/v1/dna/projects`, {
@@ -642,8 +687,8 @@
                     body: JSON.stringify({ name, slug })
                 });
                 if (r.ok) {
-                    alert("Project created successfully!");
-                    loadProjects();
+                    document.getElementById('createProjectModal').style.display = 'none';
+                    loadProjects(); // UI updates instantly
                 } else {
                     const err = await r.json();
                     alert("Failed to create project: " + (err.detail || err.error || 'Unknown error'));
@@ -653,12 +698,19 @@
             }
         }
 
-        async function deleteCurrentProject() {
+        function deleteCurrentProject() {
             if (!currentSlug) return;
-            const confirmName = prompt(`⚠️ STRICT CONFIRMATION:\nAre you absolutely sure you want to delete the project '${currentSlug}' and ALL its data?\n\nType the project ID ('${currentSlug}') exactly to confirm deletion:`);
-            
-            if (confirmName !== currentSlug) {
-                if (confirmName !== null) alert("Deletion cancelled: Project ID did not match exactly.");
+            document.getElementById('delProjectName').textContent = currentSlug;
+            document.getElementById('confirmDeleteSlug').value = '';
+            document.getElementById('deleteProjectModal').style.display = 'flex';
+            document.getElementById('confirmDeleteSlug').focus();
+        }
+
+        async function submitDeleteProject() {
+            if (!currentSlug) return;
+            const confirmVal = document.getElementById('confirmDeleteSlug').value.trim();
+            if (confirmVal !== currentSlug) {
+                document.getElementById('confirmDeleteSlug').style.borderColor = 'var(--red)';
                 return;
             }
 
@@ -667,7 +719,7 @@
                     method: 'DELETE'
                 });
                 if (r.ok) {
-                    alert("Project deleted successfully.");
+                    document.getElementById('deleteProjectModal').style.display = 'none';
                     currentSlug = null;
                     document.getElementById('btnDeleteProject').style.display = 'none';
                     document.getElementById('genTableBody').innerHTML = '<tr><td colspan="4" class="empty">Select a project</td></tr>';
