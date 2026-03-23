@@ -415,8 +415,9 @@
 
             <div class="card">
                 <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <span>📊 Recent Generations</span>
+                        <button id="btnBatchMove" class="btn btn-outline" style="display: none; padding: 0.2rem 0.5rem; font-size: 0.7rem;" onclick="promptBatchMove()">🔀 Move Selected</button>
                         <button id="btnBatchDelete" class="btn btn-danger" style="display: none; padding: 0.2rem 0.5rem; font-size: 0.7rem;" onclick="promptBatchDelete()">🗑️ Delete Selected (<span id="batchCount">0</span>)</button>
                     </div>
                     <button id="btnDeleteProject" class="btn btn-danger" style="display: none; padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="deleteCurrentProject()">🗑️ Delete Project</button>
@@ -517,6 +518,28 @@
         </div>
     </div>
 
+    <!-- Modal for Batch Move -->
+    <div class="modal-overlay" id="batchMoveModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>🔀 Move Generations</h2>
+                <button class="close-btn" onclick="document.getElementById('batchMoveModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-dim);">Select destination project for <b id="batchMoveAmount" style="color:var(--text)"></b> generations:</p>
+                <div class="detail-section" style="margin-top: 1rem;">
+                    <select id="moveProjectSelect" class="search-box" style="width: 100%;">
+                        <!-- options injected via js -->
+                    </select>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.5rem; justify-content: flex-end; padding-bottom: 0;">
+                    <button class="btn btn-outline" onclick="document.getElementById('batchMoveModal').style.display='none'">Cancel</button>
+                    <button class="btn btn-primary" onclick="executeBatchMove()">Move</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = window.location.hostname === 'localhost'
             ? 'http://localhost:8000'
@@ -524,6 +547,7 @@
 
         let currentSlug = null;
         let currentGenerations = [];
+        let globalProjects = [];
         let selectedEntry = null;
 
         // Check API health
@@ -547,6 +571,7 @@
                 const r = await fetch(`${API}/v1/dna/projects`);
                 const data = await r.json();
                 const projects = data.projects || data;
+                globalProjects = projects;
                 const list = document.getElementById('projectList');
 
                 document.getElementById('statProjects').textContent = projects.length;
@@ -704,12 +729,15 @@
 
         function updateBatchDeleteBtn() {
             const checked = document.querySelectorAll('.gen-cb:checked');
-            const btn = document.getElementById('btnBatchDelete');
+            const btnDel = document.getElementById('btnBatchDelete');
+            const btnMove = document.getElementById('btnBatchMove');
             if (checked.length > 0) {
-                btn.style.display = 'block';
+                btnDel.style.display = 'block';
+                btnMove.style.display = 'block';
                 document.getElementById('batchCount').textContent = checked.length;
             } else {
-                btn.style.display = 'none';
+                btnDel.style.display = 'none';
+                btnMove.style.display = 'none';
                 const selectAll = document.getElementById('selectAllGens');
                 if (selectAll) selectAll.checked = false;
             }
@@ -735,6 +763,43 @@
             } catch (e) {
                 console.error('Batch delete error:', e);
                 alert('Connection error during batch delete');
+            }
+        }
+
+        // Batch Move Logic
+        function promptBatchMove() {
+            const checked = document.querySelectorAll('.gen-cb:checked');
+            if (checked.length === 0) return;
+            
+            document.getElementById('batchMoveAmount').textContent = checked.length;
+            const select = document.getElementById('moveProjectSelect');
+            select.innerHTML = '<option value="" disabled selected>-- Select target project --</option>' + 
+                globalProjects
+                    .filter(p => (p.slug || p.name) !== currentSlug) // exclude current
+                    .map(p => {
+                        const s = p.slug || p.name.toLowerCase().replace(/ /g, '-');
+                        return `<option value="${s}">${p.name || s}</option>`;
+                    }).join('');
+                    
+            document.getElementById('batchMoveModal').style.display = 'flex';
+        }
+
+        async function executeBatchMove() {
+            const targetProject = document.getElementById('moveProjectSelect').value;
+            if (!targetProject) return alert("Please select a target project");
+
+            const checked = document.querySelectorAll('.gen-cb:checked');
+            const ids = Array.from(checked).map(cb => cb.value);
+            if (!ids.length) return;
+
+            document.getElementById('batchMoveModal').style.display = 'none';
+            try {
+                // Execute move in backend endpoint: PUT /v1/dna/generations/{id}?target_project=slug
+                await Promise.all(ids.map(id => fetch(`${API}/v1/dna/generations/${id}?target_project=${targetProject}`, { method: 'PUT' })));
+                selectProject(currentSlug);
+            } catch (e) {
+                console.error('Batch move error:', e);
+                alert('Connection error during batch move');
             }
         }
 
