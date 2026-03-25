@@ -1,14 +1,14 @@
 name: Build Safari Extension (macOS)
 
 on:
-  workflow_dispatch:  # Позволяет запускать вручную из интерфейса GitHub
+  workflow_dispatch:
   push:
     paths:
       - 'project-dna-extension/**'
 
 jobs:
   build-safari-app:
-    runs-on: macos-14  # Выделяем сервер Apple с процессором M1/M2
+    runs-on: macos-14
     
     steps:
       - name: 📥 Checkout code
@@ -16,30 +16,40 @@ jobs:
 
       - name: 🛠️ Convert Chrome Extension to Safari App
         run: |
-          # Утилита Apple берёт наш Manifest V3 и заворачивает в macOS App
           xcrun safari-web-extension-converter project-dna-extension \
             --project-location safari-build \
             --app-name "ProjectDNA" \
             --bundle-identifier "com.igorvl.projectdna" \
-            --no-open
+            --no-prompt --no-open
             
       - name: 🏗️ Build Xcode Project (Unsigned)
+        id: build
         run: |
           cd safari-build
-          echo "📂 Directory contents:"
-          ls -R || true
+          echo "🔍 Finding project file..."
+          PROJECT_FILE=$(find . -name "*.xcodeproj" | head -n 1)
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "❌ No .xcodeproj found!"
+            exit 1
+          fi
+          echo "Found project file: $PROJECT_FILE"
           
-          # Apple добавляет '(macOS)' к названию scheme в новых версиях Xcode
-          xcodebuild -project "ProjectDNA.xcodeproj" \
+          echo "🔍 Available schemes:"
+          xcodebuild -list -project "$PROJECT_FILE" || true
+          
+          echo "🛠️ Building (macOS) Scheme..."
+          xcodebuild -project "$PROJECT_FILE" \
                      -scheme "ProjectDNA (macOS)" \
                      -configuration Release \
+                     SYMROOT="$PWD/build" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
                      build || \
-          xcodebuild -project "ProjectDNA.xcodeproj" \
-                     -alltargets \
+          xcodebuild -project "$PROJECT_FILE" \
+                     -scheme "ProjectDNA" \
                      -configuration Release \
+                     SYMROOT="$PWD/build" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
@@ -48,7 +58,7 @@ jobs:
       - name: 📦 Zip macOS App
         run: |
           cd safari-build/build/Release
-          zip -r ProjectDNA-Safari-App.zip "ProjectDNA.app"
+          zip -r ProjectDNA-Safari-App.zip *.app
           
       - name: 🚀 Upload Artifact
         uses: actions/upload-artifact@v4
@@ -56,3 +66,11 @@ jobs:
           name: Safari-Extension-macOS
           path: safari-build/build/Release/ProjectDNA-Safari-App.zip
           retention-days: 7
+
+      - name: 🚑 Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-safari-build
+          path: safari-build/
+          retention-days: 1
