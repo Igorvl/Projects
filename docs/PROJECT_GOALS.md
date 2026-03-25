@@ -203,6 +203,21 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 
 ---
 
+## Goal 11 — Antigravity Context Integration
+
+**Problem:** The most valuable architectural and MLOps discussions happen directly with the AI Assistant ("Google Antigravity"), but this knowledge remains siloed in isolated chat histories and isn't part of the overarching Project DNA database.
+
+**Solution:** Develop a dedicated capture pipeline/sync between Antigravity session outputs and the Project DNA context engine.
+
+| Milestone | Status |
+|-----------|--------|
+| Design data extraction strategy for Antigravity chats | 🔴 Planned |
+| Map chat metadata (tags, goals, code snippets) to DNA Schema | 🔴 Planned |
+| Create CLI or automated daemon to push context to `POST /v1/dna/capture` | 🔴 Planned |
+| Include Antigravity architectural decisions in 3-level context | 🔴 Planned |
+
+---
+
 ## Infrastructure
 
 | Component | Technology | Version |
