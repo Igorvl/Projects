@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-safari-app:
-    runs-on: macos-14
+    runs-on: macos-13
     
     steps:
       - name: 📥 Checkout code
@@ -21,6 +21,13 @@ jobs:
             --app-name "ProjectDNA" \
             --bundle-identifier "com.igorvl.projectdna" \
             --no-prompt --no-open
+            
+      - name: 🛠️ Patch Minimum OS Version
+        run: |
+          cd safari-build
+          echo "Patching minimum OS versions in plists..."
+          find . -name "Info.plist" -exec plutil -replace LSMinimumSystemVersion -string "12.0" {} \; || true
+          find . -name "project.pbxproj" -exec sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = [^;]*;/MACOSX_DEPLOYMENT_TARGET = 12.0;/g' {} \; || true
             
       - name: 🏗️ Build Xcode Project (Unsigned)
         id: build
