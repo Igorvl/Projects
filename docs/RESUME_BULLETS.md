@@ -18,6 +18,8 @@
 
 *   **Vector Search & RAG:** Integrated Qdrant Vector DB with FastEmbed models to create a "Project DNA" semantic search layer, allowing the system to retroactively auto-inject strategic and tactical context into ongoing AI chat sessions.
 
+*   **Semantic Auto-Routing:** Engineered a zero-shot semantic routing microservice using Gemini 2.5 Flash Lite to automatically classify multi-source AI captures (Chrome Extension + Open WebUI) into the correct project without training data. Implemented MD5-based session caching achieving sub-10ms routing overhead on cache hits, with a graceful UNKNOWN fallback triggering queue-based retry rather than silent misrouting. Designed unified `/v1/dna/route` endpoint absorbing full capture pipeline (PostgreSQL + Qdrant + auto-summarize) behind a single call.
+
 *   **Multi-Engine TTS Pipeline:** Unified 4 distinct Text-to-Speech engines (Chatterbox, Kokoro, SaluteSpeech, Silero v5) behind a single REST API, orchestrating asynchronous audio generation and dynamic speed control via ffmpeg.
 
 *   **Automated Context Compression:** Designed a background LLM-powered summarization worker that automatically condenses thousands of captured designer prompts into a two-level (Strategic/Tactical) "Project DNA" constitution.

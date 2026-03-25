@@ -98,24 +98,210 @@ async function getConfigs(keys) {
 // =========================================================================
 
 /**
+ * Send capture via Semantic Auto-Router when no project is manually selected.
+ *
+ * Calls POST /v1/dna/route — the server determines the project automatically
+ * using the Semantic Router (Gemini 2.5 Flash Lite zero-shot classification).
+ *
+ * WHY THIS APPROACH:
+ * The classic problem: "Where does this capture belong?" requires human judgment
+ * OR a smart classifier. We use an LLM as a zero-shot classifier:
+ *   - Input: raw prompt text
+ *   - Output: project slug ("ksar-me") or "UNKNOWN"
+ * The server caches classification by MD5 hash of the text (0ms on repeat).
+ *
+ * DATA FLOW:
+ * Extension (no project) → POST /v1/dna/route → semantic_router.py
+ *   → Gemini 2.5 Flash Lite classifies → capture_generation() in DB
+ *   → Returns { project_slug, seq_num } to extension
+ *
+ * @param {object} capturedData - Data from interceptor
+ * @param {object} config       - { API_URL, activeProject }
+ * @returns {Promise<object>}   - { success, seqNum, method }
+ */
+async function sendViaSemanticRoute(capturedData, config) {
+  const routePayload = {
+    prompt_text: capturedData.promptText || '',
+    output_text: capturedData.outputText || '',
+    model_name: capturedData.model || 'unknown',
+    source: 'ai-studio-extension',
+    // NOTE: MinIO images not uploaded here (no project slug known yet).
+    // result_urls will contain original Google URLs as fallback.
+    result_urls: capturedData.resultUrls || [],
+    parameters: capturedData.parameters || {},
+    metadata: {
+      sourceUrl: capturedData.sourceUrl,
+      capturedAt: capturedData.timestamp,
+      finishReason: capturedData.finishReason,
+    },
+  };
+
+  try {
+    const response = await fetch(`${config.API_URL}/v1/dna/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(routePayload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Route API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.project_slug) {
+      // ✅ Semantic Router identified the project — capture done server-side
+      console.log(`[Project DNA] 🧭 Auto-routed → "${result.project_slug}" (seq #${result.seq_num})`);
+
+      // -----------------------------------------------------------------------
+      // Phase 2: Upload images to MinIO now that we know the project slug.
+      //
+      // WHY HERE: When sendViaSemanticRoute is called, we don't know the project
+      // slug yet (that's what the route endpoint determines). Only after the route
+      // call do we have a slug to use for MinIO storage path.
+      //
+      // After uploading, we PATCH the generation record with the MinIO URLs.
+      // The PATCH endpoint (PATCH /v1/dna/generations/{id}) updates result_urls.
+      // -----------------------------------------------------------------------
+      const base64Images = capturedData.resultBase64Images || [];
+      const sourceUrls   = capturedData.resultUrls || [];
+      // DEBUG: log what we have to work with
+      console.log(`[Project DNA] 🔍 Phase2: base64=${base64Images.length}, urls=${sourceUrls.length}`);
+
+      const hasImages = (base64Images.length > 0 || sourceUrls.length > 0) && result.generation_id;
+
+      if (hasImages) {
+        const minioUrls = [];
+        const uploadUrl = `${config.API_URL}/v1/dna/upload/${result.project_slug}`;
+
+        if (base64Images.length > 0) {
+          // ✅ Fast path: page-script pre-fetched images as base64 data URLs
+          console.log(`[Project DNA] 🖼️ Phase2 fast path: uploading ${base64Images.length} base64 image(s) → ${result.project_slug}`);
+          for (let i = 0; i < base64Images.length; i++) {
+            try {
+              const dataRes = await fetch(base64Images[i]);
+              const blob = await dataRes.blob();
+              const isJpeg = base64Images[i].startsWith('data:image/jpeg');
+              const ext = isJpeg ? 'jpg' : 'png';
+              const formData = new FormData();
+              formData.append('file', blob, `gemini_image_${Date.now()}_${i}.${ext}`);
+              const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
+              if (uploadRes.ok) {
+                const ud = await uploadRes.json();
+                if (ud && ud.url) {
+                  const apiHost = new URL(config.API_URL).hostname;
+                  minioUrls.push(ud.url.split('?')[0].replace('ai-minio:9000', `${apiHost}:9000`));
+                  console.log(`[Project DNA] ✅ Phase2 base64 image ${i + 1} uploaded`);
+                }
+              } else {
+                console.warn(`[Project DNA] ⚠️ Phase2 base64 image ${i + 1} upload failed: ${uploadRes.status}`);
+              }
+            } catch (e) {
+              console.error(`[Project DNA] ❌ Phase2 base64 image ${i + 1} error:`, e.message);
+            }
+          }
+
+        } else if (sourceUrls.length > 0) {
+          // ⚠️ Fallback: download from Google CDN URL and re-upload to MinIO.
+          // Mirrors the same logic as sendToProjectDNA (lines ~321-378).
+          // Works for signed Gemini CDN URLs that don't require cookie auth.
+          console.log(`[Project DNA] 🖼️ Phase2 URL fallback: fetching ${sourceUrls.length} image(s) from source → ${result.project_slug}`);
+          for (let i = 0; i < sourceUrls.length; i++) {
+            const sourceUrl = sourceUrls[i];
+            try {
+              let imgRes;
+              if (sourceUrl.startsWith('data:image/')) {
+                imgRes = await fetch(sourceUrl);
+              } else {
+                // Try with size param first, then with credentials
+                let directUrl = sourceUrl.includes('=')
+                  ? sourceUrl.replace(/=[a-zA-Z0-9\-]+/, '=w2048-h2048') : sourceUrl;
+                try {
+                  imgRes = await fetch(directUrl);
+                  if (!imgRes.ok) throw new Error(`${imgRes.status}`);
+                } catch {
+                  imgRes = await fetch(sourceUrl, { credentials: 'include', redirect: 'follow' });
+                }
+              }
+              if (!imgRes || !imgRes.ok) throw new Error(`Fetch failed: ${imgRes?.status}`);
+
+              const arrayBuffer = await imgRes.arrayBuffer();
+              const blob = new Blob([arrayBuffer], { type: 'image/png' });
+              const formData = new FormData();
+              formData.append('file', blob, `gemini_image_${Date.now()}_${i}.png`);
+              const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData });
+              if (uploadRes.ok) {
+                const ud = await uploadRes.json();
+                if (ud && ud.url) {
+                  const apiHost = new URL(config.API_URL).hostname;
+                  minioUrls.push(ud.url.split('?')[0].replace('ai-minio:9000', `${apiHost}:9000`));
+                  console.log(`[Project DNA] ✅ Phase2 URL image ${i + 1} uploaded`);
+                }
+              } else {
+                console.warn(`[Project DNA] ⚠️ Phase2 URL image ${i + 1} upload failed: ${uploadRes.status}`);
+              }
+            } catch (e) {
+              console.error(`[Project DNA] ❌ Phase2 URL image ${i + 1} error (${sourceUrl.substring(0, 50)}):`, e.message);
+            }
+          }
+        }
+
+        // PATCH generation record with MinIO URLs
+        if (minioUrls.length > 0) {
+          try {
+            const patchRes = await fetch(`${config.API_URL}/v1/dna/generations/${result.generation_id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ result_urls: minioUrls }),
+            });
+            if (patchRes.ok) {
+              console.log(`[Project DNA] ✅ Generation ${result.generation_id} patched with ${minioUrls.length} MinIO URL(s)`);
+            } else {
+              const errText = await patchRes.text().catch(() => '');
+              console.error(`[Project DNA] ❌ PATCH failed ${patchRes.status}: ${errText.substring(0, 100)}`);
+            }
+          } catch (e) {
+            console.error('[Project DNA] ❌ PATCH generation URLs failed:', e.message);
+          }
+        }
+      }
+
+      const totalCaptures = await getConfig('totalCaptures');
+      await setConfig('totalCaptures', totalCaptures + 1);
+      await updateBadge(totalCaptures + 1);
+
+      // Show in popup with 🧭 marker so user knows it was auto-routed
+      await addToRecentCaptures({
+        model: capturedData.model,
+        promptPreview: (capturedData.promptText || '').substring(0, 100),
+        project: `${result.project_slug} 🧭`,
+        timestamp: capturedData.timestamp,
+        seqNum: result.seq_num,
+      });
+
+      return { success: true, seqNum: result.seq_num, method: 'semantic' };
+    } else {
+      // UNKNOWN — queue, user must select project manually in popup
+      console.warn('[Project DNA] 🧭 Semantic router: UNKNOWN. Queuing for manual assignment...');
+      await queueCapture(capturedData);
+      return { success: false, error: 'Semantic router: UNKNOWN project' };
+    }
+  } catch (err) {
+    console.error('[Project DNA] ❌ Route endpoint failed:', err.message);
+    // Fallback: queue the capture, don't lose data
+    await queueCapture(capturedData);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Send captured generation data to the Project DNA API.
  *
- * This calls POST /v1/dna/capture on our AI Router (FastAPI).
- * The router then:
- * 1. Saves the prompt text + parameters to PostgreSQL
- * 2. Creates a vector embedding via fastembed → Qdrant
- * 3. Triggers background auto-summarize (if threshold reached)
- *
- * REQUEST FORMAT (what our API expects):
- * {
- *   "project_slug": "my-project",
- *   "prompt_text": "A futuristic dashboard with...",
- *   "model_name": "gemini-2.0-flash",
- *   "parameters": { "temperature": 0.7, "topP": 0.95 },
- *   "output_text": "Here is a futuristic dashboard...",
- *   "source": "ai-studio-extension",
- *   "metadata": { ... }
- * }
+ * ROUTING LOGIC:
+ * 1. If user manually selected a project in popup → POST /v1/dna/capture
+ * 2. If no project selected → sendViaSemanticRoute() → POST /v1/dna/route
+ *    The Semantic Router (Gemini 2.5 Flash Lite) classifies the capture
+ *    and assigns it to the right project automatically.
  *
  * @param {object} capturedData - Data from page-script.js interceptor
  * @returns {Promise<object>}   - API response or error object
@@ -123,11 +309,10 @@ async function getConfigs(keys) {
 async function sendToProjectDNA(capturedData) {
   const config = await getConfigs(['API_URL', 'activeProject']);
 
-  // Validate: must have an active project selected
+  // No manual project selection → try Semantic Auto-Router
   if (!config.activeProject) {
-    console.warn('[Project DNA] No active project selected. Queuing capture...');
-    await queueCapture(capturedData);
-    return { success: false, error: 'No active project selected' };
+    console.log('[Project DNA] 🧭 No active project — trying Semantic Auto-Router...');
+    return await sendViaSemanticRoute(capturedData, config);
   }
 
   // -----------------------------------------------------------------------
