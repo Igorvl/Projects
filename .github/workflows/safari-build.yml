@@ -1,0 +1,48 @@
+name: Build Safari Extension (macOS)
+
+on:
+  workflow_dispatch:  # Позволяет запускать вручную из интерфейса GitHub
+  push:
+    paths:
+      - 'project-dna-extension/**'
+
+jobs:
+  build-safari-app:
+    runs-on: macos-14  # Выделяем сервер Apple с процессором M1/M2
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Convert Chrome Extension to Safari App
+        run: |
+          # Утилита Apple берёт наш Manifest V3 и заворачивает в macOS App
+          xcrun safari-web-extension-converter project-dna-extension \
+            --project-location safari-build \
+            --app-name "ProjectDNA" \
+            --bundle-identifier "com.igorvl.projectdna" \
+            --no-open
+            
+      - name: 🏗️ Build Xcode Project (Unsigned)
+        run: |
+          cd safari-build
+          # Компилируем проект без платного сертификата Apple
+          xcodebuild -project "ProjectDNA.xcodeproj" \
+                     -scheme "ProjectDNA" \
+                     -configuration Release \
+                     CODE_SIGN_IDENTITY="-" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     build
+                     
+      - name: 📦 Zip macOS App
+        run: |
+          cd safari-build/build/Release
+          zip -r ProjectDNA-Safari-App.zip "ProjectDNA.app"
+          
+      - name: 🚀 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Safari-Extension-macOS
+          path: safari-build/build/Release/ProjectDNA-Safari-App.zip
+          retention-days: 7
