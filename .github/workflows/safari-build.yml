@@ -42,6 +42,8 @@ jobs:
                      -scheme "ProjectDNA (macOS)" \
                      -configuration Release \
                      SYMROOT="$PWD/build" \
+                     ARCHS="x86_64 arm64" \
+                     MACOSX_DEPLOYMENT_TARGET="12.0" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
@@ -50,6 +52,8 @@ jobs:
                      -scheme "ProjectDNA" \
                      -configuration Release \
                      SYMROOT="$PWD/build" \
+                     ARCHS="x86_64 arm64" \
+                     MACOSX_DEPLOYMENT_TARGET="12.0" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
