@@ -26,9 +26,19 @@ jobs:
       - name: 🏗️ Build Xcode Project (Unsigned)
         run: |
           cd safari-build
-          # Компилируем проект без платного сертификата Apple
+          echo "📂 Directory contents:"
+          ls -R || true
+          
+          # Apple добавляет '(macOS)' к названию scheme в новых версиях Xcode
           xcodebuild -project "ProjectDNA.xcodeproj" \
-                     -scheme "ProjectDNA" \
+                     -scheme "ProjectDNA (macOS)" \
+                     -configuration Release \
+                     CODE_SIGN_IDENTITY="-" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     build || \
+          xcodebuild -project "ProjectDNA.xcodeproj" \
+                     -alltargets \
                      -configuration Release \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
