@@ -103,7 +103,26 @@ jobs:
                      CODE_SIGNING_ALLOWED=NO \
                      build 2>&1 | tee build.log
 
-      # ── STEP 7: Упаковка ─────────────────────────────────────────────────
+      # ── STEP 7: Патч СОБРАННОГО .app (КРИТИЧНО!) ────────────────────────
+      # xcodebuild ПЕРЕЗАПИСЫВАЕТ Info.plist из своих настроек при сборке.
+      # Поэтому патчим уже готовый .app bundle — это окончательная версия.
+      - name: 🩹 Patch Built .app Info.plist (post-build, the real fix)
+        run: |
+          BUILD_DIR="safari-build/build/Release"
+          echo "Scanning built .app for Info.plist files..."
+          find "$BUILD_DIR" -name "Info.plist" | while read f; do
+            CURRENT=$(plutil -extract LSMinimumSystemVersion raw "$f" 2>/dev/null || echo "not set")
+            echo "  File: $f"
+            echo "  Before: $CURRENT"
+            plutil -replace LSMinimumSystemVersion -string "12.0" "$f" || true
+            AFTER=$(plutil -extract LSMinimumSystemVersion raw "$f" 2>/dev/null || echo "error")
+            echo "  After:  $AFTER"
+          done
+          echo "Done. Final check:"
+          find "$BUILD_DIR" -name "Info.plist" -exec grep -l "LSMinimumSystemVersion" {} \; | \
+            xargs -I{} sh -c 'echo "{}:"; plutil -extract LSMinimumSystemVersion raw "{}" 2>/dev/null'
+
+      # ── STEP 8: Упаковка ─────────────────────────────────────────────────
       - name: 📦 Zip macOS App
         run: |
           BUILD_DIR="safari-build/build/Release"
