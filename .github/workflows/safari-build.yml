@@ -9,11 +9,32 @@ on:
 jobs:
   build-safari-app:
     runs-on: macos-14
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      # ── STEP 1: Диагностика доступных Xcode ─────────────────────────────
+      - name: 🔍 List available Xcode versions
+        run: ls /Applications/ | grep Xcode
+
+      # ── STEP 2: Форсируем Xcode 14.x для генерации Monterey-совместимого кода
+      # Xcode 15/16 генерирует WKWebExtensionController (macOS 14+ only!)
+      # Xcode 14.x генерирует SFSafariWebExtension (macOS 10.14.6+) — нам нужно это
+      - name: 🔀 Select Xcode 14.3.1 (Monterey-compatible generator)
+        run: |
+          if [ -d "/Applications/Xcode_14.3.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_14.3.1.app
+            echo "Xcode 14.3.1 selected"
+          elif [ -d "/Applications/Xcode_14.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_14.2.app
+            echo "Xcode 14.2 selected"
+          else
+            echo "WARNING: Xcode 14.x not found, using default."
+          fi
+          xcodebuild -version
+
+      # ── STEP 3: Конвертация Chrome Extension -> Xcode Project ────────────
       - name: 🛠️ Convert Chrome Extension to Safari App
         run: |
           xcrun safari-web-extension-converter project-dna-extension \
@@ -21,67 +42,94 @@ jobs:
             --app-name "ProjectDNA" \
             --bundle-identifier "com.igorvl.projectdna" \
             --no-prompt --no-open
-            
-      - name: 🛠️ Patch Minimum OS Version
+
+      # ── STEP 4: Патч Info.plist и pbxproj ───────────────────────────────
+      - name: 🛠️ Patch Minimum OS Version to 12.0
         run: |
           cd safari-build
-          echo "Patching minimum OS versions in plists..."
-          find . -name "Info.plist" -exec plutil -replace LSMinimumSystemVersion -string "12.0" {} \; || true
-          find . -name "project.pbxproj" -exec sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = [^;]*;/MACOSX_DEPLOYMENT_TARGET = 12.0;/g' {} \; || true
-            
-      - name: 🏗️ Build Xcode Project (Unsigned)
-        id: build
+          echo "Patching LSMinimumSystemVersion in all Info.plist files..."
+          find . -name "Info.plist" | while read f; do
+            echo "  Patching: $f"
+            plutil -replace LSMinimumSystemVersion -string "12.0" "$f" || true
+          done
+          echo "Patching MACOSX_DEPLOYMENT_TARGET in pbxproj..."
+          find . -name "project.pbxproj" -exec \
+            sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = [^;]*;/MACOSX_DEPLOYMENT_TARGET = 12.0;/g' {} \;
+          echo "Checking result:"
+          grep -r "LSMinimumSystemVersion" . || true
+          grep -r "MACOSX_DEPLOYMENT_TARGET" . | head -5 || true
+
+      # ── STEP 5: Проверка WKWebExtensionController (macOS 14+ API) ───────
+      # Если Xcode 14 не был доступен — build упадёт здесь с понятной ошибкой
+      - name: 🩹 Check for WKWebExtensionController (macOS 14+ API)
         run: |
-          cd safari-build
-          echo "🔍 Finding project file..."
-          PROJECT_FILE=$(find . -name "*.xcodeproj" | head -n 1)
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "❌ No .xcodeproj found!"
+          if grep -r "WKWebExtensionController" safari-build/ --include="*.swift" -q 2>/dev/null; then
+            echo "WARNING: Generated code uses WKWebExtensionController (macOS 14+ only!)"
+            echo "This will NOT work on Monterey. Xcode 14.x was not available on this runner."
             exit 1
+          else
+            echo "OK: No WKWebExtensionController found. Code is Monterey-compatible!"
           fi
-          echo "Found project file: $PROJECT_FILE"
-          
-          echo "🔍 Available schemes:"
-          xcodebuild -list -project "$PROJECT_FILE" || true
-          
-          echo "🛠️ Building (macOS) Scheme..."
+
+      # ── STEP 6: Сборка ───────────────────────────────────────────────────
+      - name: 🏗️ Build Xcode Project (Unsigned, Monterey-compatible)
+        run: |
+          cd safari-build
+          PROJECT_FILE=$(find . -name "*.xcodeproj" | head -n 1)
+          echo "Found project: $PROJECT_FILE"
+          echo "Available schemes:"
+          xcodebuild -list -project "$PROJECT_FILE" 2>&1 | grep -A 10 "Schemes:" || true
+
           xcodebuild -project "$PROJECT_FILE" \
                      -scheme "ProjectDNA (macOS)" \
                      -configuration Release \
                      SYMROOT="$PWD/build" \
                      ARCHS="x86_64 arm64" \
                      MACOSX_DEPLOYMENT_TARGET="12.0" \
+                     SWIFT_VERSION="5.7" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
-                     build || \
+                     build 2>&1 | tee build.log || \
           xcodebuild -project "$PROJECT_FILE" \
                      -scheme "ProjectDNA" \
                      -configuration Release \
                      SYMROOT="$PWD/build" \
                      ARCHS="x86_64 arm64" \
                      MACOSX_DEPLOYMENT_TARGET="12.0" \
+                     SWIFT_VERSION="5.7" \
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO \
-                     build
-                     
+                     build 2>&1 | tee build.log
+
+      # ── STEP 7: Упаковка ─────────────────────────────────────────────────
       - name: 📦 Zip macOS App
         run: |
-          cd safari-build/build/Release
+          BUILD_DIR="safari-build/build/Release"
+          echo "Contents of build dir:"
+          ls -la "$BUILD_DIR" || true
+          cd "$BUILD_DIR"
           zip -r ProjectDNA-Safari-App.zip *.app
-          
+          echo "Zip created:"
+          ls -lh ProjectDNA-Safari-App.zip
+
+      # ── STEP 8: Артефакт ─────────────────────────────────────────────────
       - name: 🚀 Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Safari-Extension-macOS
+          name: Safari-Extension-macOS-Monterey
           path: safari-build/build/Release/ProjectDNA-Safari-App.zip
-          retention-days: 7
+          retention-days: 14
 
-      - name: 🚑 Upload Logs on Failure
+      # ── STEP 9: Логи при падении ─────────────────────────────────────────
+      - name: 🚑 Upload Debug Logs on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: debug-safari-build
-          path: safari-build/
-          retention-days: 1
+          path: |
+            safari-build/build.log
+            safari-build/
+          retention-days: 3
+
