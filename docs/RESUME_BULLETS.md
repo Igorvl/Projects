@@ -26,3 +26,6 @@
 
 *   **Interactive AI Dashboard & Media Management:** Developed a real-time SPA dashboard to visualize complex AI interactions. Engineered an Object Storage (MinIO) integration pipeline for capturing, sanitizing (removing signed auth parameters), and serving generated media (Canvas UI) with full semantic search and generation lifecycle management.
 
+*   **ESXi VMware Storage Triage:** Diagnosed and resolved a critical, multi-layer infrastructure deadlock: QEMU/Docker I/O overload causing ESXi AHCI ABORT→VIRT_RESET loops, rendering a VM unkillable via normal means. Performed live VMDK surgery (ESXi SSH) — manually bypassing a corrupt sesparse snapshot chain by patching `.vmx` descriptor and `.vmsd` metadata without data loss — restoring full service to 11 production Docker containers.
+
+*   **Cross-Platform CI/CD & Browser Extension Distribution:** Replaced a complex, failed 3-day self-hosted macOS runner setup (QEMU inside Docker inside ESXi) with a zero-infrastructure solution: Orion Browser (WebKit, Chrome Extension compatible) for macOS. Technical diagnosis included `LSMinimumSystemVersion` plist patching, Mach-O `LC_BUILD_VERSION` analysis via `otool`, and understanding of xcodebuild's Info.plist regeneration behavior.

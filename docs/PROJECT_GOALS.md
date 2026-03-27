@@ -1,6 +1,6 @@
 # 🎯 Project DNA — Goals & Progress Tracker
 
-> **Last Updated:** 2026-03-25  
+> **Last Updated:** 2026-03-27  
 > **Architecture Version:** 2.1.0  
 > **Status:** Active Development  
 
@@ -232,3 +232,5 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | Relational DB | PostgreSQL + asyncpg | — |
 | Object Storage | MinIO (S3-compatible) | — |
 | Extension | Chrome MV3 (ES Modules) | v2.1.0 |
+| Safari Distribution | Orion Browser (WebKit + Chrome Extensions) | kagi.com/orion |
+| ESXi Lessons | No snapshots on QEMU VMs; blkio limits mandatory; `restart: "no"` for heavy containers | — |
