@@ -1,7 +1,7 @@
 # 🎯 Project DNA — Goals & Progress Tracker
 
-> **Last Updated:** 2026-03-27  
-> **Architecture Version:** 2.1.0  
+> **Last Updated:** 2026-03-28  
+> **Architecture Version:** 2.2.0  
 > **Status:** Active Development  
 
 ---
@@ -30,6 +30,8 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | `auto_summarize.py` background worker | ✅ Done |
 | `GET /v1/dna/context/{slug}` — 3-level context assembly | ✅ Done |
 | LLM fallback for summarization (Gemini → Qwen3-8B) | ✅ Done |
+| `GET/PUT /v1/dna/projects/{slug}/dna-document` — Level 1 DNA Document | ✅ Done |
+| `GET /v1/dna/context/{slug}` returns `dna_document` field | ✅ Done |
 
 ---
 
@@ -161,6 +163,15 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | Dashboard SPA (projects, generations, files, DNA) | ✅ Done |
 | Batch Delete / Batch Move in Dashboard | ✅ Done |
 | Extension Popup (project selector, capture toggle, queue status) | ✅ Done |
+| **Folder System** — colour-coded collapsible folders (Design/MLOps/Other), localStorage persist | ✅ Done |
+| **Project Rename** — inline via `PATCH /v1/dna/projects/{slug}` | ✅ Done |
+| **Move Project** between folders via modal picker | ✅ Done |
+| **Archive/Restore** soft-lifecycle via `POST /archive` / `POST /unarchive` | ✅ Done |
+| **Context menu ⋮** — dropdown replaces scattered hover buttons | ✅ Done |
+| **Modal sticky header** — title + actions pinned, content scrolls | ✅ Done |
+| **Project-wide Lightbox** — navigates ALL images across ALL generations with Gen label | ✅ Done |
+| **DNA Context grid** — DNA Document full-width row, Strategic+Tactical side-by-side | ✅ Done |
+| Dashboard batch-correction UI for routing mistakes | 🟡 Partial |
 
 ---
 
@@ -233,4 +244,5 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | Object Storage | MinIO (S3-compatible) | — |
 | Extension | Chrome MV3 (ES Modules) | v2.1.0 |
 | Safari Distribution | Orion Browser (WebKit + Chrome Extensions) | kagi.com/orion |
+| Dashboard | Vanilla HTML/JS SPA (no framework, no build step) | v2.2.0 |
 | ESXi Lessons | No snapshots on QEMU VMs; blkio limits mandatory; `restart: "no"` for heavy containers | — |
