@@ -19,7 +19,7 @@
     "gulp-debug": "^4.*",
     "gulp-group-css-media-queries": "^1.*",
     "gulp-sourcemaps": "^2.*",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "smart-grid": "^2.*"
   },
   "scripts": {
