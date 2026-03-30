@@ -93,7 +93,7 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | `POST /v1/dna/route` endpoint (auto-capture + Qdrant + summarize) | ✅ Done |
 | Semantic Router for Extension captures (no project selected → auto-route) | ✅ Done |
 | Auto-routed fast path image capture to MinIO (Phase 2 URL fallback) | ✅ Done |
-| Dashboard batch-correction UI for routing mistakes | 🟡 Partial |
+| Dashboard batch-correction UI for routing mistakes (via Batch Move) | ✅ Done |
 
 ---
 
@@ -171,7 +171,7 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | **Modal sticky header** — title + actions pinned, content scrolls | ✅ Done |
 | **Project-wide Lightbox** — navigates ALL images across ALL generations with Gen label | ✅ Done |
 | **DNA Context grid** — DNA Document full-width row, Strategic+Tactical side-by-side | ✅ Done |
-| Dashboard batch-correction UI for routing mistakes | 🟡 Partial |
+| Dashboard batch-correction UI for routing mistakes | ✅ Done |
 
 ---
 
@@ -183,11 +183,11 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 |-----------|--------|
 | Secrets via `.env` + `.gitignore` | ✅ Done |
 | `.env.example` template committed to repo | ✅ Done |
-| PostgreSQL + Qdrant cron dumps | 🔴 Planned |
-| MinIO → Restic/Borg incremental backups | 🔴 Planned |
-| `restore.sh` — single-command cluster recovery | 🔴 Planned |
-| Monthly DR tests in isolated VLAN | 🔴 Planned |
-| Telegram alerts on successful DR restoration | 🔴 Planned |
+| PostgreSQL + Qdrant cron dumps | ✅ Done |
+| MinIO → Physical tarball backups | ✅ Done |
+| `restore.sh` — single-command cluster recovery | ✅ Done |
+| Monthly DR tests in isolated VLAN | ✅ Done (Game Day via ABB Instant Restore) |
+| Active Backup for Business (NAS Integration) | ✅ Done |
 
 ---
 
@@ -197,9 +197,9 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 
 | Milestone | Status |
 |-----------|--------|
-| Prometheus (metrics scraping) | 🔴 Planned |
-| Grafana (token spend, latency, fallback dashboards) | 🔴 Planned |
-| cAdvisor (container resources: Qdrant, PostgreSQL, MinIO) | 🔴 Planned |
+| Prometheus (metrics scraping) | ✅ Done |
+| Grafana (dashboards + Alerting System) | ✅ Done |
+| Telegraf (direct Docker API container metrics vs broken cAdvisor) | ✅ Done |
 | Loki + Promtail (centralized log aggregation) | 🔴 Planned |
 
 ---
@@ -226,6 +226,23 @@ Build a **self-hosted enterprise MLOps ecosystem with "infinite memory"** — so
 | Map chat metadata (tags, goals, code snippets) to DNA Schema | 🔴 Planned |
 | Create CLI or automated daemon to push context to `POST /v1/dna/capture` | 🔴 Planned |
 | Include Antigravity architectural decisions in 3-level context | 🔴 Planned |
+
+---
+
+## Goal 12 — System Redundancy (High Availability & Failover)
+
+**Problem:** A single container crash, network tunnel ban, or ESXi disk failure could paralyze the entire AI generation pipeline. The system needs proactive redundancy at compute, storage, and networking layers.
+
+**Solution:** Implement Active-Passive and Active-Active high availability strategies suitable for a self-hosted ML environment.
+
+| Milestone | Status |
+|-----------|--------|
+| **DB Redundancy:** PostgreSQL Primary/Standby replication (Repmgr) | 🔴 Planned |
+| **Vector DB Redundancy:** Qdrant Distributed Deployment (Cluster mode) | 🔴 Planned |
+| **Compute HA:** Load Balancer (Traefik/Nginx) for `ai-router` scaling (`replicas: 3`) | 🔴 Planned |
+| **Storage Sync:** MinIO Active-Active Site Replication | 🔴 Planned |
+| **Network Failover:** Multi-Region LLM Tunneling (Auto-switch VLESS/Shadowsocks) | 🔴 Planned |
+| **Host Redundancy:** ESXi VM Fault Tolerance (FT) or continuous VCSA replication | 🔴 Planned |
 
 ---
 

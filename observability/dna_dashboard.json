@@ -1,0 +1,82 @@
+{
+  "title": "Project DNA - Observability (Telegraf Exporter)",
+  "description": "Стабильный дашборд на базе Telegraf. Никаких проблем с cgroups v2!",
+  "timezone": "browser",
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1,
+      "title": "🧠 RAM (Оперативная память) по контейнерам",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "docker_container_mem_usage",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 30, "lineWidth": 2, "showPoints": "never" }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "⚡ CPU (Процессор) по контейнерам",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 9 },
+      "targets": [
+        {
+          "expr": "docker_container_cpu_usage_percent",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 10, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "🌐 Network In (Входящий трафик)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "targets": [
+        {
+          "expr": "rate(docker_container_net_rx_bytes[1m])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } }
+      }
+    },
+    {
+      "id": 4,
+      "title": "🌐 Network Out (Исходящий трафик)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "targets": [
+        {
+          "expr": "rate(docker_container_net_tx_bytes[1m])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } }
+      }
+    }
+  ],
+  "__inputs": []
+}

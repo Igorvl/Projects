@@ -31,3 +31,39 @@
 *   **Cross-Platform CI/CD & Browser Extension Distribution:** Replaced a complex, failed 3-day self-hosted macOS runner setup (QEMU inside Docker inside ESXi) with a zero-infrastructure solution: Orion Browser (WebKit, Chrome Extension compatible) for macOS. Technical diagnosis included `LSMinimumSystemVersion` plist patching, Mach-O `LC_BUILD_VERSION` analysis via `otool`, and understanding of xcodebuild's Info.plist regeneration behavior.
 
 *   **Full-Stack Dashboard Engineering (UX → API → DB):** Designed and implemented a production-grade project management UI in a zero-dependency vanilla HTML/JS SPA: folder-based project organization with localStorage persistence (no backend required), contextual ⋮ dropdown menus, project rename via `PATCH /v1/dna/projects/{slug}`, soft-archive/restore lifecycle, project-wide image lightbox with flat multi-generation navigation, sticky modal headers, and responsive DNA context grid. Simultaneously refactored the FastAPI `api_dna.py` backend — eliminated duplicate route handler, aligned all new endpoints to the `asyncpg` connection pool pattern (`db.pool.acquire()`), added `archived` and `dna_document` SQL columns with zero-downtime `ALTER TABLE IF NOT EXISTS` migrations.
+
+*   **Infrastructure Observability & Alerting:** Designed and deployed a production-grade observability stack targeting modern `containerd` environments (Ubuntu 24.04). Replaced legacy cAdvisor with **Telegraf (InfluxData)** to bypass strict `cgroups v2` namespace isolations by parsing the Docker API (`docker.sock`) directly. Bypassed official Docker image privilege-drop constraints via entrypoint overriding. Configured a complete monitoring pipeline (Telegraf → Prometheus → Grafana) with custom-built JSON dashboards and automated SMTP-based alerting for early detection of CPU spikes and OOM thresholds.
+
+*   **Disaster Recovery (DR) & Zero-Downtime Data Resilience:** Engineered a comprehensive DR pipeline for a multi-service Docker cluster (PostgreSQL, Qdrant, MinIO, n8n). Implemented hybrid backup strategies combining logical `pg_dump` with physical `tar` snapshots of named volumes using ephemeral Alpine containers. Validated "Game Day" survival by executing a destructive recovery drill (`docker compose down -v`). Successfully recovered a lost PostgreSQL volume by orchestrating an NFS-based **Instant Restore to VMware** via **Synology Active Backup for Business (ABB)** under split-brain/IP-collision avoidance constraints, achieving a 30-second target RTO for surgical file extraction (`_data` ext4 layers) from an ESXi clone without impacting production traffic.
+
+
+Вольный перевод
+
+Выдающиеся профессиональные достижения (Project DNA)
+🤖 AI Infrastructure & Data Pipeline
+
+Обеспечение 100% полноты сбора AI-данных (gRPC-Web Interception): Спроектировал скрытый слой перехвата ответов Google Gemini в браузере (Monkey Patching, паттерн Outbox). Это позволило бизнесу непрерывно накапливать ценные AI-генерации в обход строгих корпоративных защит, не ломая работу исходного приложения.
+
+Устранение критических потерь контента при обрывах связи: Диагностировал системную ошибку сброса потоков в Google AI Studio и разработал отказоустойчивый двухконтурный парсер. Это спасло компанию от потери данных при прерывании gRPC-стримов, гарантируя сохранение как текстового, так и графического контекста (base64) в 100% случаев.
+
+Оптимизация затрат и повышение доступности AI (LLM Gateway): Разработал единый шлюз (FastAPI) с умной балансировкой и маршрутизацией запросов между Gemini, DeepSeek и Qwen. Внедрение паттерна Circuit Breaker и авторотации ключей исключило простои из-за лимитов API и снизило зависимость инфраструктуры от одного вендора.
+
+Повышение качества выдачи нейросетей (RAG & Vector Search): Интегрировал векторную базу Qdrant для семантического поиска. Система теперь автоматически «подмешивает» релевантный исторический контекст в новые сессии, что кратно повысило точность, консистентность и попадание в бренд-дизайн при новых генерациях.
+
+Автоматизация структурирования данных (Zero-Shot AI Routing): Создал микросервис на базе Gemini Flash Lite, который за <10мс классифицирует логи и распределяет их по нужным проектам. Это полностью избавило команду от ручной сортировки тысяч запросов и ускорило поиск нужной информации.
+
+⚙️ DevOps, SRE & Disaster Recovery
+
+Обеспечение непрерывности бизнеса и защита данных (Disaster Recovery): Выстроил гибридную архитектуру бэкапов для всего кластера (PostgreSQL, Qdrant, MinIO) и успешно провел боевые учения по восстановлению. На практике доказал возможность хирургического восстановления баз данных за 30 секунд (RTO) без влияния на продакшен-трафик.
+
+Разрешение критических аварий инфраструктуры (ESXi Triage): Предотвратил длительный простой системы, диагностировав глубокий дедлок I/O на уровне гипервизора. Провел «наживую» восстановление поврежденных снапшотов без потери данных, вернув в строй 11 продуктовых сервисов.
+
+Проактивное предотвращение инцидентов (Observability Stack): Развернул продвинутую систему мониторинга (Telegraf, Prometheus, Grafana), обходящую системные ограничения Docker. Настроенные автоматические алерты позволили команде устранять перегрузки CPU и утечки памяти до того, как они приводили к падению сервисов у пользователей.
+
+Оптимизация CI/CD и снижение инфраструктурных издержек: Заменил ресурсоемкую и нестабильную систему сборки для macOS на легковесное zero-infrastructure решение (адаптация под Orion Browser). Это значительно сократило время выкатки обновлений браузерного расширения и снизило затраты на поддержку серверов.
+
+🖥️ Fullstack & User Experience
+
+Разработка единого центра управления (SPA Dashboard): Спроектировал production-grade интерфейс (vanilla JS + FastAPI + asyncpg) для управления AI-взаимодействиями и медиаконтентом. Быстрый UI без лишних зависимостей и интеграция с объектным хранилищем MinIO радикально ускорили работу дизайн-команды с накопленными артефактами.
+
+Автоматизация ведения документации (AI Summarization): Настроил фоновый процесс, который с помощью LLM сжимает тысячи сырых промптов в актуальную двухуровневую «конституцию» проекта. Бизнес получил самообновляемую базу знаний без малейших затрат человеко-часов на её поддержку.

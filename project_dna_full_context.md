@@ -11,6 +11,8 @@ Project DNA — это система управления знаниями, в�
 *   **Frontend Dashboard (`dashboard/index.html`)**: Нативная панель администрирования.
     *   Кнопки `Delete Project`, просмотр контекстов.
     *   Модуль пакетного редактирования: Чекбоксы на записях, возможности **Batch Delete** (удаления из базы) и **Batch Move** (переноса ошибочно залетевших сообщений в другой проект по щелчку — с помощью параллельных `PUT` запросов).
+*   **Observability Stack (G10)**: Интегрирован стек мониторинга инфраструктуры: Telegraf парсит `docker.sock` (обходя ограничения cgroups v2), передает метрики в Prometheus, которые визуализируются в Grafana. Настроены автоматические алерты (SMTP) на перерасход ресурсов.
+*   **Disaster Recovery Pipeline (G9)**: Реализована стратегия бэкапирования и восстановления уровня Enterprise (`backup.sh` / `restore.sh`). Включает снятие `pg_dump` "на лету" (Zero-Downtime), а также физический захват (через `tar`) томов `deploy_pg_data`, `qdrant_data`, `minio_data` и `n8n_data`. Проведен успешный боевой краш-тест (Game Day) с удалением всех томов (`docker compose down -v`) и полным восстановлением из архива, включая применение "Instant Restore to VMware" (клонирования VM) через **Synology Active Backup for Business** для спасательной хирургии без сетевых конфликтов.
 
 ## 2. Локации файлов
 *   **Back-End (Remote Server - Ubuntu)**: `routing/router.py`, `routing/db.py`, `routing/semantic_router.py`, `routing/dna_capture_middleware.py`.
@@ -19,15 +21,15 @@ Project DNA — это система управления знаниями, в�
     *   `background.js` (Отвечает за перехват запросов Gemini и AI Studio + ручное выделение).
 
 ## 3. Ближайший план работы (Action Plan для нового чата)
-**Phase 1: Починка эндпоинта расширения (The `404 Not Found` Fix)**
-В фоновых логах докера сейчас периодически сыпется: `POST /v1/dna/capture HTTP/1.1 404 Not Found`.
-Это означает, что Chrome-расширение до сих пор шлет HTTP-запросы из браузера клиента на старый удаленный URL (или старый `POST /capture`).
-*   [ ] Найти вызов fetch/XHR в файлах расширения (`background.js` или `popup.js`), который бьет по `/v1/dna/capture`.
-*   [ ] Обновить адрес эндпоинта на актуальный (в зависимости от роутинга в `router.py`, вероятно это `/v1/dna/generations` или `/v1/chat/completions`).
-*   [ ] Протестировать захват выделенного текста из браузера через обновленное расширение.
+**Phase 1: G12 - Система Резервирования (Redundancy / Failover)**
+Создание "Теплого Зеркала" (Warm Standby) на базе XPenology NAS:
+*   [ ] Развернуть Docker-контейнеры на XPenology.
+*   [ ] Поднять Nginx в качестве Failover-балансировщика.
+*   [ ] Реализовать репликацию минимального стека (LLM Router, Qdrant/MinIO replicas) для обеспечения High Availability при отказе основного Ubuntu-сервера.
 
-**Phase 2: Расширение функционала Dashboard и Extension**
-*   [ ] Синхронизировать UI расширения со списком актуальных проектов (динамически тянуть из `/v1/dna/projects`).
+**Phase 2: G11 - Интеграция Контекста (Context Integration)**
+*   [ ] Разработать CLI-утилиту или Middleware для инъекции диалогового контекста внутрь Project DNA (RAG).
+*   [ ] Обеспечить прозрачный проброс исторических данных (Project → General Context) в текущую генерацию (prompt injection).
 
 ## 4. Идеи для резюме MLOps Инженера (ML Engineering / AI Integration)
 Достижения в рамках этого микросервиса, которые стоит добавить в CV:
