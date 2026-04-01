@@ -1,0 +1,35 @@
+# ============================================================
+# GitHub Linguist overrides — Language Statistics
+# Jupyter notebooks are learning exercises, not production code
+# ============================================================
+
+# Hide Jupyter notebooks from language stats (or they dominate 91%!)
+*.ipynb linguist-vendored=true
+
+# Old React course boilerplate (root-level files from Samurais React course)
+App.js linguist-vendored=true
+App.test.js linguist-vendored=true
+index.js linguist-vendored=true
+serviceWorker.js linguist-vendored=true
+setupTests.js linguist-vendored=true
+
+# Old learning HTML/CSS/JS projects (6 years old, not representative)
+barbershop/** linguist-vendored=true
+cat-energy/** linguist-vendored=true
+technomart/** linguist-vendored=true
+Witcher/** linguist-vendored=true
+GLO_portfolio/** linguist-vendored=true
+AntD/** linguist-vendored=true
+components/** linguist-vendored=true
+css/** linguist-vendored=true
+Freedom_tst/** linguist-vendored=true
+PWindows/** linguist-vendored=true
+Diadema/** linguist-vendored=true
+RMS/** linguist-vendored=true
+
+# Highlight active production code
+routing/** linguist-detectable=true
+dashboard/** linguist-detectable=true
+project-dna-extension/** linguist-detectable=true
+observability/** linguist-detectable=true
+scripts/** linguist-detectable=true
