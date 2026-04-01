@@ -36,8 +36,13 @@
 
 *   **Disaster Recovery (DR) & Zero-Downtime Data Resilience:** Engineered a comprehensive DR pipeline for a multi-service Docker cluster (PostgreSQL, Qdrant, MinIO, n8n). Implemented hybrid backup strategies combining logical `pg_dump` with physical `tar` snapshots of named volumes using ephemeral Alpine containers. Validated "Game Day" survival by executing a destructive recovery drill (`docker compose down -v`). Successfully recovered a lost PostgreSQL volume by orchestrating an NFS-based **Instant Restore to VMware** via **Synology Active Backup for Business (ABB)** under split-brain/IP-collision avoidance constraints, achieving a 30-second target RTO for surgical file extraction (`_data` ext4 layers) from an ESXi clone without impacting production traffic.
 
+*   **Warm Standby HA Infrastructure (5-Service Docker Mirror):** Engineered a production-grade "Warm Standby" High Availability mirror for the entire MLOps stack on a Synology RS4021xs+ NAS. Designed purpose-built `docker-compose.mirror.yml` with **Docker network aliases** — mirror services (`ai-postgres-mirror`) transparently respond to primary hostnames (`ai-postgres`), enabling zero application-code changes during failover. Built `failover.sh` one-click activation with primary-down safety guard. Delivered `{"status":"connected"}` health response on first activation across 5 services (LLM Router, PostgreSQL, Qdrant, MinIO, Nginx).
+
+*   **Private Docker Registry for Airgapped MLOps:** Deployed self-hosted Docker Registry v2 to distribute a 13GB AI model image (PyTorch + Silero TTS) to a NAS over LAN, eliminating cloud dependencies. Resolved Docker's TLS `insecure-registry` constraint **without a 40-minute daemon restart** by exploiting Docker's hardcoded `localhost` trust exception: pushed via `localhost:5000`, NAS pulls via LAN IP from its `insecure-registries` config.
+
 
 Вольный перевод
+
 
 Выдающиеся профессиональные достижения (Project DNA)
 🤖 AI Infrastructure & Data Pipeline

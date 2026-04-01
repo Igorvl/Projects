@@ -5,28 +5,46 @@
 ---
 
 ## 📡 1. Snapshot состояния (Где мы сейчас)
-- **Текущая задача:** Переход к Phase 1: G12 (System Redundancy). Развертывание "Теплого Зеркала" (Warm Standby) на XPenology NAS (`172.25.9.147`) через Container Manager.
-- **Главный успех прошлой сессии:** Полностью победили вылеты стриминга (SSE) при падении LLM-провайдеров. Настроен бесшовный Fallback (например, с Gemini на DeepSeek) с визуальным отображением в чате Open WebUI. Защитили классификатор (`semantic_router.py`) от ошибок `429 RateLimit`, подключив его к пулу ключей роутера.
+- **✅ G12 ЗАКРЫТ:** Warm Standby Mirror на NAS RS4021xs+ (`172.25.9.147`) работает. `curl http://172.25.9.147:8000/v1/dna/health` → `{"status":"connected"}`.
+- **Текущая задача:** G12-next — автоматическая синхронизация данных (pg_dump rsync + qdrant snapshots + minio sync) и G12-slim (Dockerfile без TTS-моделей, 13GB → ~800MB).
+- **Инфраструктура:** Ubuntu Primary (`172.25.9.33`) + NAS Mirror (`172.25.9.147`). Local Docker Registry на Ubuntu `:5000`. Образ `ai-router` (13GB) доставлен по LAN.
 
 ## 📝 2. Последние 5 изменений в коде/архитектуре
-1. **Pre-fetching SSE:** В `router.py` добавлен датчик первого чанка (`await resp.__anext__()`) до возврата `StreamingResponse`. Позволяет поймать ошибку "dead on arrival" до оправки HTTP-заголовков и уйти на Fallback без выброса `400 TransferEncodingError` клиенту.
-2. **Visual Fallback Signature:** Инъекция кастомного JSON чанка `> 🔄 *Fallback-модель:* {mid}` в потоковый стрим, если отработала резервная модель.
-3. **DI в Semantic Router:** Проброс функции `call_with_key_rotation` внутрь `semantic_auto_detect` (Dependency Injection) для использования ротации API-ключей.
-4. **Отказ от ручного Rsync бэкапов (G9 -> G12):** Принято архитектурное решение использовать корпоративный класс хранения на NAS: **Synology Active Backup for Business (ABB)**. Он инкрементально бэкапит Ubuntu-виртуалку **целиком** (вместе с лежащим архивом базы DB.tar.gz). Ручной переброс архивов через `scp`/`rsync` отменен для устранения точек отказа.
-5. **Обновление Документации:** Добавлен файл учебной базы `docs/learning/llm_gateway_resilience.md`. Обновлены `PRIVATE_CONTEXT.md` и `project_dna_full_context.md`.
+1. **G12 Mirror Stack** (`deploy/docker-compose.mirror.yml`): 5-сервисный стек на NAS (LLM Router + PostgreSQL + Qdrant + MinIO + Nginx `:8080`). Network aliases для прозрачности имён: `ai-minio-mirror` отвечает на `ai-minio` → код роутера не менялся.
+2. **Local Docker Registry** (`registry:2` на Ubuntu `:5000`): push через `localhost:5000` (без перезапуска Docker!), pull на NAS через IP.
+3. **One-click Failover** (`scripts/failover.sh`): проверяет что primary мёртв → поднимает mirror → ждёт health → инструктирует обновить Open WebUI.
+4. **Key Pool Bug Fix** (предыдущая сессия): `docker-compose.yml` переключён с явного `environment:` на `env_file: .env` → все 6 Gemini-ключей загружаются автоматически.
+5. **MidStreamFallbackError Fix** (предыдущая сессия): pre-fetch первого SSE-чанка перемещён ВНУТРЬ `call_with_key_rotation` через `_prepend_chunk()` helper → 429 теперь вызывают key rotation, а не model fallback.
 
 ## 🐛 3. Подвешенные задачи и Баги (Backlog)
-- **G12 (Active Task):** Развернуть Docker, Nginx, и "Теплое Зеркало" (Warm Standby) на графическом Container Manager в (DSM XPenology).
-- **G12 (Sync):** Настроить сихронизацию (Synology Drive ShareSync / rsync) медиа-папок `/dna_data` (результаты генераций, векторы) между Ubuntu и NAS для обеспечения Data Consistency на запасном сервере.
+- **G12-next (Active):** rsync cron для синхронизации `pg_dump` + qdrant snapshots + minio data → NAS.
+- **G12-slim:** `Dockerfile.router-mirror` без TTS-моделей (13GB → ~800MB). Ускорит обновления зеркала.
+- **G12-alerts:** healthcheck watcher на Ubuntu → Telegram/webhook при падении primary.
 - **MinIO:** Удалить битые файлы из папки `test-project/` (Ghost-файлы).
-- **Frontend Refactoring:** Вынести копипасту логики `uploadImages()` (base64 → MinIO) в общую shared-функцию (v3.0.0).
-- **G11:** Antigravity Context Integration (выгрузить наши архитектурные диалоги и логи в общую БД Project DNA).
+- **Frontend Refactoring:** Вынести копипасту логики `uploadImages()` в shared-функцию (v3.0.0).
+- **G11:** Antigravity Context Integration.
 
 ## 📐 4. Гайдлайны и Ключевые Решения (Отвергнутые варианты)
-- ❌ **НЕТ Auto-Failover кластерам (VRRP/Keepalived/Swarm):** Мы умышленно отказались от автоматического балансировщика между Ubuntu и NAS. Это домашний/SmB MLOps, нам нельзя допустить Data Split-Brain (рассинхрон баз). Используем строго архитектуру "Warm Standby" (Включение Зеркала вручную).
-- ❌ **НЕТ дублированию бэкапов SQL по сети:** Бэкапы баз делает `backup.sh` локально, а Synology ABB забирает ВЕСЬ сервер разом. Исключение: Медиа/Векторы (Sync Files).
-- ✅ **API Gateway Pattern:** Наш `router.py` (FastAPI) работает через LiteLLM и уже поддерживает перебор ключей из `.env`. Будущие интеграции не должны создавать жестких привязок к конкретным моделям API в коде (все через `antigravity.json`).
-- ✅ **Резюме-Ориентированность:** AI обязан при каждом крупном внедрении подчеркивать его Enterprise/MLOps-ценность и подсказывать, как это продающе записать в `RESUME_BULLETS.md`.
+- ❌ **НЕТ Auto-Failover кластерам (VRRP/Keepalived/Swarm):** Умышленно отказались от автоматического балансировщика. Data Split-Brain недопустим. Только Warm Standby — ручное включение через `failover.sh`.
+- ❌ **НЕТ дублированию бэкапов SQL по сети:** ABB бэкапит Ubuntu-ВМ целиком. Ручной rsync только для media/vectors.
+- ✅ **API Gateway Pattern:** `router.py` работает через LiteLLM. Все модели через `antigravity.json`. Никаких жёстких привязок к вендорам в коде.
+- ✅ **Network Aliases Pattern:** Зеркальные сервисы получают aliases с оригинальными именами → код приложения не меняется при failover.
+- ✅ **Резюме-Ориентированность:** При каждом крупном внедрении — фиксировать в `RESUME_BULLETS.md`.
+
+## 🖥️ 5. Топология инфраструктуры
+```
+Ubuntu 172.25.9.33 (PRIMARY)     NAS 172.25.9.147 (MIRROR — WARM)
+├── local-registry  :5000        ├── ai-router-mirror  :8000
+├── ai-router       :8000        ├── ai-postgres-mirror:5433 (alias: ai-postgres)
+├── ai-postgres     :5432        ├── ai-qdrant-mirror  :6334 (alias: ai-qdrant)
+├── ai-qdrant       :6333        ├── ai-minio-mirror   :9002 (alias: ai-minio)
+├── ai-minio        :9000        └── nginx-mirror      :8080
+└── nginx           :443
+```
 
 ---
-*Ожидаю готовности. Прочитай контекст, загрузи себе в память `project_dna_full_context.md` и `PRIVATE_CONTEXT.md`, и ответь одним предложением: "Контекст загружен. Я осведомился о запрете на Auto-Failover и готов приступать к G12 на XPenology NAS!"*
+*Ожидаю готовности. Прочитай контекст, загрузи `project_dna_full_context.md` и `PRIVATE_CONTEXT.md`, и ответь одним предложением подтверждая понимание текущего статуса G12 и следующих задач.*
+
+
+---
+
