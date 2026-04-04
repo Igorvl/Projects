@@ -13,7 +13,7 @@ services:
 
   # ── LLM Router Mirror ──────────────────────────────────────
   llm-router-mirror:
-    image: 172.25.9.33:5000/ai-router:latest
+    image: 172.25.9.33:5000/ai-router:mirror
     container_name: ai-router-mirror
     restart: unless-stopped
     ports:
