@@ -25,7 +25,7 @@
 7. **Grafana credentials**: `admin` / `K5/9E-3ZFGTB` (сменён через grafana-cli).
 
 - ✅ **G12-slim ЗАКРЫТ:** Создан `Dockerfile.router-mirror` без тяжелых TTS-кэшей и PyTorch. Размер контейнера уменьшен с 13 ГБ до 1.6 ГБ (в пуле — меньше 400 МБ).
-- **🆕 G13-llm-radar:** n8n workflow — ежедневный мониторинг новых бесплатных LLM моделей на OpenRouter/SiliconFlow/Groq. Фильтр: free + >30B params + известные org. Алёрт в ntfy. ~2-3ч работы.
+- ✅ **G13-llm-radar ЗАКРЫТ:** Настроен n8n пайплайн автообнаружения новых бесплатных моделей в OpenRouter с интеллектуальным идемпотентным кэшированием (уведомления пушатся в ntfy).
 - **MinIO:** Удалить битые файлы из папки `test-project/` (Ghost-файлы).
 - **Frontend Refactoring:** Вынести копипасту логики `uploadImages()` в shared-функцию (v3.0.0).
 - **G11:** Antigravity Context Integration.
