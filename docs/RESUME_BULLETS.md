@@ -40,8 +40,16 @@
 
 *   **Private Docker Registry for Airgapped MLOps:** Deployed self-hosted Docker Registry v2 to distribute a 13GB AI model image (PyTorch + Silero TTS) to a NAS over LAN, eliminating cloud dependencies. Resolved Docker's TLS `insecure-registry` constraint **without a 40-minute daemon restart** by exploiting Docker's hardcoded `localhost` trust exception: pushed via `localhost:5000`, NAS pulls via LAN IP from its `insecure-registries` config.
 
+*   **Automated MLOps Data Sync (G12-next):** Built `sync_to_nas.sh` — a production bash script synchronizing 3 data layers to NAS every 2 hours via cron: PostgreSQL (compressed `pg_dump` with 7-backup rotation), Qdrant (HTTP Snapshot API + rsync), MinIO (mc mirror HTTP-to-HTTP at 31 MiB/s LAN). Designed a safe `.env` parser using `grep+cut` to handle special characters in passwords without `source` syntax failures.
 
-Вольный перевод
+*   **Push Notification Alerting Stack (G12-alerts):** Replaced Telegram (blocked by RKN) with self-hosted ntfy server. Implemented 5-minute diagnosis (RKN detection via `timeout curl`), zero-registration push alerts to mobile, and a `healthcheck_nas.sh` watchdog with anti-spam lock (1 alert/hour max). Grafana contact point routed via ntfy's JSON API where Grafana's `title`/`message` fields map natively to ntfy's format — zero adapter code needed.
+
+*   **LLM Routing Resilience (Circuit Breaker v2):** Migrated semantic router from Gemini (Rate-Limited 429) to `openrouter/qwen/qwen3.6-plus:free` — infinite free RPD, Gemini quota fully preserved for end-user sessions. Expanded circuit breaker to 7 models with dual-coverage on Qwen3 Coder 480B MoE (OpenRouter free + SiliconFlow), achieving true provider independence. Diagnosed Free Tier vs Paid Tier boundary (GCP project-scoped quotas make key rotation useless under single project).
+
+*   **Automated LLM-as-a-Judge Pipeline (Battle Royale Pattern):** Engineered a fully autonomous model evaluation pipeline in n8n integrating OpenRouter/SiliconFlow endpoints. Designed a sophisticated "Battle Royale" semantic filter where an advanced judge model (Qwen 3.6 Plus) evaluates 50+ new LLM releases daily against a hardcoded State-of-the-Art baseline, sending prioritized push notifications via ntfy *only* when a superior model is detected. Substantially reduced notification fatigue for rapid LLM ecosystem monitoring.
+
+*   **Browser Extension Resilience & CSP Bypass:** Diagnosed browser-wide UI hangs in WebKit/Orion macOS caused by dangling background promises during backend unreachability. Enforced absolute `AbortSignal.timeout(5000)` on all native service worker API calls. Overcame severe Google domain Content Security Policy (CSP) constraints via an advanced in-memory script injection pattern (fetching extension JS as text and injecting via inline script tag with Blob fallback), completely restoring payload capture functionality under stringent WebKit policies.
+
 
 
 Выдающиеся профессиональные достижения (Project DNA)
@@ -57,6 +65,7 @@
 
 Автоматизация структурирования данных (Zero-Shot AI Routing): Создал микросервис на базе Gemini Flash Lite, который за <10мс классифицирует логи и распределяет их по нужным проектам. Это полностью избавило команду от ручной сортировки тысяч запросов и ускорило поиск нужной информации.
 
+Автоматизация аналитики LLM-рынка (LLM-as-a-Judge): Внедрил автономный n8n-пайплайн на базе паттерна "Battle Royale". Продвинутая нейросеть-судья оценивает сотни новых релизов (OpenRouter/SiliconFlow) и сравнивает их с заданным baseline-уровнем SOTA-моделей. Итоговые push-уведомления приходят только в случае появления революционной модели, что на 100% избавило от информационного шума с рынка ИИ.
 ⚙️ DevOps, SRE & Disaster Recovery
 
 Обеспечение непрерывности бизнеса и защита данных (Disaster Recovery): Выстроил гибридную архитектуру бэкапов для всего кластера (PostgreSQL, Qdrant, MinIO) и успешно провел боевые учения по восстановлению. На практике доказал возможность хирургического восстановления баз данных за 30 секунд (RTO) без влияния на продакшен-трафик.
@@ -71,6 +80,7 @@
 
 Оптимизация CI/CD и снижение инфраструктурных издержек: Заменил ресурсоемкую и нестабильную систему сборки для macOS на легковесное zero-infrastructure решение (адаптация под Orion Browser). Это значительно сократило время выкатки обновлений браузерного расширения и снизило затраты на поддержку серверов.
 
+Инженерия отказоустойчивости Front-end и обход CSP: Расследовал "мертвые" зависания UI браузера WebKit (Orion Mobile/Mac), вызванные необработанными фоновыми промисами без таймаутов браузерного Service Worker'а, внедрив жесткий паттерн Fail Fast (`AbortSignal.timeout`). Успешно обошел рестриктивные CSP-политики Google-доменов через in-memory инъекцию локальных скриптов расширения, вернув 100% захват данных в полностью рабочее состояние на macOS.
 🖥️ Fullstack & User Experience
 
 Разработка единого центра управления (SPA Dashboard): Спроектировал production-grade интерфейс (vanilla JS + FastAPI + asyncpg) для управления AI-взаимодействиями и медиаконтентом. Быстрый UI без лишних зависимостей и интеграция с объектным хранилищем MinIO радикально ускорили работу дизайн-команды с накопленными артефактами.

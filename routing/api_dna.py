@@ -506,7 +506,8 @@ async def route_and_capture(data: RouteRequest):
         raise HTTPException(503, "Database not connected")
 
     # 1. Запускаем Semantic Router
-    detected_slug = await route_text_capture(data.prompt_text, db)
+    from router import call_with_key_rotation
+    detected_slug = await route_text_capture(data.prompt_text, db, call_with_key_rotation)
 
     if detected_slug == "UNKNOWN":
         logger.info(f"[ROUTE] UNKNOWN — Extension поставит в очередь")

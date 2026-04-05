@@ -141,6 +141,7 @@ async function sendViaSemanticRoute(capturedData, config) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(routePayload),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) {
@@ -453,6 +454,7 @@ async function sendToProjectDNA(capturedData) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(apiPayload),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {
@@ -508,6 +510,7 @@ async function fetchProjects() {
   try {
     const response = await fetch(`${apiUrl}/v1/dna/projects`, {
       method: 'GET',
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) {

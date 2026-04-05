@@ -35,7 +35,16 @@
 - Развернутые описания (не "fix stuff")
 - Каждый коммит = демонстрация компетенции
 
+### ⚠️ Правило: Self-hosted сервисы с мобильным клиентом
+> **Перед установкой любого self-hosted сервиса с мобильным клиентом —  
+> первый вопрос: "Как работает вне домашней сети?"**
+- `192.168.x.x` и `172.25.x.x` — недоступны по мобильной сети
+- Варианты: ntfy.sh relay, Cloudflare Tunnel, Tailscale (⚠️ батарея + риск)
+- ntfy: телефон подписывается на `ntfy.sh`, а не на локальный IP
+- Ref: `docs/learning/ntfy_push_notifications.md`
+
 ---
+
 
 ## 🏗️ ПРОЕКТ: AI Design Infrastructure Lab (Project DNA)
 
@@ -54,7 +63,7 @@ Enterprise-система управления ИИ-пайплайнами дл�
 - **Layer 2:** RAG Engine — Custom (в роутере) + Safari Extension
 - **Layer 3:** Storage — PostgreSQL + Qdrant + MinIO
 - **Layer 4:** LLM Gateway — Custom Python Router (FastAPI + LiteLLM)
-- **Layer 5:** Observability — Prometheus + Grafana (планируется)
+- **Layer 5:** Observability — Telegraf → Prometheus → Grafana ✅ (задеплоено 29.03.2026)
 
 ### Инфраструктура:
 - **Сервер:** Xeon E5-2680 v3, 64GB RAM, ESXi 7.0
@@ -89,8 +98,10 @@ Enterprise-система управления ИИ-пайплайнами дл�
 | Kokoro (Fast) | EN | ★7/10 | ✅ |
 
 ### LLM Router:
-- Circuit Breaker: Gemini → DeepSeek → Qwen → GLM
-- Key Rotation (3 ключа Gemini)
+- Circuit Breaker: gemini-flash-lite → gemini-2.0 → qwen3.6-plus (OpenRouter) → qwen3-coder (OpenRouter 480B) → DeepSeek-V3 → qwen-max (SiliconFlow 480B) → GLM-5
+- Semantic Router: `openrouter/qwen/qwen3.6-plus:free` (бесплатный, Gemini-квота не тратится)
+- Key Rotation (6 ключей Gemini + OPENROUTER_API_KEY, через `env_file: .env`)
+- 🆕 **G13-llm-radar (бэклог):** n8n workflow — ежедневный мониторинг новых free LLM на OpenRouter/SiliconFlow/Groq → Telegram. ~2-3ч.
 - Audiobook Pipeline + ffmpeg speed control
 
 ---
@@ -103,7 +114,8 @@ Enterprise-система управления ИИ-пайплайнами дл�
 - Предложения по улучшению приветствуются. Работай как незашоренный умудренный опытом программист-профессионал и не бойся предлагать свои решения.
 - **ВСЕГДА подробно объяснять CLI-команды:** каждый флаг, ключ, pipe, что делает каждая часть команды. Пользователь набивает руку для MLOps — не просто копипастит, а учится понимать.
 - **ВСЕГДА все объяснения подробно документируем в `~/ai-design-workspace/docs/learning/` для дальнейшего изучения и прокачки навыков пользователя. Роль делает это сама, не спрашивая разрешения, автоматически через `write_to_file`.
-
+- **Повторно!! Ибо теряется!
+Каждый содержательный диалог сопровождай учебным блоком с объяснением использованного материала, который сохраняется в docs/learning/
 ---
 
-*Последнее обновление: 2026-03-12*
+*Последнее обновление: 2026-04-03*

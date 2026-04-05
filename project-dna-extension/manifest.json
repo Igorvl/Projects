@@ -27,8 +27,7 @@
       ],
       "js": [
         "src/content/content-script.js"
-      ],
-      "run_at": "document_start"
+      ]
     }
   ],
   "action": {

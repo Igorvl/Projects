@@ -82,34 +82,55 @@
    * which allows the page to load it. chrome.runtime.getURL converts
    * a relative extension path to a full chrome-extension:// URL.
    */
-  function injectPageScript() {
-    const script = document.createElement('script');
+  async function injectPageScript() {
+    try {
+      const url = chrome.runtime.getURL('src/content/page-script.js');
+      console.log('[Project DNA] 🧬 Attempting to inject:', url);
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const code = await response.text();
+      
+      const script = document.createElement('script');
+      
+      // Try inline text injection (works around some Safari CSP restrictions)
+      script.text = code;
+      
+      script.onload = function() {
+        console.log('[Project DNA] 🧬 Page interceptor injected successfully via text');
+        this.remove();
+      };
+      
+      script.onerror = function() {
+        console.error('[Project DNA] ❌ Failed to inject via text, trying Blob...');
+        
+        // Fallback: Blob URL
+        const blob = new Blob([code], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        const fbScript = document.createElement('script');
+        fbScript.src = blobUrl;
+        fbScript.onload = () => {
+          console.log('[Project DNA] 🧬 Page interceptor injected via Blob');
+          fbScript.remove();
+          URL.revokeObjectURL(blobUrl);
+        };
+        fbScript.onerror = () => {
+           console.error('[Project DNA] ❌ Failed to inject via Blob. CSP is completely blocking it.');
+        };
+        (document.head || document.documentElement).appendChild(fbScript);
+        this.remove();
+      };
 
-    // chrome.runtime.getURL converts "src/content/page-script.js"
-    // to something like "chrome-extension://abc123/src/content/page-script.js"
-    // We add a timestamp query parameter to bypass browser caching of the injected script!
-    script.src = chrome.runtime.getURL('src/content/page-script.js?t=' + Date.now());
+      (document.head || document.documentElement).appendChild(script);
+      
+      // For inline scripts, onload might not fire. Just assume success if no error.
+      setTimeout(() => {
+        if (script.parentNode) script.remove();
+      }, 100);
 
-    // Execute as soon as possible
-    script.async = false;
-
-    // Once the script has loaded and executed, remove the tag
-    // (the code is already running in memory — the tag is no longer needed)
-    script.onload = function () {
-      this.remove();
-      console.log('[Project DNA] 🧬 Page interceptor injected successfully');
-    };
-
-    // Error handling: if injection fails, log it
-    script.onerror = function () {
-      console.error('[Project DNA] ❌ Failed to inject page interceptor');
-      this.remove();
-    };
-
-    // Insert at the very top of <head> or <html> to run before page scripts
-    // (document.head || document.documentElement) handles edge cases
-    // where <head> might not exist yet
-    (document.head || document.documentElement).prepend(script);
+    } catch (err) {
+      console.error('[Project DNA] ❌ Critical failure loading page-script:', err);
+    }
   }
 
   // =========================================================================
