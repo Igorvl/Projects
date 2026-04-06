@@ -1,37 +1,60 @@
 # Настройка "Pro" профиля GitHub (3D Contrib & Metrics)
 
 ## Идея
-Для усиления визуального впечатления от GitHub-профиля (особенно для MLOps / DevOps резюме), мы сделаем README, который будет выглядеть высокотехнологично и динамически обновляться. 
-Референс: Изометрический 3D-график контрибуций (как кубики) и радарная диаграмма навыков/активности.
+Для усиления визуального впечатления от GitHub-профиля (особенно для MLOps / DevOps резюме), мы оформили высокотехнологичный `README.md`, который динамически обновляется. Главная цель — показать хардкорные навыки (Python, Shell, Docker), скрыть "простои" в коммитах и отфильтровать фронтенд-языки (HTML, CSS), чтобы профиль выглядел строго и профессионально.
 
-## Основные инструменты (GitHub Actions)
+## Окончательное решение: lowlighter/metrics (Self-Hosted Action)
 
-Для достижения такого эффекта используются специальные open-source экшены, которые по расписанию (через cron) генерируют крутые SVG/PNG картинки и пушат их прямо в репозиторий `твой-ник/твой-ник`.
+В процессе настройки мы столкнулись с проблемами:
+1. **API `github-readme-stats` на Vercel** (изначальный вариант) оказался ненадежным — публичные инстансы регулярно падают от сбоев и Rate Limits (ошибка `503 DEPLOYMENT_PAUSED`).
+2. **Экшен `yoshi389111/github-profile-3d-contrib`** рисует красивый город, но **строго за 365 дней**. Если были большие перерывы в коммитах, график выглядит пустым. Ошибка 128 (отсутствие прав `contents: write`) и Warnings (Node 20) также требовали правок.
+3. **Кэширование SVG в GitHub (Camo)**: любые прямые ссылки `raw.githubusercontent.com` кэшируются. Решение: использовать **относительные пути** в markdown (`<img src="github-metrics.svg">`).
+4. **Проблема со шрифтами SVG**: Браузеры помещают SVG внутри `<img>` в песочницу, не давая доступ к системным веб-шрифтам. Чтобы SVG-метрики выглядели "родными" для GitHub, мы прописали жесткий стек шрифтов в конфигурации.
 
-### 1. 3D Isometric Contribution Graph
-**Action:** `yoshi389111/github-profile-3d-contrib`
-- **Что делает:** Рисует твою историю коммитов в виде крутого 3D-города (изометрические башенки).
-- **Плюсы:** Выглядит невероятно стильно (tech/cyberpunk vibe). Легко настраивается через темы.
-- **Как это работает:** Ты создаешь `.github/workflows/profile-3d.yml`, который раз в сутки вызывает этот экшен. Он генерирует папку `profile-3d-contrib` с разными темами, а ты просто вставляешь нужную картинку в `README.md`:
-  `![3D Isometric Graph](./profile-3d-contrib/profile-night-view.svg)`
+### Идеальный конфиг (metrics.yml)
+Мы остановились на едином экшене `lowlighter/metrics`, который решает все проблемы одним ударом:
+- Отключили громоздкий модуль активности (`base: ""`).
+- Отрисовали изометрический 3D-календарь, но **строго на полгода** (`plugin_isocalendar_duration: half-year`), чтобы скрыть неактивные периоды.
+- Включили парсинг языков (`plugin_languages`), но жестко отфильтровали мусор (`plugin_languages_ignored: html, css, javascript, jupyter notebook, svg`).
+- Добавили системные шрифты GitHub.
 
-### 2. Радар Активности и Метрики (Metrics & Radar Chart)
-**Action:** `lowlighter/metrics`
-- **Что делает:** Это "комбайн" для метрик. Умеет вообще всё: календарь коммитов, языки в виде круговой диаграммы (Pie Chart), WakaTime интеграцию, Spotify статус и ту самую радарную диаграмму (Radar chart), показывающую баланс `Commits / PRs / Issues / Reviews / Repo`.
-- **Плагины внутри:** 
-  - `plugin_isocalendar` (получится похожий 3D график, если не хочется юзать первый вариант).
-  - `plugin_habits` (содержит графики активности).
-  - `plugin_languages` (Pie chart твоих языков: Python, TypeScript, и т.д.).
-- **Плюсы:** Создает SVG с идеальным рендерингом для темной темы и поддержкой анимаций.
+```yaml
+name: Metrics
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 
-## План внедрения
-1. Создать "специальный" репозиторий: имя репозитория должно В ТОЧНОСТИ совпадать с твоим никнеймом (например, `igorvl/igorvl`).
-2. Включить на нем галочку "Public" и инициализировать с `README.md`.
-3. Создать в профиле Personal Access Token (PAT) с правами на `repo` и `read:user`. Добавить его в Secrets этого репозитория как `GH_TOKEN`.
-4. Настроить GitHub Workflow (`.yml` файлы), которые будут запускаться ночью (например, `0 0 * * *`) и рендерить новые графики.
-5. Заверстать `README.md` (шапка с приветствием, красивые Badges для стека, и ниже подтянутые SVG-картинки).
+jobs:
+  github-metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: lowlighter/metrics@latest
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          user: ${{ github.repository_owner }}
+          template: classic
+          base: ""
+          config_timezone: Europe/Moscow
+          config_font: "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif"
+          
+          # Круговая диаграмма языков с фильтром
+          plugin_languages: yes
+          plugin_languages_ignored: html, css, javascript, jupyter notebook, svg
+          plugin_languages_limit: 4
+          
+          # 3D "Город" на полгода
+          plugin_isocalendar: yes
+          plugin_isocalendar_duration: half-year
+```
+
+## Интеграция в профиль
+1. Файл сохраняется как `.github/workflows/metrics.yml`.
+2. В самом `README.md` вставляется строка с относительным путем (для обхода CDN кэша):
+   `<img src="github-metrics.svg" alt="Metrics" width="800">`
 
 ## Дополнительно для дизайна:
 - Иконки и бейджи: использовать `shields.io` (например, `![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)`).
-- Эмодзи: 🚀 🧬 🏗️ 📊 🧠
-- Цветовые акценты: подобрать темную неоновую схему, соответствующую Project DNA (например, фиолетово-синий градиент/neon-cyan).
+- Эмодзи: 🚀 🛠️ 📫

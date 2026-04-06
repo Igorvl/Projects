@@ -26,11 +26,14 @@
 
 - ✅ **G12-slim ЗАКРЫТ:** Создан `Dockerfile.router-mirror` без тяжелых TTS-кэшей и PyTorch. Размер контейнера уменьшен с 13 ГБ до 1.6 ГБ (в пуле — меньше 400 МБ).
 - ✅ **G13-llm-radar ЗАКРЫТ:** Настроен n8n пайплайн автообнаружения новых бесплатных моделей в OpenRouter с интеллектуальным идемпотентным кэшированием (уведомления пушатся в ntfy).
-- **MinIO:** Удалить битые файлы из папки `test-project/` (Ghost-файлы).
-- **Frontend Refactoring:** Вынести копипасту логики `uploadImages()` в shared-функцию (v3.0.0).
-- **G11:** Antigravity Context Integration.
-- **Prometheus + Grafana docs:** Создать `docs/learning/prometheus_grafana.md` (planned).
-- **Loki + Promtail** централизованный сбор логов (planned).
+- ✅ **Browser Extension Fixes ЗАКРЫТ:** Выявлены зависания промисов в WebKit, установлен жесткий таймаут 5с на Service Worker. Реализован обход строгих CSP ограничений (In-Memory Injection) для захвата из Google Gemini.
+- ✅ **GitHub Profile Customization ЗАКРЫТ:** Создана автоматическая MLOps витрина (динамический SVG) с помощью GitHub Actions `lowlighter/metrics` (IsoCalendar, PieChart с фильтрацией языков, обход Camo-кэширования).
+- **В Бэклоге:** 
+  - Настройка автоматического бэкапирования Docker-вольюма `n8n_data` (с ключами шифрования и базой SQLite) на NAS "Warm Standby".
+  - Создать `docs/learning/prometheus_grafana.md` и настроить дашборды.
+  - **G11:** Antigravity Context Integration.
+  - Удалить битые файлы из папки `test-project/` (Ghost-файлы) в MinIO.
+  - Вынести логику `uploadImages()` в shared-функцию на фронтенде.
 
 ## 📐 4. Гайдлайны и Ключевые Решения
 
