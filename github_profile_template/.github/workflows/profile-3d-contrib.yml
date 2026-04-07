@@ -2,26 +2,32 @@ name: GitHub-Profile-3D-Contrib
 
 on:
   schedule:
-    # Запускаем каждый день ровно в полночь
+    # Запускаем каждый день в 00:00 UTC (03:00 MSK)
     - cron: "0 0 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     name: generate-github-profile-3d-contrib
     steps:
-      - uses: actions/checkout@v3
-      
-      - uses: yoshi389111/github-profile-3d-contrib@0.7.1
+      - uses: actions/checkout@v4
+
+      - uses: yoshi389111/github-profile-3d-contrib@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
-          
+          MAX_REPOS: 100
+
       - name: Commit & Push
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add -A .
-          git commit -m "chore: auto-generate 3d contrib graph"
-          git push
+          # Коммитим только если есть изменения (защита от пустого diff)
+          if git commit -m "chore: auto-generate 3d contrib graph"; then
+            git push
+          fi

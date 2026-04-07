@@ -88,5 +88,14 @@ docs/learning/ntfy_push_notifications.md  ← полная инструкция 
 docs/RESUME_BULLETS.md           ← резюме-достижения
 ```
 
+### ⏳ Current Working Status:
+- **✅ LLM Gateway Fallback Fix (04-06-2026):** Resolved a critical issue where direct queries to 429-prone models on OpenRouter (e.g. `llama-3.3-70b` and `hermes-3`) caused 502 Bad Gateway crashes. The solution was ensuring the configuration file `antigravity.json` has `fallbacks` arrays defined for ALL end-layer models so the circuit breaker can gracefully switch traffic.
+- **⏸️ GitHub Profile MLOps:** The `lowlighter/metrics` GitHub Action SVG is live and visually matches dark mode styling, but accurate font scaling inside `<foreignObject>` tags within `<img>` is unpredictable on GitHub. The task is documented (`.agent/tasks/github_metrics_font_scaling.md`) and currently paused.
+- The backend features like LLM routing, key rotation, database sync for disaster recovery (`ntfy.sh`, Qdrant, MinIO) are fully functional.
+
+### ⏱ Next Steps for the AI Assistant (Claude Sonnet 4.6):
+1. **Move on to New Priorities:** The user will define the next primary target. Possible targets from the backlog include defining automatic backup of `n8n_data` to NAS, Prometheus/Grafana dashboard setups, or Antigravity context tracking.
+2. **Review Open Tasks:** Check `.agent/tasks/` if direction is lacking.
+
 ---
-*Ожидаю готовности. Прочитай контекст, PRIVATE_CONTEXT.md, MEMORY.md и ответь одним предложением подтверждая понимание: какой статус G12-alerts и какая ближайшая нерешённая задача.*
+*Ожидаю готовности. Прочитай контекст, PRIVATE_CONTEXT.md, MEMORY.md и ответь одним предложением подтверждая понимание: какой статус GitHub Profile MLOps и почему падал роутер на Llama модели.*

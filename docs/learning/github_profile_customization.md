@@ -1,60 +1,132 @@
-# Настройка "Pro" профиля GitHub (3D Contrib & Metrics)
+# Настройка «Pro» профиля GitHub (3D Contrib & Metrics)
 
 ## Идея
-Для усиления визуального впечатления от GitHub-профиля (особенно для MLOps / DevOps резюме), мы оформили высокотехнологичный `README.md`, который динамически обновляется. Главная цель — показать хардкорные навыки (Python, Shell, Docker), скрыть "простои" в коммитах и отфильтровать фронтенд-языки (HTML, CSS), чтобы профиль выглядел строго и профессионально.
+Для усиления визуального впечатления от GitHub-профиля (особенно для MLOps / DevOps резюме), мы оформили высокотехнологичный `README.md`, который динамически обновляется. Главная цель — показать хардкорные навыки (Python, Shell, Docker), скрыть «простои» в коммитах и отфильтровать фронтенд-языки (HTML, CSS), чтобы профиль выглядел строго и профессионально.
 
-## Окончательное решение: lowlighter/metrics (Self-Hosted Action)
+---
 
-В процессе настройки мы столкнулись с проблемами:
-1. **API `github-readme-stats` на Vercel** (изначальный вариант) оказался ненадежным — публичные инстансы регулярно падают от сбоев и Rate Limits (ошибка `503 DEPLOYMENT_PAUSED`).
-2. **Экшен `yoshi389111/github-profile-3d-contrib`** рисует красивый город, но **строго за 365 дней**. Если были большие перерывы в коммитах, график выглядит пустым. Ошибка 128 (отсутствие прав `contents: write`) и Warnings (Node 20) также требовали правок.
-3. **Кэширование SVG в GitHub (Camo)**: любые прямые ссылки `raw.githubusercontent.com` кэшируются. Решение: использовать **относительные пути** в markdown (`<img src="github-metrics.svg">`).
-4. **Проблема со шрифтами SVG**: Браузеры помещают SVG внутри `<img>` в песочницу, не давая доступ к системным веб-шрифтам. Чтобы SVG-метрики выглядели "родными" для GitHub, мы прописали жесткий стек шрифтов в конфигурации.
+## Финальная архитектура (апрель 2026)
 
-### Идеальный конфиг (metrics.yml)
-Мы остановились на едином экшене `lowlighter/metrics`, который решает все проблемы одним ударом:
-- Отключили громоздкий модуль активности (`base: ""`).
-- Отрисовали изометрический 3D-календарь, но **строго на полгода** (`plugin_isocalendar_duration: half-year`), чтобы скрыть неактивные периоды.
-- Включили парсинг языков (`plugin_languages`), но жестко отфильтровали мусор (`plugin_languages_ignored: html, css, javascript, jupyter notebook, svg`).
-- Добавили системные шрифты GitHub.
+### Принятые решения:
+1. **Главный SVG — `lowlighter/metrics`** (`github-metrics.svg`), тёмный фон через `extras_css`.
+2. **`yoshi389111/github-profile-3d-contrib`** продолжает генерировать SVGы в папку `profile-3d-contrib/` (cron), но в README не отображается — готов к использованию.
+3. **Относительный путь в README** — `./github-metrics.svg` вместо `raw.githubusercontent.com/...` — обязательно, иначе Camo CDN кешируется до 24ч.
+4. **Почему 3D contrib не может показывать 6 месяцев**: проверено по исходному коду `src/github-graphql.ts` — action использует GitHub GraphQL `contributionsCollection` без параметров (последние 52 недели). `YEAR` переводит на конкретный январь-декабрь, дробного диапазона нет. Чтобы сделать 6 месяцев — нужен форк action.
 
-```yaml
-name: Metrics
-on:
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
+---
 
-jobs:
-  github-metrics:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: lowlighter/metrics@latest
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-          user: ${{ github.repository_owner }}
-          template: classic
-          base: ""
-          config_timezone: Europe/Moscow
-          config_font: "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif"
-          
-          # Круговая диаграмма языков с фильтром
-          plugin_languages: yes
-          plugin_languages_ignored: html, css, javascript, jupyter notebook, svg
-          plugin_languages_limit: 4
-          
-          # 3D "Город" на полгода
-          plugin_isocalendar: yes
-          plugin_isocalendar_duration: half-year
+## Как работает (GitHub Actions flow)
+
+```
+GitHub Actions (cron 0 0 * * *) → yoshi389111/github-profile-3d-contrib@latest
+  ↳ Читает contribution data через API (GITHUB_TOKEN)
+  ↳ Генерирует 9 SVG-файлов с разными темами в папку profile-3d-contrib/
+  ↳ git commit + push → README показывает конкретный файл по относительному пути
 ```
 
-## Интеграция в профиль
-1. Файл сохраняется как `.github/workflows/metrics.yml`.
-2. В самом `README.md` вставляется строка с относительным путем (для обхода CDN кэша):
-   `<img src="github-metrics.svg" alt="Metrics" width="800">`
+### Генерируемые SVG-темы:
+| Файл | Описание |
+|------|----------|
+| `profile-green.svg` | Классическая зелёная |
+| `profile-green-animate.svg` | Зелёная с CSS-анимацией |
+| `profile-season.svg` | Сезонная (Северное полушарие) |
+| `profile-south-season.svg` | Сезонная (Южное полушарие) |
+| `profile-night-view.svg` | Ночная, синий градиент |
+| `profile-night-green.svg` | Ночная зелёная |
+| **`profile-night-rainbow.svg`** | **✅ Используем — радуга на тёмном фоне** |
+| `profile-gitblock.svg` | Git-блоки стиль |
+| `profile-customize.svg` | Кастомная (если указан `SETTING_JSON`) |
 
-## Дополнительно для дизайна:
-- Иконки и бейджи: использовать `shields.io` (например, `![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)`).
-- Эмодзи: 🚀 🛠️ 📫
+---
+
+## Конфигурация
+
+### `.github/workflows/profile-3d-contrib.yml`
+```yaml
+name: GitHub-Profile-3D-Contrib
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # Каждый день в 00:00 UTC = 03:00 MSK
+  workflow_dispatch:      # Ручной запуск из Actions UI
+
+permissions:
+  contents: write         # ОБЯЗАТЕЛЬНО: action делает git push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4  # v4 = Node 20, без Deprecation warnings
+
+      - uses: yoshi389111/github-profile-3d-contrib@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}      # PAT для private repos contributions
+          USERNAME: ${{ github.repository_owner }}   # Автоматически = "Igorvl"
+          MAX_REPOS: 100                              # Учитывает до 100 репозиториев
+
+      - name: Commit & Push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A .
+          # if-проверка: защита от пустого commit (без изменений) → не фейлит workflow
+          if git commit -m "chore: auto-generate 3d contrib graph"; then
+            git push
+          fi
+```
+
+### В `README.md`:
+```markdown
+<div align="center">
+
+<!-- Relative path: bypass GitHub Camo CDN cache -->
+<img src="./profile-3d-contrib/profile-night-rainbow.svg" alt="3D Contribution Calendar" width="800">
+
+</div>
+```
+
+> ⚠️ **Никогда не используй** `https://raw.githubusercontent.com/...` для SVG в профиле:
+> - GitHub кеширует через Camo CDN  
+> - Изображение не обновляется часами/днями  
+> - Весь смысл «динамического» SVG теряется
+
+---
+
+## О `lowlighter/metrics` (почему убрали)
+
+### Проблемы:
+1. **Белый фон SVG (#ffffff)** — не совпадает с GitHub dark mode (`#0d1117`)
+2. **Размер шрифта** — SVG внутри `<img>` рендерится в изоляции, шрифт не наследует 16px GitHub body
+3. **Архивирован** — автор (lowlighter) заморозил проект в 2024, Node warnings растут
+4. **Нет встроенного dark-mode пресета** — только `extras_css` хак
+
+### extras_css фикс (если вдруг захочешь вернуть):
+```yaml
+extras_css: |
+  .bg { fill: #0d1117 !important; }
+  svg { background-color: #0d1117 !important; }
+  text, tspan { fill: #e6edf3 !important; }
+  .section-title > text { fill: #58a6ff !important; }
+```
+Workflow продолжает генерировать `github-metrics.svg` в репозиторий (cron активен).
+Чтобы вернуть — добавь в README:
+```markdown
+<img src="./github-metrics.svg" alt="Metrics" width="800">
+```
+
+---
+
+## Проблема с Camo CDN — подробнее
+
+GitHub проксирует все внешние изображения через свой CDN (Camo) для безопасности.
+Когда ты пишешь `https://raw.githubusercontent.com/Igorvl/.../file.svg` в README:
+1. GitHub видит внешнюю ссылку → проксирует через Camo
+2. Camo агрессивно кеширует → TTL может быть до 24+ часов
+3. Даже если action перегенерировал SVG → пользователи видят старую версию
+
+**Решение**: относительный путь `./file.svg` — GitHub рендерит его напрямую из репозитория, без Camo. Изображение обновляется сразу после коммита action.
+
+---
+
+*Последнее обновление: 2026-04-06*

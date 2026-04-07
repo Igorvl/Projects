@@ -131,6 +131,32 @@ is_rate_limit = (
     "MidStreamFallbackError" in err_str  # ← LiteLLM оборачивает 429 в этот тип
 )
 ```
+## Проблема 6: 429 RateLimitError (502 Bad Gateway) для конечных моделей, без fallback-вектора
+
+**Симптом:** При прямом запросе к бесплатным моделям (например, `openrouter/meta-llama/llama-3.3-70b-instruct:free` или `hermes-3-llama-3.1-405b` на OpenRouter) периодически выпадает ошибка `429 RateLimitError` от вендора, которая приводит к падению роутера (клиенту отдается 502 Bad Gateway) даже при наличии отказоустойчивой конструкции.
+
+**Root Cause — агрессивные лимиты бесплатных Tier'ов и отсутствие fallback-хвоста:**
+OpenRouter (например, через провайдера Venice) часто дропает запросы на большие модели по квотам. Так как модель (напр. `soft-skills-llama-3.3-70b`) вызывалась как конечная инстанция, и в файле конфигурации `antigravity.json` для нее **не было определено** свойств `"fallbacks": [...]`, контур защиты Circuit Breaker не имел пути для дальнейшего маневра, исчерпав все (единственную доступную) попытки.
+
+**Решение — Замыкание fallback-цепей:**
+Абсолютно каждый узел конфигурационного файла `antigravity.json` должен обладать планом "Б".
+
+```json
+        {
+            "model_name": "soft-skills-llama-3.3-70b",
+            "litellm_params": {
+                "model": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+                "api_base": "https://openrouter.ai/api/v1",
+                "api_key_env": "OPENROUTER_API_KEY",
+                "fallbacks": [
+                    "qwen-480b-coder",
+                    "deepseek-v3.2",
+                    "GLM_5"
+                ]
+            }
+        }
+```
+После добавления массива `fallbacks` ротация начнет работать корректно и автоматически, перенаправляя "тяжелые" неудачные вызовы на стабильные запасные мощности. Использование LiteLLM гарантирует динамичный reload конфигурации без необходимости пересборки контейнера.
 
 ## Ценность для резюме (MLOps / DevOps)
 - **High Availability (HA):** Разработка Zero-Downtime шлюзов для AI API.

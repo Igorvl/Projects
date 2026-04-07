@@ -17,19 +17,89 @@ jobs:
           template: classic
           base: ""
           config_timezone: Europe/Moscow
-          
-          # 3D Изометрический календарь
+          config_animations: no
+
+          # ================================================================
+          # Dark Barry-style theme via extras_css
+          #
+          # Template uses <foreignObject> + HTML, so standard CSS targets work.
+          # Isocalendar SVG uses hardcoded fill attributes (e.g. fill="#ebedf0")
+          # which can be overridden with CSS attribute selectors + !important.
+          # ================================================================
+          extras_css: |
+            /* --- Canvas background (#0d1117 = GitHub dark mode) --- */
+            .items-wrapper {
+              background-color: #0d1117;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji" !important;
+              font-size: 12px !important;
+            }
+
+            /* --- Text: base color --- */
+            svg {
+              color: #c9d1d9;
+            }
+
+            /* --- Section headers: GitHub blue accent (Barry-style) --- */
+            h1, h2, h3 {
+              color: #58a6ff;
+            }
+            h2 { 
+              font-size: 13px !important; 
+              margin-top: 4px !important;
+            }
+            h3 { 
+              font-size: 12px !important; 
+              font-weight: 500 !important;
+            }
+
+            /* --- Muted / secondary text --- */
+            footer,
+            .footnote,
+            .h-details,
+            .field.language.details small,
+            .chart-bars .entry {
+              color: #8b949e;
+            }
+
+            /* --- Plugin icons (octicons) --- */
+            .field > svg {
+              fill: #8b949e;
+            }
+
+            /* ============================================================
+               Isocalendar & Language bar dark mode fixes
+            ============================================================ */
+
+            /* Empty 3D grid cells: use #2d333b for contrast against #0d1117 */
+            [fill="#ebedf0"] { fill: #2d333b !important; }
+
+            /* Contribution levels (Keep them green like GitHub dark format) */
+            [fill="#9be9a8"] { fill: #0e4429 !important; }
+            [fill="#40c463"] { fill: #006d32 !important; }
+            [fill="#30a14e"] { fill: #26a641 !important; }
+            [fill="#216e39"] { fill: #39d353 !important; }
+
+            /* Language bar background */
+            rect[fill="white"] { fill: #2d333b !important; }
+
+            /* Language bar empty space progress (d1d5da -> github dark border) */
+            rect[fill="#d1d5da"] { fill: #161b22 !important; }
+
+          # -----------------------------------------------
+          # 6-month isometric 3D calendar
+          # -----------------------------------------------
           plugin_isocalendar: yes
-          plugin_isocalendar_duration: full-year
-          
-          # Круговая диаграмма языков (Pie Chart)
+          plugin_isocalendar_duration: half-year
+
+          # -----------------------------------------------
+          # Languages — top 4 (Python, Shell, PHP, PLpgSQL)
+          # -----------------------------------------------
           plugin_languages: yes
-          plugin_languages_ignored: html, css
+          plugin_languages_ignored: html, css, javascript, jupyter notebook, svg
           plugin_languages_limit: 4
-          
-          # Радарная диаграмма активности
-          plugin_habits: yes
-          plugin_habits_from: 200
-          plugin_habits_days: 14
-          plugin_habits_facts: no
-          plugin_habits_charts: yes
+          # Override default dark colors with bright neon equivalents:
+          plugin_languages_colors: "Python:#58a6ff, Shell:#39d353, PHP:#a371f7, PLpgSQL:#e3b341"
+
+          # plugin_habits removed — causes "Unexpected error"
+          # due to insufficient recent events for analysis.
+          # Re-enable once there's more GitHub activity.

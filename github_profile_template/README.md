@@ -14,11 +14,12 @@ I specialize in architecting high-load systems and deploying localized AI infras
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Igorvl/Igorvl/main/github-metrics.svg" alt="Metrics" width="800">
-<br>
-<img src="https://raw.githubusercontent.com/Igorvl/Igorvl/main/profile-3d-contrib/profile-night-view.svg" alt="3D Profile" width="800">
+<!-- Primary: lowlighter/metrics — IsoCalendar (6 months) + Languages + Habits -->
+<!-- Dark background via extras_css, relative path bypasses Camo CDN cache -->
+<img src="./github-metrics.svg?v=3" alt="GitHub Metrics" width="800">
 
 </div>
+
 
 ---
 

@@ -99,10 +99,16 @@ Enterprise-система управления ИИ-пайплайнами дл�
 
 ### LLM Router:
 - Circuit Breaker: gemini-flash-lite → gemini-2.0 → qwen3.6-plus (OpenRouter) → qwen3-coder (OpenRouter 480B) → DeepSeek-V3 → qwen-max (SiliconFlow 480B) → GLM-5
+- 🆕 **OpenRouter Rate Limits & 502 Fix**: Замыкание fallback-векторов (`fallbacks: [...]`) обязательно для всех базовых моделей `antigravity.json` (например, бесплатные `llama-3.3-70b`, `hermes-3`). Иначе `RateLimitError` (429) ломает весь шлюз без шанса спастись (502 Bad Gateway).
 - Semantic Router: `openrouter/qwen/qwen3.6-plus:free` (бесплатный, Gemini-квота не тратится)
 - Key Rotation (6 ключей Gemini + OPENROUTER_API_KEY, через `env_file: .env`)
 - 🆕 **G13-llm-radar (бэклог):** n8n workflow — ежедневный мониторинг новых free LLM на OpenRouter/SiliconFlow/Groq → Telegram. ~2-3ч.
 - Audiobook Pipeline + ffmpeg speed control
+
+### GitHub Profile MLOps Showcase (Status):
+- Интегрирован `lowlighter/metrics` Action в `Igorvl/Igorvl`.
+- Внедрен обход Camo-кэша через `?v=X` cache-buster и dark mode CSS.
+- **Paused:** Отложена задача со шрифтами в SVG `<foreignObject>`, ожидается отдельного исследования (см. `.agent/tasks/github_metrics_font_scaling.md`).
 
 ---
 
@@ -118,4 +124,4 @@ Enterprise-система управления ИИ-пайплайнами дл�
 Каждый содержательный диалог сопровождай учебным блоком с объяснением использованного материала, который сохраняется в docs/learning/
 ---
 
-*Последнее обновление: 2026-04-03*
+*Последнее обновление: 2026-04-06*
