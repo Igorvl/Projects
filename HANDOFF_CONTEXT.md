@@ -4,13 +4,14 @@
 
 ---
 
-## 📡 1. Snapshot состояния (Где мы сейчас, 2026-04-04)
+## 📡 1. Snapshot состояния (Где мы сейчас, 2026-04-11)
 
 - **✅ G12 ЗАКРЫТ:** Warm Standby Mirror на NAS RS4021xs+ (`172.25.9.147`) работает.
 - **✅ G12-next ЗАКРЫТ:** `scripts/sync_to_nas.sh` — cron `0 */2 * * *`. Синхронизирует: PostgreSQL (pg_dump gz) + Qdrant (HTTP snapshots) + MinIO (mc mirror, 31 MiB/s). Первый запуск успешен: 140K + 593M + 369M + 135MB → NAS.
 - ✅ **G12-alerts ЗАКРЫТ:** ntfy.sh push-уведомления работают. Grafana contact point настроен → уведомления приходят на телефон. Сырые JSON-алерты от Grafana переведены в человекочитаемый вид через n8n Webhook Bridge.
-- **✅ Semantic Router:** переключён на `openrouter/qwen/qwen3.6-plus:free`. Gemini-квота на классификацию не тратится.
-- **✅ Circuit Breaker v2:** 7 моделей в цепочке, двойное покрытие Qwen3 Coder 480B (OpenRouter + SiliconFlow).
+- **✅ Semantic Router:** переключён на `openrouter/openai/gpt-oss-120b:free` (qwen3.6-plus:free задепрекейтили 2026-04-10). Добавлен `ROUTING_FAILED_CACHE` (TTL 5 мин) — анти-спам для extension test-пакетов.
+- **✅ Agentic Interceptor Loop Fix:** `router.py` — вместо `raw_messages[:-2]` теперь находим первый picker в истории и вырезаем ВСЮ picker-историю. GLM больше не видит паттерн picker→"5"→picker.
+- **✅ Circuit Breaker v2:** 8 моделей. `qwen3.6-plus-openrouter` удалён (deprecated). `qwen-480b-coder` (SiliconFlow, Qwen3-Coder-480B-A35B, 1.4s) — работает.
 - **Текущая задача:** G12-slim — `Dockerfile.router-mirror` без TTS-моделей (13GB → ~800MB).
 - **Инфраструктура:** Ubuntu Primary (`172.25.9.33`) + NAS Mirror (`172.25.9.147`). Local Docker Registry на Ubuntu `:5000`.
 
@@ -80,7 +81,7 @@ Grafana CP UID: bfi0v1rcnao74c
 deploy/docker-compose.yml        ← основной стек + ntfy сервис
 deploy/.env                      ← все секреты (NTFY_TOPIC, NAS_*, GEMINI_*, и т.д.)
 deploy/antigravity.json          ← Circuit Breaker v2 (7 моделей), горячая перезагрузка
-routing/semantic_router.py       ← Semantic Router на Qwen3.6 (OpenRouter)
+routing/semantic_router.py       ← Semantic Router: gpt-oss-120b (OpenRouter free), ROUTING_FAILED_CACHE 5min TTL
 scripts/sync_to_nas.sh           ← cron 0 */2 * * * (pg+qdrant+minio → NAS)
 scripts/healthcheck_nas.sh       ← cron */30 * * * * (NAS mirror health)
 scripts/failover.sh              ← one-click failover на NAS mirror
@@ -91,6 +92,10 @@ docs/RESUME_BULLETS.md           ← резюме-достижения
 ### ⏳ Current Working Status:
 - **✅ LLM Gateway Fallback Fix (04-06-2026):** Resolved a critical issue where direct queries to 429-prone models on OpenRouter (e.g. `llama-3.3-70b` and `hermes-3`) caused 502 Bad Gateway crashes. The solution was ensuring the configuration file `antigravity.json` has `fallbacks` arrays defined for ALL end-layer models so the circuit breaker can gracefully switch traffic.
 - **⏸️ GitHub Profile MLOps:** The `lowlighter/metrics` GitHub Action SVG is live and visually matches dark mode styling, but accurate font scaling inside `<foreignObject>` tags within `<img>` is unpredictable on GitHub. The task is documented (`.agent/tasks/github_metrics_font_scaling.md`) and currently paused.
+- **✅ Agentic Interceptor Full Picker History Cleanup (04-11-2026):** Исправлен баг бесконечного пикер-лупа в `router.py`. Причина: `raw_messages[:-2]` удалял только последную пару picker+"цифра", но GLM видел накопленную историю (до 4+ пар) и воспроизводил паттерн. Фикс: находим `first_picker_idx` и обрезаем `raw_messages[:first_picker_idx]`.
+- **✅ Semantic Router Model Switch (04-11-2026):** `qwen/qwen3.6-plus:free` задепрекейтили, перешли на `openai/gpt-oss-120b:free` (отвечает за ~1.4s). Удален из `antigravity.json`: `qwen3.6-plus-openrouter`.
+- **✅ ROUTING_FAILED_CACHE Anti-Spam (04-11-2026):** `semantic_router.py` — добавлен `ROUTING_FAILED_CACHE` с TTL 5 мин. Тест-пакеты extension (`"Test failed: ...", "Test failed: Xray..."`) больше не спамят OpenRouter после первого провала. Устранила перегрузку uvicorn-воркеров и Connection refused.
+- **✅ Browser Extension CSP Fix (04-07-2026):** Fixed zero-capture bug on `gemini.google.com` in Orion browser. Root cause: Gemini updated CSP, blocking all dynamic `<script>` injection from `content-script.js` (both inline text and Blob URL methods). Fix: declared `page-script.js` directly in `manifest.json` with `"world": "MAIN"` — browser runtime bypasses CSP entirely. Bumped to v2.2.0. Also: 3x slowdown в Gemini = Orion content blocker blocking `play.google.com/log` telemetry → fix: add `gemini.google.com` to Orion exceptions.
 - The backend features like LLM routing, key rotation, database sync for disaster recovery (`ntfy.sh`, Qdrant, MinIO) are fully functional.
 
 ### ⏱ Next Steps for the AI Assistant (Claude Sonnet 4.6):

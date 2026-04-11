@@ -8,16 +8,20 @@
  * but CANNOT access the page's JavaScript variables (window.fetch, etc.)
  *
  * PURPOSE:
- * 1. Inject page-script.js into the page's own JavaScript context
- * 2. Listen for messages from page-script.js (via window.postMessage)
- * 3. Forward captured data to the service worker (via chrome.runtime.sendMessage)
+ * 1. Listen for messages from page-script.js (via window.postMessage)
+ * 2. Forward captured data to the service worker (via chrome.runtime.sendMessage)
+ *
+ * NOTE: page-script.js is now declared directly in manifest.json
+ * with "world": "MAIN" — the browser injects it into the page context,
+ * bypassing CSP restrictions (which broke dynamic DOM injection in April 2026
+ * when Gemini updated its Content-Security-Policy).
  *
  * DATA FLOW:
  * ┌─────────────────────────────────────────────────────────────────┐
  * │  Browser Tab (aistudio.google.com)                              │
  * │                                                                  │
- * │  ┌─── Page Context ───────────────────────────────────────────┐ │
- * │  │  page-script.js                                            │ │
+ * │  ┌─── Page Context (MAIN world) ─────────────────────────────┐ │
+ * │  │  page-script.js  [injected by manifest: world:MAIN]        │ │
  * │  │  → Intercepts fetch() calls to Gemini API                  │ │
  * │  │  → Posts data via: window.postMessage({type, payload}, '*')│ │
  * │  └────────────────────────────┬───────────────────────────────┘ │
@@ -35,14 +39,6 @@
  * │  → Processes captured data                                       │
  * │  → Sends to Project DNA API (POST /v1/dna/capture)              │
  * └──────────────────────────────────────────────────────────────────┘
- *
- * ISOLATED WORLD EXPLAINED:
- * Chrome/Safari run content scripts in a separate JavaScript "world"
- * from the page. Think of it as two people in the same room (DOM),
- * but each wearing noise-canceling headphones (isolated JS context).
- * They can both see and touch the furniture (DOM elements), but they
- * can't hear each other's conversations (JS variables/functions).
- * window.postMessage is like passing a written note between them.
  *
  * @see https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts
  */
@@ -63,75 +59,7 @@
   /** Expected origins for messages */
   const EXPECTED_ORIGINS = ['https://aistudio.google.com', 'https://gemini.google.com'];
 
-  // =========================================================================
-  // STEP 1: INJECT PAGE-SCRIPT INTO THE PAGE CONTEXT
-  // =========================================================================
-
-  /**
-   * Inject our page-script.js into the page's own JavaScript context.
-   *
-   * HOW IT WORKS:
-   * 1. We create a <script> element in the DOM
-   * 2. Set its `src` to our page-script.js file (via chrome.runtime.getURL)
-   * 3. The browser downloads and executes it in the PAGE's context
-   * 4. Once loaded, we remove the <script> tag (it's already executed)
-   *
-   * WHY chrome.runtime.getURL?
-   * Extension files are not accessible by default from the page.
-   * We declared page-script.js in manifest.json's "web_accessible_resources"
-   * which allows the page to load it. chrome.runtime.getURL converts
-   * a relative extension path to a full chrome-extension:// URL.
-   */
-  async function injectPageScript() {
-    try {
-      const url = chrome.runtime.getURL('src/content/page-script.js');
-      console.log('[Project DNA] 🧬 Attempting to inject:', url);
-      
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const code = await response.text();
-      
-      const script = document.createElement('script');
-      
-      // Try inline text injection (works around some Safari CSP restrictions)
-      script.text = code;
-      
-      script.onload = function() {
-        console.log('[Project DNA] 🧬 Page interceptor injected successfully via text');
-        this.remove();
-      };
-      
-      script.onerror = function() {
-        console.error('[Project DNA] ❌ Failed to inject via text, trying Blob...');
-        
-        // Fallback: Blob URL
-        const blob = new Blob([code], { type: 'application/javascript' });
-        const blobUrl = URL.createObjectURL(blob);
-        const fbScript = document.createElement('script');
-        fbScript.src = blobUrl;
-        fbScript.onload = () => {
-          console.log('[Project DNA] 🧬 Page interceptor injected via Blob');
-          fbScript.remove();
-          URL.revokeObjectURL(blobUrl);
-        };
-        fbScript.onerror = () => {
-           console.error('[Project DNA] ❌ Failed to inject via Blob. CSP is completely blocking it.');
-        };
-        (document.head || document.documentElement).appendChild(fbScript);
-        this.remove();
-      };
-
-      (document.head || document.documentElement).appendChild(script);
-      
-      // For inline scripts, onload might not fire. Just assume success if no error.
-      setTimeout(() => {
-        if (script.parentNode) script.remove();
-      }, 100);
-
-    } catch (err) {
-      console.error('[Project DNA] ❌ Critical failure loading page-script:', err);
-    }
-  }
+  // (page-script.js is injected by manifest.json with world:MAIN — no manual injection needed)
 
   // =========================================================================
   // STEP 2: LISTEN FOR MESSAGES FROM PAGE-SCRIPT
@@ -246,6 +174,12 @@
         });
         break;
 
+      case 'SHOW_PROJECT_PICKER':
+        // Semantic Router returned UNKNOWN — ask the user to pick a project
+        showProjectToast(message.captureId, message.projects, message.promptPreview);
+        sendResponse({ shown: true });
+        break;
+
       default:
         break;
     }
@@ -255,14 +189,84 @@
     return true;
   });
 
-  // =========================================================================
-  // INITIALIZATION
-  // =========================================================================
-
-  // Inject the page script
-  injectPageScript();
-
   // Notify that content script is loaded
   console.log('[Project DNA] 🧬 Content script loaded on:', window.location.href);
+  console.log('[Project DNA] 🧬 page-script.js injected via manifest world:MAIN — fetch interceptor active.');
+
+  // =========================================================================
+  // UI: PROJECT PICKER TOAST
+  // =========================================================================
+
+  function showProjectToast(captureId, projects, promptPreview) {
+    const existing = document.getElementById('dna-project-picker');
+    if (existing) existing.remove();
+
+    const AUTO_DISMISS_MS = 30000;
+    const toast = document.createElement('div');
+    toast.id = 'dna-project-picker';
+    Object.assign(toast.style, {
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: '2147483647',
+      width: '340px', background: 'rgba(18,18,28,0.93)',
+      backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+      border: '1px solid rgba(139,92,246,0.35)', borderRadius: '16px',
+      boxShadow: '0 8px 40px rgba(0,0,0,0.5)', overflow: 'hidden',
+      fontFamily: "-apple-system,BlinkMacSystemFont,'Inter',sans-serif",
+      fontSize: '13px', color: '#e2e8f0',
+    });
+
+    const previewHTML = promptPreview
+      ? `<div style="margin:0 16px 12px;padding:8px 10px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">“${promptPreview}”</div>`
+      : '';
+
+    const btnHTML = (projects || []).map(p =>
+      `<button class="dna-pb" data-slug="${p.slug}" style="display:block;width:calc(100% - 32px);margin:0 16px 8px;padding:10px 14px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);border-radius:10px;color:#c4b5fd;font-size:13px;font-weight:500;text-align:left;cursor:pointer;">📁 ${p.name || p.slug}</button>`
+    ).join('');
+
+    toast.innerHTML = `
+      <style>
+        @keyframes dna-sin{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+        @keyframes dna-cd{from{width:100%}to{width:0%}}
+        #dna-project-picker .dna-pb:hover{background:rgba(139,92,246,.28)!important;border-color:rgba(139,92,246,.5)!important;color:#ede9fe!important;}
+      </style>
+      <div style="padding:14px 16px 10px;display:flex;align-items:center;gap:10px;animation:dna-sin .3s ease;">
+        <span style="font-size:20px;">🧬</span>
+        <div>
+          <div style="font-weight:600;color:#f1f5f9;">Project DNA</div>
+          <div style="font-size:11px;color:#94a3b8;">Проект не определён авто-роутером</div>
+        </div>
+        <button id="dna-tc" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      ${previewHTML}
+      <div style="padding:0 0 6px;font-size:11px;color:#64748b;text-align:center;">Выберите проект для сохранения:</div>
+      ${btnHTML}
+      <div style="margin:4px 16px 14px;text-align:right;">
+        <button id="dna-tq" style="background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;text-decoration:underline;">В очередь</button>
+      </div>
+      <div style="height:2px;background:linear-gradient(90deg,#8b5cf6,#6366f1);animation:dna-cd ${AUTO_DISMISS_MS}ms linear forwards;"></div>
+    `;
+
+    document.body.appendChild(toast);
+    const timer = setTimeout(() => toast.remove(), AUTO_DISMISS_MS);
+    const dismiss = () => { clearTimeout(timer); toast.remove(); };
+
+    toast.querySelector('#dna-tc').addEventListener('click', dismiss);
+    toast.querySelector('#dna-tq').addEventListener('click', () => {
+      dismiss();
+      console.log('[Project DNA] 📬 Queued pending capture', captureId);
+    });
+
+    toast.querySelectorAll('.dna-pb').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slug = btn.dataset.slug;
+        btn.innerHTML = '✔ ' + btn.innerHTML.replace('📁 ', '');
+        btn.style.background = 'rgba(139,92,246,0.45)';
+        setTimeout(dismiss, 700);
+        chrome.runtime.sendMessage(
+          { action: 'PROJECT_SELECTED_FROM_TOAST', data: { captureId, projectSlug: slug } },
+          (res) => { if (res && res.success) console.log('[Project DNA] ✅ Saved →', slug); }
+        );
+      });
+    });
+  }
 
 })();

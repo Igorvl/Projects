@@ -56,6 +56,7 @@ class RouteRequest(BaseModel):
     parameters: dict = {}
     system_instruction: str = ""
     metadata: dict = {}
+    page_title: str = ""  # Browser tab title — highly useful for classification
 
 class CaptureRequest(BaseModel):
     """What Safari Extension sends for each generation."""
@@ -506,8 +507,19 @@ async def route_and_capture(data: RouteRequest):
         raise HTTPException(503, "Database not connected")
 
     # 1. Запускаем Semantic Router
+    # Combine page title + prompt + first 500 chars of output for richer context.
+    # Short continuation prompts (e.g. "Давай ещё серию") alone are unclassifiable.
+    # The page title (e.g. "Создание серии плакатов для выставки") carries the most signal.
     from router import call_with_key_rotation
-    detected_slug = await route_text_capture(data.prompt_text, db, call_with_key_rotation)
+    page_title = (data.page_title or data.metadata.get("pageTitle", "")).strip()
+    combined_for_routing = " | ".join(filter(None, [
+        page_title,
+        data.prompt_text,
+        (data.output_text or "")[:500],
+    ]))
+    detected_slug = await route_text_capture(
+        combined_for_routing or data.prompt_text, db, call_with_key_rotation
+    )
 
     if detected_slug == "UNKNOWN":
         logger.info(f"[ROUTE] UNKNOWN — Extension поставит в очередь")

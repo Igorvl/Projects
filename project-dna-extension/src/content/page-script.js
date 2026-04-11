@@ -49,6 +49,18 @@
   'use strict';
 
   // =========================================================================
+  // DOUBLE-INJECTION GUARD
+  // page-script.js is injected via manifest.json world:MAIN (April 2026 fix).
+  // This guard ensures window.fetch is only patched ONCE even if the script
+  // somehow executes more than once.
+  // =========================================================================
+  if (window.__DNA_PAGE_SCRIPT_LOADED) {
+    console.log('[Project DNA] \u26a1 page-script.js already loaded \u2014 skipping double-init.');
+    return;
+  }
+  window.__DNA_PAGE_SCRIPT_LOADED = true;
+
+  // =========================================================================
   // CONFIGURATION
   // =========================================================================
 
@@ -1175,6 +1187,8 @@
     capturedData.captureIndex = captureCount;
     capturedData.timestamp = new Date().toISOString();
     capturedData.sourceUrl = window.location.href;
+    capturedData.pageTitle = document.title; // Critical for semantic routing context
+
 
     // -----------------------------------------------------------------------
     // Image capture strategy (in priority order):

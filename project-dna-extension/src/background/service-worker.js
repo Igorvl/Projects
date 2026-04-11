@@ -119,7 +119,7 @@ async function getConfigs(keys) {
  * @param {object} config       - { API_URL, activeProject }
  * @returns {Promise<object>}   - { success, seqNum, method }
  */
-async function sendViaSemanticRoute(capturedData, config) {
+async function sendViaSemanticRoute(capturedData, config, tabId) {
   const routePayload = {
     prompt_text: capturedData.promptText || '',
     output_text: capturedData.outputText || '',
@@ -129,10 +129,12 @@ async function sendViaSemanticRoute(capturedData, config) {
     // result_urls will contain original Google URLs as fallback.
     result_urls: capturedData.resultUrls || [],
     parameters: capturedData.parameters || {},
+    page_title: capturedData.pageTitle || '',  // Top-level field for server classification
     metadata: {
       sourceUrl: capturedData.sourceUrl,
       capturedAt: capturedData.timestamp,
       finishReason: capturedData.finishReason,
+      pageTitle: capturedData.pageTitle || '',  // aids semantic classification
     },
   };
 
@@ -282,9 +284,13 @@ async function sendViaSemanticRoute(capturedData, config) {
 
       return { success: true, seqNum: result.seq_num, method: 'semantic' };
     } else {
-      // UNKNOWN — queue, user must select project manually in popup
-      console.warn('[Project DNA] 🧭 Semantic router: UNKNOWN. Queuing for manual assignment...');
-      await queueCapture(capturedData);
+      // UNKNOWN — offer project picker in the Gemini tab (with tabId), or queue as fallback
+      console.warn('[Project DNA] 🧭 Semantic router: UNKNOWN. Showing project picker or queuing...');
+      if (tabId) {
+        await showProjectPicker(capturedData, tabId);
+      } else {
+        await queueCapture(capturedData);
+      }
       return { success: false, error: 'Semantic router: UNKNOWN project' };
     }
   } catch (err) {
@@ -307,13 +313,13 @@ async function sendViaSemanticRoute(capturedData, config) {
  * @param {object} capturedData - Data from page-script.js interceptor
  * @returns {Promise<object>}   - API response or error object
  */
-async function sendToProjectDNA(capturedData) {
+async function sendToProjectDNA(capturedData, tabId) {
   const config = await getConfigs(['API_URL', 'activeProject']);
 
   // No manual project selection → try Semantic Auto-Router
   if (!config.activeProject) {
     console.log('[Project DNA] 🧭 No active project — trying Semantic Auto-Router...');
-    return await sendViaSemanticRoute(capturedData, config);
+    return await sendViaSemanticRoute(capturedData, config, tabId);
   }
 
   // -----------------------------------------------------------------------
@@ -630,8 +636,91 @@ async function processQueue() {
 }
 
 // =========================================================================
-// AUTO-RETRY ALARMS
+// PROJECT PICKER (UNKNOWN fallback — toast in Gemini tab)
 // =========================================================================
+
+/**
+ * When Semantic Router returns UNKNOWN, show a project-selection toast
+ * in the Gemini browser tab via a message to the content script.
+ *
+ * The pending capture is persisted in chrome.storage.local under a UUID key
+ * so it survives service-worker sleep/wake cycles.
+ *
+ * @param {object} capturedData - Full capture payload
+ * @param {number} tabId        - Chrome tab ID to send the picker to
+ */
+async function showProjectPicker(capturedData, tabId) {
+  try {
+    const projects = await fetchProjects();
+    if (!projects || projects.length === 0) {
+      console.warn('[Project DNA] ⚠️ No projects to pick from — queuing.');
+      await queueCapture(capturedData);
+      return;
+    }
+
+    // Store the pending capture with a unique ID
+    const captureId = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const pendingResult = await chrome.storage.local.get('pendingCaptures');
+    const pending = pendingResult.pendingCaptures || {};
+    pending[captureId] = capturedData;
+    // Prune old pending captures older than 5 minutes
+    const now = Date.now();
+    for (const [key, val] of Object.entries(pending)) {
+      if (now - parseInt(key.split('_')[1] || '0') > 300000) delete pending[key];
+    }
+    await chrome.storage.local.set({ pendingCaptures: pending });
+
+    // Send picker message to the Gemini content script
+    chrome.tabs.sendMessage(tabId, {
+      action: 'SHOW_PROJECT_PICKER',
+      captureId,
+      promptPreview: (capturedData.promptText || '').substring(0, 120),
+      projects: projects.map(p => ({ slug: p.slug, name: p.name || p.slug })),
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        // Content script not reachable (tab navigated away) — fall back to queue
+        console.warn('[Project DNA] ⚠️ Could not reach content script for picker — queuing.');
+        queueCapture(capturedData);
+      } else {
+        console.log('[Project DNA] 🧭 Project picker shown in tab', tabId);
+      }
+    });
+  } catch (err) {
+    console.error('[Project DNA] ❌ showProjectPicker error:', err.message);
+    await queueCapture(capturedData);
+  }
+}
+
+/**
+ * Handle user's project selection from the Gemini page toast.
+ * Saves the chosen project as activeProject and sends the pending capture.
+ */
+async function handleProjectSelectedFromToast(data, sendResponse) {
+  const { captureId, projectSlug } = data;
+
+  const pendingResult = await chrome.storage.local.get('pendingCaptures');
+  const pending = pendingResult.pendingCaptures || {};
+  const capturedData = pending[captureId];
+
+  if (!capturedData) {
+    console.warn('[Project DNA] ⚠️ Pending capture not found:', captureId);
+    sendResponse({ success: false, error: 'Capture not found — may have expired' });
+    return;
+  }
+
+  // Remove from pending
+  delete pending[captureId];
+  await chrome.storage.local.set({ pendingCaptures: pending });
+
+  // Persist the chosen project as activeProject
+  await setConfig('activeProject', projectSlug);
+  console.log(`[Project DNA] 🧭 User selected project: ${projectSlug}`);
+
+  // Now send the capture with the known project
+  const result = await sendToProjectDNA(capturedData);
+  sendResponse(result);
+}
+
 
 /**
  * Listen for the auto-retry alarm.
@@ -715,7 +804,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     // ----- Content Script: New generation captured -----
     case 'CAPTURE_GENERATION':
-      handleCapture(message.data, sendResponse);
+      handleCapture(message.data, sendResponse, sender.tab?.id);
       return true; // async response
 
     // ----- Content Script: Interceptor status update -----
@@ -759,6 +848,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       processQueue().then(() => sendResponse({ done: true }));
       return true; // async response
 
+    // ----- Content Script: Project selected from Gemini page picker -----
+    case 'PROJECT_SELECTED_FROM_TOAST':
+      handleProjectSelectedFromToast(message.data, sendResponse);
+      return true; // async response
+
     default:
       console.warn('[Project DNA] Unknown message action:', message.action);
       return false;
@@ -768,7 +862,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 /**
  * Handle a captured generation from content script.
  */
-async function handleCapture(capturedData, sendResponse) {
+async function handleCapture(capturedData, sendResponse, tabId) {
   const captureEnabled = await getConfig('captureEnabled');
 
   if (!captureEnabled) {
@@ -777,7 +871,7 @@ async function handleCapture(capturedData, sendResponse) {
     return;
   }
 
-  const result = await sendToProjectDNA(capturedData);
+  const result = await sendToProjectDNA(capturedData, tabId);
   sendResponse(result);
 }
 
