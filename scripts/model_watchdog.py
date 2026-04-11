@@ -66,7 +66,8 @@ SKIP_TYPE_PATTERNS = ["lyria", "clip", "audio", "music", "video"]
 MAX_CANDIDATES_TO_TEST = 8
 
 # Статусы при которых запускается авто-замена
-AUTO_REPLACE_STATUSES = {"DEPRECATED", "ERROR", "TIMEOUT"}
+# RATE_LIMIT с "Provider returned error" = убран из free-tier (не временный лимит)
+AUTO_REPLACE_STATUSES = {"DEPRECATED", "ERROR", "TIMEOUT", "RATE_LIMIT"}
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -129,13 +130,15 @@ async def test_model(model_cfg: dict) -> dict:
     if not api_key:
         return {"model_name": model_name, "status": "NO_KEY", "latency_s": 0, "error": f"Нет ключа {api_key_env}"}
 
-    # LiteLLM-формат: "openai/Qwen/..." → реальный ID для API: "Qwen/..."
+    # ── Определяем провайдера и нормализуем model_id ──────────────────────────
     real_model_id = model_id
-    if "/" in model_id:
+    if model_id.startswith("gemini/"):
+        # Нативный Gemini → Google OpenAI-совместимый эндпоинт
+        api_base = "https://generativelanguage.googleapis.com/v1beta/openai"
+        real_model_id = model_id.split("/", 1)[1]   # "gemini/gemini-2.5-flash" → "gemini-2.5-flash"
+    elif "/" in model_id:
         parts = model_id.split("/", 1)
-        if parts[0] == "openai":
-            real_model_id = parts[1]
-        elif parts[0] == "openrouter":
+        if parts[0] in ("openai", "openrouter"):
             real_model_id = parts[1]
 
     payload = {
@@ -162,8 +165,11 @@ async def test_model(model_cfg: dict) -> dict:
             status = "OK" if latency <= TEST_TIMEOUT_OK else "SLOW"
             return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": None}
 
-        # Анализируем ошибку
-        err_msg = data.get("error", {}).get("message", str(data))[:120]
+        # Анализируем ошибку (OpenRouter — dict, Google — list)
+        err_raw = data.get("error", {})
+        if isinstance(err_raw, list):
+            err_raw = err_raw[0] if err_raw else {}
+        err_msg = err_raw.get("message", str(data))[:120] if isinstance(err_raw, dict) else str(err_raw)[:120]
 
         if any(kw in err_msg.lower() for kw in ["deprecated", "transition to", "no longer available"]):
             status = "DEPRECATED"
