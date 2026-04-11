@@ -29,12 +29,14 @@ from pathlib import Path
 # ─── Конфиг ─────────────────────────────────────────────────────────────────
 
 # Пути относительно корня проекта (ai-design-workspace)
-CONFIG_PATH = Path(os.getenv("CONFIG_PATH", "deploy/antigravity.json"))
-NTFY_URL    = os.getenv("NTFY_URL", "https://ntfy.sh/dna-alerts-igorvl777")
+CONFIG_PATH          = Path(os.getenv("CONFIG_PATH", "deploy/antigravity.json"))
+FAILURE_HISTORY_PATH = Path(os.getenv("FAILURE_HISTORY_PATH", "deploy/model_failures.json"))
+NTFY_URL             = os.getenv("NTFY_URL", "https://ntfy.sh/dna-alerts-igorvl777")
 
 # Таймауты для тестов
 TEST_TIMEOUT_OK   = 5.0    # быстрее — ОК
 TEST_TIMEOUT_SLOW = 12.0   # медленнее — SLOW
+TEST_MAX_RETRIES  = 2      # кол-во попыток при сетевых ошибках (TIMEOUT/502)
 TEST_MAX_TOKENS   = 5
 TEST_PROMPT       = "Reply with just the number: 1+1="
 
@@ -65,9 +67,32 @@ SKIP_TYPE_PATTERNS = ["lyria", "clip", "audio", "music", "video"]
 # Сколько кандидатов тестировать параллельно
 MAX_CANDIDATES_TO_TEST = 8
 
-# Статусы при которых запускается авто-замена
-# RATE_LIMIT с "Provider returned error" = убран из free-tier (не временный лимит)
-AUTO_REPLACE_STATUSES = {"DEPRECATED", "ERROR", "TIMEOUT", "RATE_LIMIT"}
+# ─── Умная аналитика недоступности ───────────────────────────────────────────
+#
+# Стратегия замены:
+#   НЕМЕДЛЕННО  — если ошибка явно говорит «модель навсегда ушла»
+#   ОТЛОЖЕНО    — если просто временный сбой: ждём N провалов подряд
+#
+# Таким образом, DeepSeek-V3 который лёг на 1 час — НЕ будет заменён.
+
+# Сколько последовательных неудачных запусков cron нужно до замены
+CONSECUTIVE_FAILS_BEFORE_REPLACE = 3
+
+# Ключевые слова в тексте ошибки, которые означают «модель навсегда недоступна»
+# Одно совпадение = немедленная замена без ожидания consecutive-счётчика
+PERMANENT_DEATH_KEYWORDS = [
+    "deprecated",
+    "transition to",
+    "no longer available",
+    "not a valid model",
+    "no endpoints found",
+    "no longer free",
+    "became paid",
+    "this model is not free",
+    "removed from free",
+    "model not found",
+    "provider returned error",   # OpenRouter: модель убрана из free-tier
+]
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -91,6 +116,68 @@ def get_api_key(env_name: str) -> str | None:
             if line.startswith(f"{env_name}="):
                 return line.split("=", 1)[1].strip().strip('"\'')
     return None
+
+# ─── Failure History (persistent across cron runs) ───────────────────────────
+
+def load_failure_history() -> dict:
+    """Загружает историю отказов из JSON-файла."""
+    if FAILURE_HISTORY_PATH.exists():
+        try:
+            return json.loads(FAILURE_HISTORY_PATH.read_text())
+        except Exception:
+            return {}
+    return {}
+
+def save_failure_history(history: dict):
+    """Сохраняет историю отказов."""
+    FAILURE_HISTORY_PATH.write_text(json.dumps(history, indent=2, ensure_ascii=False))
+
+def is_permanent_death(status: str, error_msg: str | None) -> bool:
+    """
+    Возвращает True если ошибка явно говорит что модель навсегда недоступна.
+    Только в этом случае заменяем немедленно, без ожидания N провалов.
+    """
+    if status == "DEPRECATED":
+        return True
+    if error_msg:
+        err_lower = error_msg.lower()
+        for kw in PERMANENT_DEATH_KEYWORDS:
+            if kw in err_lower:
+                return True
+    return False
+
+def should_replace(
+    model_name: str,
+    status: str,
+    error_msg: str | None,
+    history: dict,
+) -> tuple[bool, str]:
+    """
+    Определяет нужно ли заменять модель.
+
+    Returns:
+        (replace: bool, reason: str)
+
+    Логика:
+      - DEPRECATED или постоянная смерть (ключевое слово) → заменяем немедленно
+      - TIMEOUT / ERROR / RATE_LIMIT (временное) → считаем consecutive_fails,
+        заменяем только после CONSECUTIVE_FAILS_BEFORE_REPLACE запусков подряд
+      - OK / SLOW → сбрасываем счётчик, не заменяем
+    """
+    if status in ("OK", "SLOW", "NO_KEY", "AUTH_FAIL"):
+        return False, "ok"
+
+    if is_permanent_death(status, error_msg):
+        return True, f"permanent_death (status={status})"
+
+    # Статус временной ошибки — обновляем счётчик
+    entry = history.get(model_name, {"consecutive_fails": 0, "last_statuses": []})
+    fails = entry.get("consecutive_fails", 0)
+
+    if fails + 1 >= CONSECUTIVE_FAILS_BEFORE_REPLACE:
+        return True, f"consecutive_fails={fails + 1} >= {CONSECUTIVE_FAILS_BEFORE_REPLACE}"
+
+    return False, f"soft_fail {fails + 1}/{CONSECUTIVE_FAILS_BEFORE_REPLACE} (waiting)"
 
 async def send_ntfy(title: str, msg: str, priority: str = "default", tags: list = None):
     tags_str = ",".join(tags or ["robot"])
@@ -136,9 +223,21 @@ async def test_model(model_cfg: dict) -> dict:
         # Нативный Gemini → Google OpenAI-совместимый эндпоинт
         api_base = "https://generativelanguage.googleapis.com/v1beta/openai"
         real_model_id = model_id.split("/", 1)[1]   # "gemini/gemini-2.5-flash" → "gemini-2.5-flash"
+    elif model_id.startswith("groq/"):
+        # FIX: Groq требует свой api_base, даже если не прописан в params
+        if api_base == "https://openrouter.ai/api/v1":
+            api_base = "https://api.groq.com/openai/v1"
+        # FIX: Groq требует свой ключ — если не прописан явно, берём GROQ_API_KEY
+        if api_key_env == "OPENROUTER_API_KEY":
+            groq_key = get_api_key("GROQ_API_KEY")
+            if groq_key:
+                api_key     = groq_key
+                api_key_env = "GROQ_API_KEY"
+                print(f"  [GROQ FIX] {model_name}: auto-detected GROQ_API_KEY")
+        real_model_id = model_id.split("/", 1)[1]   # "groq/llama-3.3-70b" → "llama-3.3-70b"
     elif "/" in model_id:
         parts = model_id.split("/", 1)
-        if parts[0] in ("openai", "openrouter", "groq"):
+        if parts[0] in ("openai", "openrouter"):
             real_model_id = parts[1]
 
     payload = {
@@ -149,43 +248,61 @@ async def test_model(model_cfg: dict) -> dict:
 
     t0 = time.time()
     try:
-        async with httpx.AsyncClient(timeout=TEST_TIMEOUT_SLOW + 3) as client:
-            r = await client.post(
-                f"{api_base.rstrip('/')}/chat/completions",
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-            )
-        latency = time.time() - t0
-        data = r.json()
+        for attempt in range(TEST_MAX_RETRIES):
+            try:
+                # Даем щедрый таймаут в 30 секунд для тяжелых моделей (DeepSeek-V3, Llama-70B)
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    r = await client.post(
+                        f"{api_base.rstrip('/')}/chat/completions",
+                        json=payload,
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json",
+                        },
+                    )
+                latency = time.time() - t0
+                data = r.json()
 
-        if r.status_code == 200 and "choices" in data:
-            status = "OK" if latency <= TEST_TIMEOUT_OK else "SLOW"
-            return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": None}
+                if r.status_code == 200 and "choices" in data:
+                    status = "OK" if latency <= TEST_TIMEOUT_OK else "SLOW"
+                    return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": None}
 
-        # Анализируем ошибку (OpenRouter — dict, Google — list)
-        err_raw = data.get("error", {})
-        if isinstance(err_raw, list):
-            err_raw = err_raw[0] if err_raw else {}
-        err_msg = err_raw.get("message", str(data))[:120] if isinstance(err_raw, dict) else str(err_raw)[:120]
+                # Анализируем ошибку (OpenRouter — dict, Google — list)
+                err_raw = data.get("error", {})
+                if isinstance(err_raw, list):
+                    err_raw = err_raw[0] if err_raw else {}
+                err_msg = err_raw.get("message", str(data))[:120] if isinstance(err_raw, dict) else str(err_raw)[:120]
 
-        if any(kw in err_msg.lower() for kw in ["deprecated", "transition to", "no longer available"]):
-            status = "DEPRECATED"
-        elif r.status_code == 404 or "not a valid model" in err_msg.lower() or "no endpoints found" in err_msg.lower():
-            status = "DEPRECATED"
-        elif r.status_code == 401:
-            status = "AUTH_FAIL"
-        elif r.status_code == 429:
-            status = "RATE_LIMIT"
-        else:
-            status = "ERROR"
+                if any(kw in err_msg.lower() for kw in ["deprecated", "transition to", "no longer available"]):
+                    status = "DEPRECATED"
+                elif r.status_code == 404 or "not a valid model" in err_msg.lower() or "no endpoints found" in err_msg.lower():
+                    status = "DEPRECATED"
+                elif r.status_code == 401:
+                    status = "AUTH_FAIL"
+                elif r.status_code == 429:
+                    status = "RATE_LIMIT"
+                else:
+                    status = "ERROR"
+                
+                # Если RATE_LIMIT или AUTH_FAIL, нет смысла делать retry
+                if status in ("RATE_LIMIT", "AUTH_FAIL", "DEPRECATED"):
+                    return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": err_msg}
+                    
+                # Для ERROR/502.. - повторяем, если остались попытки
+                if attempt < TEST_MAX_RETRIES - 1:
+                    await asyncio.sleep(2)
+                    t0 = time.time()
+                    continue
 
-        return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": err_msg}
+                return {"model_name": model_name, "status": status, "latency_s": round(latency, 2), "error": err_msg}
 
-    except httpx.TimeoutException:
-        return {"model_name": model_name, "status": "TIMEOUT", "latency_s": round(time.time() - t0, 2), "error": "Timeout"}
+            except httpx.TimeoutException:
+                if attempt < TEST_MAX_RETRIES - 1:
+                    await asyncio.sleep(2)
+                    t0 = time.time()
+                    continue
+                return {"model_name": model_name, "status": "TIMEOUT", "latency_s": round(time.time() - t0, 2), "error": "Timeout"}
+            
     except Exception as e:
         return {"model_name": model_name, "status": "ERROR", "latency_s": round(time.time() - t0, 2), "error": str(e)[:100]}
 
@@ -536,41 +653,78 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
     else:
         print("  Нет API-ключей, discovery пропущен")
 
-    # ── 3. AUTO-REPLACE ────────────────────────────────────────────────────────
+    # ── 3. AUTO-REPLACE с умной аналитикой недоступности ───────────────────────
     replacements_done = []
-    print(f"\n[3/3] AUTO-REPLACE — {len(problem_models)} проблем...")
+    history = load_failure_history()
 
-    if auto_replace and problem_models and free_models:
-        for pm in problem_models:
-            if pm["status"] not in AUTO_REPLACE_STATUSES:
-                continue
+    # Сбрасываем счётчики для OK/SLOW-моделей
+    for r in ok_models:
+        if r["model_name"] in history:
+            old_fails = history[r["model_name"]].get("consecutive_fails", 0)
+            if old_fails > 0:
+                print(f"  ✅ [{r['model_name']}] recovered after {old_fails} fail(s) — counter reset")
+            del history[r["model_name"]]
+
+    # Увеличиваем счётчики для проблемных моделей
+    for r in problem_models:
+        name = r["model_name"]
+        entry = history.get(name, {"consecutive_fails": 0, "last_statuses": []})
+        entry["consecutive_fails"] = entry.get("consecutive_fails", 0) + 1
+        last = entry.get("last_statuses", [])
+        last.append({"status": r["status"], "error": r.get("error", "")[:80], "ts": ts})
+        entry["last_statuses"] = last[-5:]
+        history[name] = entry
+
+    print(f"\n[3/3] AUTO-REPLACE — анализ {len(problem_models)} проблем...")
+
+    models_to_replace = []
+    models_waiting    = []
+
+    for pm in problem_models:
+        do_replace, reason = should_replace(
+            pm["model_name"], pm["status"], pm.get("error"), history
+        )
+        if do_replace:
+            models_to_replace.append((pm, reason))
+            print(f"  🔴 [{pm['model_name']}] → REPLACE ({reason})")
+        else:
+            fails = history.get(pm["model_name"], {}).get("consecutive_fails", 1)
+            models_waiting.append(pm)
+            print(f"  🟡 [{pm['model_name']}] → WAIT {fails}/{CONSECUTIVE_FAILS_BEFORE_REPLACE} ({reason})")
+
+    if auto_replace and models_to_replace and free_models:
+        for pm, reason in models_to_replace:
             replacement = await try_find_replacement(pm["model_name"], free_models)
             if replacement:
                 provider = replacement.get("provider", "?")
                 replacements_done.append({
-                    "old_name":   pm["model_name"],
-                    "old_status": pm["status"],
-                    "new_id":     replacement["or_id"],
+                    "old_name":    pm["model_name"],
+                    "old_status":  pm["status"],
+                    "new_id":      replacement["or_id"],
                     "new_display": replacement["display_name"],
-                    "latency_s":  replacement["latency_s"],
-                    "provider":   provider,
+                    "latency_s":   replacement["latency_s"],
+                    "provider":    provider,
+                    "reason":      reason,
                 })
                 if not dry_run:
                     cfg = apply_replacement(
-                        cfg, 
-                        pm["model_name"], 
-                        replacement["or_id"], 
+                        cfg,
+                        pm["model_name"],
+                        replacement["or_id"],
                         replacement["new_litellm_params"]
                     )
+                    history.pop(pm["model_name"], None)
                     print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] ({replacement['latency_s']}s) - APPLIED")
                 else:
                     print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] - DRY RUN")
             else:
                 print(f"  !! [{pm['model_name']}] - no live replacement found!")
-    elif problem_models:
+    elif not auto_replace and models_to_replace:
         print("  (auto-replace disabled, use --auto-replace)")
 
-    # Сохраняем конфиг если были замены
+    # Сохраняем историю отказов и конфиг
+    if not dry_run:
+        save_failure_history(history)
     if replacements_done and not dry_run:
         save_config(cfg)
         print(f"\n💾 antigravity.json обновлён ({len(replacements_done)} замен)")
@@ -578,12 +732,14 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
     # ── NTFY УВЕДОМЛЕНИЯ ──────────────────────────────────────────────────────
     print(f"\n[NTFY] Формируем отчёт...")
 
-    # Отчёт о проблемных моделях
     if problem_models:
         lines = [f"📅 {ts}", ""]
         for pm in problem_models:
             icon = status_icons.get(pm["status"], "❓")
-            lines.append(f"{icon} {pm['model_name']}: {pm['status']}")
+            fails = history.get(pm["model_name"], {}).get("consecutive_fails", 1)
+            is_waiting = pm in models_waiting
+            verdict = f"⏳ {fails}/{CONSECUTIVE_FAILS_BEFORE_REPLACE}" if is_waiting else "🔄 replace"
+            lines.append(f"{icon} {pm['model_name']}: {pm['status']} [{verdict}]")
             if pm["error"]:
                 lines.append(f"   {pm['error'][:80]}")
 
@@ -591,24 +747,30 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
             lines.append("\n🔄 АВТО-ЗАМЕНЕНЫ:")
             for r in replacements_done:
                 lines.append(f"  {r['old_name']} → {r['new_id']} ({r['latency_s']}s)")
+                lines.append(f"  причина: {r['reason']}")
             if dry_run:
                 lines.append("  ⚠️  DRY RUN — изменения не применены")
 
-        has_deprecated = any(pm["status"] == "DEPRECATED" for pm in problem_models)
-        has_replaced   = len(replacements_done) > 0
+        if models_waiting:
+            lines.append(f"\n⏳ Ждём ({CONSECUTIVE_FAILS_BEFORE_REPLACE} запуска подряд):")
+            for pm in models_waiting:
+                fails = history.get(pm["model_name"], {}).get("consecutive_fails", 1)
+                lines.append(f"  {pm['model_name']}: {fails}/{CONSECUTIVE_FAILS_BEFORE_REPLACE}")
+
+        has_replaced = len(replacements_done) > 0
+        has_critical = len(models_to_replace) > 0
         en_title = (
             f"DNA Router: {len(replacements_done)} auto-replaced, {len(problem_models)} issues"
             if has_replaced else
-            f"DNA Router: {len(problem_models)} model issues"
+            f"DNA Router: {len(problem_models)} model issues (waiting)"
         )
         await send_ntfy(
             title=en_title,
             msg="\n".join(lines),
-            priority="high" if has_deprecated else "default",
+            priority="high" if has_critical else "default",
             tags=["warning", "robot"]
         )
 
-    # Отчёт о новых моделях (топ-5)
     if new_free_models:
         top = new_free_models[:5]
         lines = [f"📅 {ts}", f"Найдено {len(new_free_models)} новых free моделей:", ""]
@@ -617,7 +779,6 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
         if len(new_free_models) > 5:
             lines.append(f"... и ещё {len(new_free_models) - 5} моделей")
         lines.append("\nЗапусти model_watchdog.py для проверки живости.")
-
         await send_ntfy(
             title=f"DNA Router: {len(new_free_models)} new free models on OpenRouter",
             msg="\n".join(lines),
@@ -627,7 +788,7 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
 
     # ── ФИНАЛ ─────────────────────────────────────────────────────────────────
     print(f"\n{'='*60}")
-    print(f"✅ OK: {len(ok_models)} | ❌ Проблем: {len(problem_models)} | 🆕 Новых: {len(new_free_models)} | 🔄 Заменено: {len(replacements_done)}")
+    print(f"✅ OK: {len(ok_models)} | ❌ Проблем: {len(problem_models)} | 🔴 К замене: {len(models_to_replace)} | 🟡 Ожидают: {len(models_waiting)} | 🔄 Заменено: {len(replacements_done)} | 🆕 Новых: {len(new_free_models)}")
     print(f"{'='*60}\n")
 
     return 1 if problem_models and not replacements_done else 0
