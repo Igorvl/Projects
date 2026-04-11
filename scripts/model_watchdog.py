@@ -453,8 +453,13 @@ async def fetch_groq_models(api_key: str) -> list[dict]:
     """Модели Groq (все бесплатны с rate-limit, очень быстрые ~0.2s)."""
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.get("https://api.groq.com/openai/v1/models",
-                                 headers={"Authorization": f"Bearer {api_key}"})
+            r = await client.get(
+                "https://api.groq.com/openai/v1/models",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+        if r.status_code == 403:
+            print(f"  [Groq] ⚠️  403 — geo-block (IP сервера заблокирован). Пропущен.")
+            return []
         r.raise_for_status()
         models = []
         for m in r.json().get("data", []):
