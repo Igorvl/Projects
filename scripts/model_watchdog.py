@@ -449,11 +449,29 @@ async def try_find_replacement(
 
 
 
-def apply_replacement(cfg: dict, model_name: str, new_params: dict) -> dict:
-    """Обновляет litellm_params для модели в конфиге."""
-    for m in cfg["model_list"]:
-        if m["model_name"] == model_name:
+def apply_replacement(cfg: dict, old_model_name: str, new_id: str, new_params: dict) -> dict:
+    """Обновляет litellm_params, переименовывает модель и обновляет алиасы."""
+    for m in cfg.get("model_list", []):
+        if m.get("model_name") == old_model_name:
+            m["model_name"] = new_id
             m["litellm_params"] = new_params
+            
+            # Инициализируем структуру алиасов LiteLLM
+            if "router_settings" not in cfg:
+                cfg["router_settings"] = {}
+            if "model_group_alias" not in cfg["router_settings"]:
+                cfg["router_settings"]["model_group_alias"] = {}
+                
+            aliases = cfg["router_settings"]["model_group_alias"]
+            
+            # Сам старый ID становится алиасом для нового
+            aliases[old_model_name] = new_id
+            
+            # Все старые алиасы, которые вели на умершую модель, теперь должны вести на новую
+            for alias_key, target in list(aliases.items()):
+                if target == old_model_name:
+                    aliases[alias_key] = new_id
+                    
             break
     return cfg
 
@@ -538,7 +556,12 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
                     "provider":   provider,
                 })
                 if not dry_run:
-                    cfg = apply_replacement(cfg, pm["model_name"], replacement["new_litellm_params"])
+                    cfg = apply_replacement(
+                        cfg, 
+                        pm["model_name"], 
+                        replacement["or_id"], 
+                        replacement["new_litellm_params"]
+                    )
                     print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] ({replacement['latency_s']}s) - APPLIED")
                 else:
                     print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] - DRY RUN")
