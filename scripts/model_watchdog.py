@@ -138,7 +138,7 @@ async def test_model(model_cfg: dict) -> dict:
         real_model_id = model_id.split("/", 1)[1]   # "gemini/gemini-2.5-flash" → "gemini-2.5-flash"
     elif "/" in model_id:
         parts = model_id.split("/", 1)
-        if parts[0] in ("openai", "openrouter"):
+        if parts[0] in ("openai", "openrouter", "groq"):
             real_model_id = parts[1]
 
     payload = {
@@ -218,6 +218,12 @@ async def fetch_openrouter_free_models(api_key: str) -> list[dict]:
                     "id": m["id"],
                     "name": m.get("name", m["id"]),
                     "ctx": m.get("context_length", 0),
+                    "provider": "openrouter",
+                    "litellm_params": {
+                        "model": f"openrouter/{m['id']}",
+                        "api_base": "https://openrouter.ai/api/v1",
+                        "api_key_env": "OPENROUTER_API_KEY",
+                    },
                 })
         print(f"  [DISCOVERY] Всего free моделей на OpenRouter: {len(free)}")
         return sorted(free, key=lambda x: -x["ctx"])
@@ -225,20 +231,145 @@ async def fetch_openrouter_free_models(api_key: str) -> list[dict]:
         print(f"[DISCOVERY] Ошибка ({type(e).__name__}): {e}")
         return []
 
-def get_existing_or_ids(cfg: dict) -> set[str]:
-    """Все реальные model-ID из конфига (для сравнения с OpenRouter)."""
-    ids = set()
+def get_existing_model_keys(cfg: dict) -> set[str]:
+    """Ключи всех моделей в конфиге. Формат: 'provider:model_id'."""
+    keys = set()
     for m in cfg.get("model_list", []):
-        raw = m.get("litellm_params", {}).get("model", "")
-        # Нормализуем openrouter/X -> X
+        p    = m.get("litellm_params", {})
+        raw  = p.get("model", "")
+        base = p.get("api_base", "")
         if raw.startswith("openrouter/"):
-            ids.add(raw[len("openrouter/"):])
+            keys.add(f"openrouter:{raw[len('openrouter/'):]}")
+        elif raw.startswith("gemini/"):
+            keys.add(f"gemini:{raw[len('gemini/'):]}")
+        elif raw.startswith("groq/"):
+            keys.add(f"groq:{raw[len('groq/'):]}")
+        elif "siliconflow" in base:
+            keys.add(f"siliconflow:{raw[len('openai/'):] if raw.startswith('openai/') else raw}")
         else:
-            ids.add(raw)
-    return ids
+            keys.add(f"other:{raw}")
+    return keys
 
 
-# ─── Auto-Replace ─────────────────────────────────────────────────────────────
+# ─── Multi-Provider Discovery ──────────────────────────────────────────────────
+
+def make_litellm_params(provider: str, model_id: str) -> dict:
+    """Формирует litellm_params для любого провайдера."""
+    if provider == "openrouter":
+        return {"model": f"openrouter/{model_id}",
+                "api_base": "https://openrouter.ai/api/v1",
+                "api_key_env": "OPENROUTER_API_KEY"}
+    elif provider == "siliconflow":
+        return {"model": f"openai/{model_id}",
+                "api_base": "https://api.siliconflow.com/v1",
+                "api_key_env": "SILICONFLOW_API_KEY"}
+    elif provider == "gemini":
+        return {"model": f"gemini/{model_id}",
+                "api_key_env": "GEMINI_API_KEY"}
+    elif provider == "groq":
+        return {"model": f"groq/{model_id}",
+                "api_base": "https://api.groq.com/openai/v1",
+                "api_key_env": "GROQ_API_KEY"}
+    return {}
+
+
+_SF_SKIP = ["Stable", "FLUX", "CogVideo", "Wan", "HiDream", "Janus", "whisper", "speech", "tts"]
+
+async def fetch_siliconflow_models(api_key: str) -> list[dict]:
+    """Доступные text-модели SiliconFlow (бесплатно до дневного лимита)."""
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get("https://api.siliconflow.com/v1/models",
+                                 headers={"Authorization": f"Bearer {api_key}"})
+        r.raise_for_status()
+        models = []
+        for m in r.json().get("data", []):
+            mid = m["id"]
+            if any(pat in mid for pat in _SF_SKIP):
+                continue
+            models.append({"id": mid, "name": mid.split("/")[-1],
+                           "ctx": 131_072, "provider": "siliconflow",
+                           "litellm_params": make_litellm_params("siliconflow", mid)})
+        print(f"  [SiliconFlow] {len(models)} text-моделей")
+        return models
+    except Exception as e:
+        print(f"  [SiliconFlow] Ошибка ({type(e).__name__}): {e}")
+        return []
+
+
+async def fetch_gemini_models(api_key: str) -> list[dict]:
+    """Модели Gemini поддерживающие generateContent (бесплатно с лимитами)."""
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get("https://generativelanguage.googleapis.com/v1beta/models",
+                                 params={"key": api_key})
+        r.raise_for_status()
+        models = []
+        for m in r.json().get("models", []):
+            if "generateContent" not in m.get("supportedGenerationMethods", []):
+                continue
+            name = m["name"].replace("models/", "")
+            if any(s in name for s in ["embed", "aqa", "1.0"]):
+                continue
+            models.append({"id": name, "name": m.get("displayName", name),
+                           "ctx": m.get("inputTokenLimit", 131_072),
+                           "provider": "gemini",
+                           "litellm_params": make_litellm_params("gemini", name)})
+        print(f"  [Gemini] {len(models)} моделей")
+        return models
+    except Exception as e:
+        print(f"  [Gemini] Ошибка ({type(e).__name__}): {e}")
+        return []
+
+
+async def fetch_groq_models(api_key: str) -> list[dict]:
+    """Модели Groq (все бесплатны с rate-limit, очень быстрые ~0.2s)."""
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.get("https://api.groq.com/openai/v1/models",
+                                 headers={"Authorization": f"Bearer {api_key}"})
+        r.raise_for_status()
+        models = []
+        for m in r.json().get("data", []):
+            mid = m["id"]
+            if any(s in mid for s in ["whisper", "tts", "vision"]):
+                continue
+            models.append({"id": mid, "name": mid,
+                           "ctx": m.get("context_window", 131_072),
+                           "provider": "groq",
+                           "litellm_params": make_litellm_params("groq", mid)})
+        print(f"  [Groq] {len(models)} моделей")
+        return models
+    except Exception as e:
+        print(f"  [Groq] Ошибка ({type(e).__name__}): {e}")
+        return []
+
+
+_PROVIDER_FETCHERS = [
+    ("OPENROUTER_API_KEY",  fetch_openrouter_free_models),
+    ("SILICONFLOW_API_KEY", fetch_siliconflow_models),
+    ("GEMINI_API_KEY",      fetch_gemini_models),
+    ("GROQ_API_KEY",        fetch_groq_models),
+]
+
+async def fetch_all_free_models(api_keys: dict) -> list[dict]:
+    """Собирает доступные модели со всех провайдеров параллельно."""
+    tasks, labels = [], []
+    for key_env, fn in _PROVIDER_FETCHERS:
+        key = api_keys.get(key_env)
+        if key:
+            tasks.append(fn(key))
+            labels.append(key_env.replace("_API_KEY", ""))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    all_models = []
+    for label, result in zip(labels, results):
+        if isinstance(result, Exception):
+            print(f"  [{label}] Провайдер недоступен: {result}")
+        else:
+            all_models.extend(result)
+    return sorted(all_models, key=lambda x: -x["ctx"])
+
+
 
 async def try_find_replacement(
     dead_model_name: str,
@@ -288,11 +419,7 @@ async def try_find_replacement(
     test_tasks = [
         test_model({
             "model_name": f"__cand_{fm['id']}",
-            "litellm_params": {
-                "model": f"openrouter/{fm['id']}",
-                "api_base": "https://openrouter.ai/api/v1",
-                "api_key_env": "OPENROUTER_API_KEY",
-            }
+            "litellm_params": fm["litellm_params"],   # provider-aware!
         })
         for fm in candidates
     ]
@@ -300,24 +427,21 @@ async def try_find_replacement(
 
     # Сортируем по задержке и берём лучшего
     for fm, r in sorted(zip(candidates, results), key=lambda x: x[1]["latency_s"]):
-        print(f"      {r['status']} {fm['id']} ({r['latency_s']}s) {r.get('error') or ''}")
+        print(f"      {r['status']} [{fm['provider']}] {fm['id']} ({r['latency_s']}s) {r.get('error') or ''}")
 
     ok = [(fm, r) for fm, r in zip(candidates, results) if r["status"] in ("OK", "SLOW")]
     ok.sort(key=lambda x: x[1]["latency_s"])
 
     if ok:
         best_fm, best_r = ok[0]
-        print(f"  ✅ Лучший кандидат: {best_fm['id']} "
+        print(f"  ✅ Лучший кандидат: [{best_fm['provider']}] {best_fm['id']} "
               f"({best_r['latency_s']}s, ctx: {best_fm['ctx']//1000}k)")
         return {
-            "or_id": best_fm["id"],
-            "display_name": best_fm.get("name", best_fm["id"]),
-            "latency_s": best_r["latency_s"],
-            "new_litellm_params": {
-                "model": f"openrouter/{best_fm['id']}",
-                "api_base": "https://openrouter.ai/api/v1",
-                "api_key_env": "OPENROUTER_API_KEY",
-            }
+            "or_id":            best_fm["id"],
+            "display_name":     best_fm.get("name", best_fm["id"]),
+            "latency_s":        best_r["latency_s"],
+            "provider":         best_fm["provider"],
+            "new_litellm_params": best_fm["litellm_params"],   # provider-aware!
         }
 
     print(f"  !! Ни один из {len(candidates)} кандидатов не ответил")
@@ -345,7 +469,16 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
 
     cfg = load_config()
     model_list = cfg.get("model_list", [])
-    openrouter_key = get_api_key("OPENROUTER_API_KEY")
+
+    # Собираем ключи всех провайдеров
+    api_keys = {
+        "OPENROUTER_API_KEY":  get_api_key("OPENROUTER_API_KEY"),
+        "SILICONFLOW_API_KEY": get_api_key("SILICONFLOW_API_KEY"),
+        "GEMINI_API_KEY":      get_api_key("GEMINI_API_KEY"),
+        "GROQ_API_KEY":        get_api_key("GROQ_API_KEY"),
+    }
+    active_providers = [k.replace("_API_KEY", "") for k, v in api_keys.items() if v]
+    openrouter_key = api_keys["OPENROUTER_API_KEY"]  # backward compat
 
     # ── 1. HEALTH CHECK ────────────────────────────────────────────────────────
     print(f"[1/3] HEALTH CHECK — {len(model_list)} моделей...\n")
@@ -361,54 +494,58 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
         latency = f"{r['latency_s']}s" if r["latency_s"] else ""
         err = f" — {r['error']}" if r["error"] else ""
         print(f"  {icon} [{r['model_name']}] {r['status']} {latency}{err}")
-        if r["status"] in ("OK", "SLOW", "RATE_LIMIT"):
+        if r["status"] in ("OK", "SLOW"):
             ok_models.append(r)
         else:
             problem_models.append(r)
 
-    # ── 2. DISCOVERY — новые free модели ──────────────────────────────────────
-    print(f"\n[2/3] DISCOVERY — ищем новые free модели на OpenRouter...")
+    # ── 2. DISCOVERY — новые free модели со всех провайдеров ──────────────────
+    providers_str = "+".join(active_providers) or "none"
+    print(f"\n[2/3] DISCOVERY ({providers_str})...")
     new_free_models = []
     free_models = []  # доступен ниже в AUTO-REPLACE
-    if openrouter_key:
-        free_models = await fetch_openrouter_free_models(openrouter_key)
-        existing_ids = get_existing_or_ids(cfg)
+    if active_providers:
+        free_models = await fetch_all_free_models(api_keys)
+        existing_keys = get_existing_model_keys(cfg)
         for fm in free_models:
-            if fm["id"] not in existing_ids:
+            prov_key = f"{fm['provider']}:{fm['id']}"
+            if prov_key not in existing_keys:
                 if not any(kw in fm["id"].lower() for kw in SKIP_TYPE_PATTERNS):
                     new_free_models.append(fm)
-                    print(f"  \U0001f195 {fm['id']} (ctx: {fm['ctx']//1000}k)")
+                    print(f"  [+] [{fm['provider']}] {fm['id']} (ctx: {fm['ctx']//1000}k)")
         if not new_free_models:
             print("  (нет новых)")
     else:
-        print("  \u26a0\ufe0f  Нет OPENROUTER_API_KEY, discovery пропущен")
+        print("  Нет API-ключей, discovery пропущен")
 
     # ── 3. AUTO-REPLACE ────────────────────────────────────────────────────────
     replacements_done = []
     print(f"\n[3/3] AUTO-REPLACE — {len(problem_models)} проблем...")
 
-    if auto_replace and problem_models and openrouter_key:
+    if auto_replace and problem_models and free_models:
         for pm in problem_models:
             if pm["status"] not in AUTO_REPLACE_STATUSES:
                 continue
             replacement = await try_find_replacement(pm["model_name"], free_models)
             if replacement:
+                provider = replacement.get("provider", "?")
                 replacements_done.append({
-                    "old_name": pm["model_name"],
+                    "old_name":   pm["model_name"],
                     "old_status": pm["status"],
-                    "new_id": replacement["or_id"],
+                    "new_id":     replacement["or_id"],
                     "new_display": replacement["display_name"],
-                    "latency_s": replacement["latency_s"],
+                    "latency_s":  replacement["latency_s"],
+                    "provider":   provider,
                 })
                 if not dry_run:
                     cfg = apply_replacement(cfg, pm["model_name"], replacement["new_litellm_params"])
-                    print(f"  🔄 [{pm['model_name']}] → {replacement['or_id']} ({replacement['latency_s']}s) — ПРИМЕНЕНО")
+                    print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] ({replacement['latency_s']}s) - APPLIED")
                 else:
-                    print(f"  🔄 [{pm['model_name']}] → {replacement['or_id']} — DRY RUN (не применено)")
+                    print(f"  >> [{pm['model_name']}] -> {replacement['or_id']} [{provider}] - DRY RUN")
             else:
-                print(f"  ❌ [{pm['model_name']}] — живой замены не найдено!")
+                print(f"  !! [{pm['model_name']}] - no live replacement found!")
     elif problem_models:
-        print("  (авто-замена отключена, используй --auto-replace)")
+        print("  (auto-replace disabled, use --auto-replace)")
 
     # Сохраняем конфиг если были замены
     if replacements_done and not dry_run:
