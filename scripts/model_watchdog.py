@@ -174,10 +174,12 @@ def should_replace(
     entry = history.get(model_name, {"consecutive_fails": 0, "last_statuses": []})
     fails = entry.get("consecutive_fails", 0)
 
-    if fails + 1 >= CONSECUTIVE_FAILS_BEFORE_REPLACE:
-        return True, f"consecutive_fails={fails + 1} >= {CONSECUTIVE_FAILS_BEFORE_REPLACE}"
+    # NOTE: consecutive_fails уже инкрементирован в main() до вызова этой функции,
+    # поэтому сравниваем напрямую (без +1).
+    if fails >= CONSECUTIVE_FAILS_BEFORE_REPLACE:
+        return True, f"consecutive_fails={fails} >= {CONSECUTIVE_FAILS_BEFORE_REPLACE}"
 
-    return False, f"soft_fail {fails + 1}/{CONSECUTIVE_FAILS_BEFORE_REPLACE} (waiting)"
+    return False, f"soft_fail {fails}/{CONSECUTIVE_FAILS_BEFORE_REPLACE} (waiting)"
 
 async def send_ntfy(title: str, msg: str, priority: str = "default", tags: list = None):
     tags_str = ",".join(tags or ["robot"])
@@ -390,7 +392,15 @@ def make_litellm_params(provider: str, model_id: str) -> dict:
     return {}
 
 
-_SF_SKIP = ["Stable", "FLUX", "CogVideo", "Wan", "HiDream", "Janus", "whisper", "speech", "tts"]
+_SF_SKIP = [
+    "Stable", "FLUX", "CogVideo", "Wan", "HiDream", "Janus",
+    "whisper", "speech", "tts",       # аудио
+    "Reranker", "reranker",            # reranking-модели
+    "Embedding", "embedding",          # embedding-модели
+    "Image-Edit", "Image-Turbo",       # image-generation (ne text)
+    "IndexTTS",                        # TTS
+    "VL-8B",                           # слишком маленькая vision
+]
 
 async def fetch_siliconflow_models(api_key: str) -> list[dict]:
     """Доступные text-модели SiliconFlow (бесплатно до дневного лимита)."""
