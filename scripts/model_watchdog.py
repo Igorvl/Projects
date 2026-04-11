@@ -33,6 +33,17 @@ CONFIG_PATH          = Path(os.getenv("CONFIG_PATH", "deploy/antigravity.json"))
 FAILURE_HISTORY_PATH = Path(os.getenv("FAILURE_HISTORY_PATH", "deploy/model_failures.json"))
 NTFY_URL             = os.getenv("NTFY_URL", "https://ntfy.sh/dna-alerts-igorvl777")
 
+# Прокси для обхода гео-блокировок (Groq, Gemini и т.д.)
+# Поддерживает: http://, https://, socks5://, socks5h://
+# Пример в .env: WATCHDOG_PROXY=socks5h://127.0.0.1:1080
+# Если не задан — берётся из HTTPS_PROXY / ALL_PROXY (системные переменные)
+WATCHDOG_PROXY = (
+    os.getenv("WATCHDOG_PROXY")
+    or os.getenv("HTTPS_PROXY")
+    or os.getenv("ALL_PROXY")
+)
+_PROXIES = {"all://": WATCHDOG_PROXY} if WATCHDOG_PROXY else None
+
 # Таймауты для тестов
 TEST_TIMEOUT_OK   = 5.0    # быстрее — ОК
 TEST_TIMEOUT_SLOW = 12.0   # медленнее — SLOW
@@ -219,6 +230,9 @@ async def test_model(model_cfg: dict) -> dict:
     if not api_key:
         return {"model_name": model_name, "status": "NO_KEY", "latency_s": 0, "error": f"Нет ключа {api_key_env}"}
 
+    if _PROXIES:
+        print(f"  [proxy] {model_name} → через {WATCHDOG_PROXY}")
+
     # ── Определяем провайдера и нормализуем model_id ──────────────────────────
     real_model_id = model_id
     if model_id.startswith("gemini/"):
@@ -253,7 +267,7 @@ async def test_model(model_cfg: dict) -> dict:
         for attempt in range(TEST_MAX_RETRIES):
             try:
                 # Даем щедрый таймаут в 30 секунд для тяжелых моделей (DeepSeek-V3, Llama-70B)
-                async with httpx.AsyncClient(timeout=30.0) as client:
+                async with httpx.AsyncClient(timeout=30.0, proxies=_PROXIES) as client:
                     r = await client.post(
                         f"{api_base.rstrip('/')}/chat/completions",
                         json=payload,
@@ -314,7 +328,7 @@ async def test_model(model_cfg: dict) -> dict:
 async def fetch_openrouter_free_models(api_key: str) -> list[dict]:
     """Возвращает список free-моделей OpenRouter с ценой=0."""
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, proxies=_PROXIES) as client:
             r = await client.get(
                 "https://openrouter.ai/api/v1/models",
                 headers={"Authorization": f"Bearer {api_key}"},
@@ -405,7 +419,7 @@ _SF_SKIP = [
 async def fetch_siliconflow_models(api_key: str) -> list[dict]:
     """Доступные text-модели SiliconFlow (бесплатно до дневного лимита)."""
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, proxies=_PROXIES) as client:
             r = await client.get("https://api.siliconflow.com/v1/models",
                                  headers={"Authorization": f"Bearer {api_key}"})
         r.raise_for_status()
@@ -427,7 +441,7 @@ async def fetch_siliconflow_models(api_key: str) -> list[dict]:
 async def fetch_gemini_models(api_key: str) -> list[dict]:
     """Модели Gemini поддерживающие generateContent (бесплатно с лимитами)."""
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, proxies=_PROXIES) as client:
             r = await client.get("https://generativelanguage.googleapis.com/v1beta/models",
                                  params={"key": api_key})
         r.raise_for_status()
@@ -452,7 +466,7 @@ async def fetch_gemini_models(api_key: str) -> list[dict]:
 async def fetch_groq_models(api_key: str) -> list[dict]:
     """Модели Groq (все бесплатны с rate-limit, очень быстрые ~0.2s)."""
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, proxies=_PROXIES) as client:
             r = await client.get(
                 "https://api.groq.com/openai/v1/models",
                 headers={"Authorization": f"Bearer {api_key}"}
