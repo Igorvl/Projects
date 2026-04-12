@@ -4,103 +4,112 @@
 
 ---
 
-## 📡 1. Snapshot состояния (Где мы сейчас, 2026-04-11)
+## 📡 1. Snapshot состояния (Где мы сейчас, 2026-04-12)
 
 - **✅ G12 ЗАКРЫТ:** Warm Standby Mirror на NAS RS4021xs+ (`172.25.9.147`) работает.
-- **✅ G12-next ЗАКРЫТ:** `scripts/sync_to_nas.sh` — cron `0 */2 * * *`. Синхронизирует: PostgreSQL (pg_dump gz) + Qdrant (HTTP snapshots) + MinIO (mc mirror, 31 MiB/s). Первый запуск успешен: 140K + 593M + 369M + 135MB → NAS.
-- ✅ **G12-alerts ЗАКРЫТ:** ntfy.sh push-уведомления работают. Grafana contact point настроен → уведомления приходят на телефон. Сырые JSON-алерты от Grafana переведены в человекочитаемый вид через n8n Webhook Bridge.
-- **✅ Semantic Router:** переключён на `openrouter/openai/gpt-oss-120b:free` (qwen3.6-plus:free задепрекейтили 2026-04-10). Добавлен `ROUTING_FAILED_CACHE` (TTL 5 мин) — анти-спам для extension test-пакетов.
-- **✅ Agentic Interceptor Loop Fix:** `router.py` — вместо `raw_messages[:-2]` теперь находим первый picker в истории и вырезаем ВСЮ picker-историю. GLM больше не видит паттерн picker→"5"→picker.
-- **✅ Circuit Breaker v2:** 8 моделей. `qwen3.6-plus-openrouter` удалён (deprecated). `qwen-480b-coder` (SiliconFlow, Qwen3-Coder-480B-A35B, 1.4s) — работает.
-- **Текущая задача:** G12-slim — `Dockerfile.router-mirror` без TTS-моделей (13GB → ~800MB).
-- **Инфраструктура:** Ubuntu Primary (`172.25.9.33`) + NAS Mirror (`172.25.9.147`). Local Docker Registry на Ubuntu `:5000`.
+- **✅ G12-next ЗАКРЫТ:** `scripts/sync_to_nas.sh` — cron `0 */2 * * *`. PostgreSQL (pg_dump gz) + Qdrant (HTTP snapshots) + MinIO (mc mirror, 31 MiB/s).
+- **✅ G12-alerts ЗАКРЫТ:** ntfy.sh push-уведомления работают. Grafana contact point настроен.
+- **✅ Semantic Router:** работает на `openrouter/openai/gpt-oss-120b:free`.
+- **✅ Circuit Breaker v3:** 8 моделей, все живые (8/8 OK — последний watchdog прогон).
+- **✅ model_watchdog.py v2 СТАБИЛИЗИРОВАН:** Self-healing LLM gateway с умной аналитикой недоступности.
+- **В Бэклоге:**
+  - Автоматический бэкап Docker-вольюма `n8n_data` на NAS.
+  - `docs/learning/prometheus_grafana.md`.
+  - **G11:** Antigravity Context Integration (RAG).
+  - Удалить битые файлы из MinIO `test-project/`.
 
-## 📝 2. Последние изменения в коде/архитектуре (апрель 2026)
+## 📝 2. Последние изменения (2026-04-12)
 
-1. **sync_to_nas.sh** (`scripts/sync_to_nas.sh`): автоматическая синхронизация 3 слоёв данных → NAS каждые 2 часа. PostgreSQL `pg_dump` gz, Qdrant HTTP snapshots + rsync, MinIO `mc mirror`. ntfy.sh push при ошибке (urgent) и ежедневный ОК в 02:00.
-2. **healthcheck_nas.sh** (`scripts/healthcheck_nas.sh`): cron `*/30 * * * *`. Проверка NAS-зеркала (ai-router, qdrant, minio), anti-spam lock 1 alert/час, автоматический RECOVERED alert.
-3. **ntfy self-hosted** (`deploy/docker-compose.yml`): добавлен сервис `ntfy` (port 9080). Конфиг: `serve --base-url http://172.25.9.33:9080 --cache-file /var/cache/ntfy/cache.db --upstream-base-url https://ntfy.sh`. volume `ntfy_cache`. Upstream forwarding работает.
-4. **Grafana contact point** (API provisioned): `ntfy-dna-alerts`, type=webhook, URL=`https://ntfy.sh/dna-alerts-igorvl777`. Grafana → ntfy.sh прямо (MinIO исключён). Работает, но сообщение — сырой JSON.
-5. **ntfy.sh для скриптов**: хостовые скрипты пишут в `https://ntfy.sh/dna-alerts-igorvl777` напрямую. local ntfy используется только как relay для Grafana.
-6. **NTFY_TOPIC** добавлен в `deploy/.env`.
-7. **Grafana credentials**: `admin` / `K5/9E-3ZFGTB` (сменён через grafana-cli).
+### model_watchdog.py v2 — Smart Self-Healing
 
-- ✅ **G12-slim ЗАКРЫТ:** Создан `Dockerfile.router-mirror` без тяжелых TTS-кэшей и PyTorch. Размер контейнера уменьшен с 13 ГБ до 1.6 ГБ (в пуле — меньше 400 МБ).
-- ✅ **G13-llm-radar ЗАКРЫТ:** Настроен n8n пайплайн автообнаружения новых бесплатных моделей в OpenRouter с интеллектуальным идемпотентным кэшированием (уведомления пушатся в ntfy).
-- ✅ **Browser Extension Fixes ЗАКРЫТ:** Выявлены зависания промисов в WebKit, установлен жесткий таймаут 5с на Service Worker. Реализован обход строгих CSP ограничений (In-Memory Injection) для захвата из Google Gemini.
-- ✅ **GitHub Profile Customization ЗАКРЫТ:** Создана автоматическая MLOps витрина (динамический SVG) с помощью GitHub Actions `lowlighter/metrics` (IsoCalendar, PieChart с фильтрацией языков, обход Camo-кэширования).
-- **В Бэклоге:** 
-  - Настройка автоматического бэкапирования Docker-вольюма `n8n_data` (с ключами шифрования и базой SQLite) на NAS "Warm Standby".
-  - Создать `docs/learning/prometheus_grafana.md` и настроить дашборды.
-  - **G11:** Antigravity Context Integration.
-  - Удалить битые файлы из папки `test-project/` (Ghost-файлы) в MinIO.
-  - Вынести логику `uploadImages()` в shared-функцию на фронтенде.
+1. **Умная аналитика недоступности** — два режима замены:
+   - `PERMANENT_DEATH`: ошибка содержит ключевые слова (`"deprecated"`, `"no longer free"`, `"provider returned error"` и др.) → замена немедленно
+   - `CONSECUTIVE_FAILS_BEFORE_REPLACE = 3`: три последовательных провала cron → замена
+   - Временные сбои (`RATE_LIMIT daily limit`, `TIMEOUT`, `ERROR`) → `WAIT N/3`, не заменяем
+2. **`deploy/model_failures.json`** — история отказов сохраняется между запусками cron. OK/SLOW сбрасывают счётчик.
+3. **httpx 0.28+ совместимость** — `proxies={}` → `**_CLIENT_KWARGS` (`proxy="url"`).
+4. **`WATCHDOG_PROXY`** — все httpx-клиенты поддерживают прокси через `.env`. На сервере: `WATCHDOG_PROXY=http://127.0.0.1:10809`.
+5. **Groq geo-block** — 403 обрабатывается тихо. Groq блокирует datacenter ASN на уровне TLS fingerprint (SSL_ERROR_SYSCALL). Пропускается без шума.
+6. **SiliconFlow фильтр** расширен — Reranker, Embedding, Image-Edit, TTS убраны из кандидатов.
+7. **ntfy вердикты** — `[⏳ 1/3]` или `[🔄 replace]` для каждой проблемной модели.
 
-## 📐 4. Гайдлайны и Ключевые Решения
+### Инфраструктура
+
+- **Xray VPN на хосте перенастроен** — ранее хост подключался напрямую к финскому VDS (РКН блокировал). Добавлен Московский relay. Цепочка: `Хост → Москва (3X-UI VLESS) → Финляндия exit (79.110.48.133) → Интернет`. Конфиг: `/usr/local/etc/xray/config.json`.
+- **antigravity.json обновлён:**
+  - `GLM_5` → `GLM_5.1` (zai-org/GLM-5.1, SiliconFlow)
+  - `deepseek-v3.2` восстановлен (был ошибочно заменён старым watchdog'ом) → `deepseek-ai/DeepSeek-V3.2` на SiliconFlow
+  - Алиасы: `"GLM_5": "GLM_5.1"` для обратной совместимости
+
+## 📐 3. Гайдлайны и Ключевые Решения
 
 - ❌ **НЕТ Auto-Failover кластерам (VRRP/Keepalived/Swarm):** Data Split-Brain недопустим. Только Warm Standby — ручное включение через `failover.sh`.
-- ❌ **НЕТ Tailscale для ntfy:** Батарея (постоянный VPN) + безопасность (прямой туннель в сеть с телефона). ntfy.sh — приемлемый компромисс приватности.
-- ✅ **ntfy.sh для мобильных push:** телефон подписан на ntfy.sh, НЕ на локальный IP. Работает в любой сети (4G/5G/роуминг).
+- ❌ **НЕТ Tailscale для ntfy:** Батарея + безопасность. ntfy.sh — приемлемый компромисс.
+- ✅ **ntfy.sh для мобильных push:** телефон подписан на ntfy.sh, НЕ на локальный IP.
 - ✅ **API Gateway Pattern:** Все модели через `antigravity.json`. Никаких жёстких привязок в коде.
-- ✅ **Network Aliases Pattern:** Зеркальные сервисы получают aliases с оригинальными именами → код не меняется при failover.
+- ✅ **Watchdog = self-healing, не upgrade:** заменяет только сломанные модели, не обновляет версии автоматически.
 - ✅ **Резюме-Ориентированность:** При каждом крупном внедрении — фиксировать в `RESUME_BULLETS.md`.
-- ✅ **Правило cross-network доступа:** перед self-hosted с мобильным клиентом — всегда спрашивать "как работает вне домашней сети?" (задокументировано в MEMORY.md).
+- ⚠️ **Groq недоступен с инфраструктуры:** finland VDS — datacenter ASN, Groq блокирует по TLS fingerprint. Через OpenRouter работает.
+- ⚠️ **Репо на хосте отдельное** — синхронизация вручную через vim (не git pull). Учитывать при обновлениях скриптов.
 
-## 🖥️ 5. Топология инфраструктуры
+## 🖥️ 4. Топология инфраструктуры
 
 ```
 Ubuntu 172.25.9.33 (PRIMARY)          NAS 172.25.9.147 (MIRROR — WARM)
 ├── local-registry  :5000              ├── ai-router-mirror  :8000
-├── ai-router       :8000              ├── ai-postgres-mirror:5433 (alias: ai-postgres)
-├── ai-postgres     :5432              ├── ai-qdrant-mirror  :6334 (alias: ai-qdrant)
-├── ai-qdrant       :6333              ├── ai-minio-mirror   :9002 (alias: ai-minio)
+├── ai-router       :8000              ├── ai-postgres-mirror:5433
+├── ai-postgres     :5432              ├── ai-qdrant-mirror  :6334
+├── ai-qdrant       :6333              ├── ai-minio-mirror   :9002
 ├── ai-minio        :9000              └── nginx-mirror      :8080
 ├── nginx           :443
 ├── grafana         :3030
-├── telegraf        (metrics)
 ├── n8n             :5678
-├── ntfy            :9080  ← NEW
+├── ntfy            :9080
 ├── open-webui      :3000
+├── xray (systemd)  :10808 socks5, :10809 http  ← VPN: Москва→Финляндия
 └── tts services
 ```
 
-## 📱 6. Мониторинг и Алёртинг
+## 📱 5. Мониторинг и Алёртинг
 
 ```
 Хостовые скрипты → https://ntfy.sh/dna-alerts-igorvl777 → 📱 телефон
 Grafana alerts   → https://ntfy.sh/dna-alerts-igorvl777 → 📱 телефон
-local ntfy :9080 (relay, upstream → ntfy.sh, используется Grafana Docker-internally)
+model_watchdog   → https://ntfy.sh/dna-alerts-igorvl777 → 📱 телефон (cron каждые 6ч)
+local ntfy :9080 (relay upstream → ntfy.sh)
 
 Тема ntfy: dna-alerts-igorvl777
 Grafana CP UID: bfi0v1rcnao74c
+Grafana credentials: admin / K5/9E-3ZFGTB
 ```
 
-## 📁 7. Ключевые файлы
+## 📁 6. Ключевые файлы
 
 ```
 deploy/docker-compose.yml        ← основной стек + ntfy сервис
-deploy/.env                      ← все секреты (NTFY_TOPIC, NAS_*, GEMINI_*, и т.д.)
-deploy/antigravity.json          ← Circuit Breaker v2 (7 моделей), горячая перезагрузка
-routing/semantic_router.py       ← Semantic Router: gpt-oss-120b (OpenRouter free), ROUTING_FAILED_CACHE 5min TTL
-scripts/sync_to_nas.sh           ← cron 0 */2 * * * (pg+qdrant+minio → NAS)
-scripts/healthcheck_nas.sh       ← cron */30 * * * * (NAS mirror health)
+deploy/.env                      ← секреты (WATCHDOG_PROXY, NTFY_TOPIC, GROQ_API_KEY, и т.д.)
+deploy/antigravity.json          ← Circuit Breaker v3 (8 моделей + алиасы)
+deploy/model_failures.json       ← история отказов watchdog (NEW)
+scripts/model_watchdog.py        ← Self-Healing Gateway v2 (UPDATED)
+scripts/sync_to_nas.sh           ← cron 0 */2 * * *
+scripts/healthcheck_nas.sh       ← cron */30 * * * *
 scripts/failover.sh              ← one-click failover на NAS mirror
-docs/learning/ntfy_push_notifications.md  ← полная инструкция по ntfy setup
+routing/semantic_router.py       ← Semantic Router: gpt-oss-120b, ROUTING_FAILED_CACHE 5min TTL
+/usr/local/etc/xray/config.json  ← Xray VPN: Хост→Москва relay→Финляндия exit
 docs/RESUME_BULLETS.md           ← резюме-достижения
 ```
 
-### ⏳ Current Working Status:
-- **✅ LLM Gateway Fallback Fix (04-06-2026):** Resolved a critical issue where direct queries to 429-prone models on OpenRouter (e.g. `llama-3.3-70b` and `hermes-3`) caused 502 Bad Gateway crashes. The solution was ensuring the configuration file `antigravity.json` has `fallbacks` arrays defined for ALL end-layer models so the circuit breaker can gracefully switch traffic.
-- **⏸️ GitHub Profile MLOps:** The `lowlighter/metrics` GitHub Action SVG is live and visually matches dark mode styling, but accurate font scaling inside `<foreignObject>` tags within `<img>` is unpredictable on GitHub. The task is documented (`.agent/tasks/github_metrics_font_scaling.md`) and currently paused.
-- **✅ Agentic Interceptor Full Picker History Cleanup (04-11-2026):** Исправлен баг бесконечного пикер-лупа в `router.py`. Причина: `raw_messages[:-2]` удалял только последную пару picker+"цифра", но GLM видел накопленную историю (до 4+ пар) и воспроизводил паттерн. Фикс: находим `first_picker_idx` и обрезаем `raw_messages[:first_picker_idx]`.
-- **✅ Semantic Router Model Switch (04-11-2026):** `qwen/qwen3.6-plus:free` задепрекейтили, перешли на `openai/gpt-oss-120b:free` (отвечает за ~1.4s). Удален из `antigravity.json`: `qwen3.6-plus-openrouter`.
-- **✅ ROUTING_FAILED_CACHE Anti-Spam (04-11-2026):** `semantic_router.py` — добавлен `ROUTING_FAILED_CACHE` с TTL 5 мин. Тест-пакеты extension (`"Test failed: ...", "Test failed: Xray..."`) больше не спамят OpenRouter после первого провала. Устранила перегрузку uvicorn-воркеров и Connection refused.
-- **✅ Browser Extension CSP Fix (04-07-2026):** Fixed zero-capture bug on `gemini.google.com` in Orion browser. Root cause: Gemini updated CSP, blocking all dynamic `<script>` injection from `content-script.js` (both inline text and Blob URL methods). Fix: declared `page-script.js` directly in `manifest.json` with `"world": "MAIN"` — browser runtime bypasses CSP entirely. Bumped to v2.2.0. Also: 3x slowdown в Gemini = Orion content blocker blocking `play.google.com/log` telemetry → fix: add `gemini.google.com` to Orion exceptions.
-- The backend features like LLM routing, key rotation, database sync for disaster recovery (`ntfy.sh`, Qdrant, MinIO) are fully functional.
+### ⏳ Current Working Status (2026-04-12):
+- **✅ model_watchdog.py v2 (04-12-2026):** N consecutive fails до замены, PERMANENT_DEATH_KEYWORDS, model_failures.json, httpx 0.28+ compat, WATCHDOG_PROXY.
+- **✅ Xray VPN Fix (04-12-2026):** Хост переключён на Москва→Финляндия. Весь watchdog-трафик через `http://127.0.0.1:10809`.
+- **✅ antigravity.json Cleanup (04-12-2026):** GLM_5.1, deepseek-v3.2 восстановлен, алиасы.
+- **⏸️ Groq:** datacenter ASN TLS block. Пропускается тихо. Через OpenRouter — ок.
+- **⏸️ Gemini Discovery:** 400 на `/v1beta/models`. OpenRouter+SiliconFlow достаточно.
 
-### ⏱ Next Steps for the AI Assistant (Claude Sonnet 4.6):
-1. **Move on to New Priorities:** The user will define the next primary target. Possible targets from the backlog include defining automatic backup of `n8n_data` to NAS, Prometheus/Grafana dashboard setups, or Antigravity context tracking.
-2. **Review Open Tasks:** Check `.agent/tasks/` if direction is lacking.
+### ⏱ Next Steps:
+1. Запустить `python3 scripts/model_watchdog.py --auto-replace` (боевой прогон после всех фиксов).
+2. Настроить cron watchdog на сервере: `0 */6 * * * cd /home/igorvl/ai-design-workspace && python3 scripts/model_watchdog.py --auto-replace`.
+3. Следующий приоритет: n8n_data бэкапы на NAS или G11 (Antigravity RAG).
 
 ---
-*Ожидаю готовности. Прочитай контекст, PRIVATE_CONTEXT.md, MEMORY.md и ответь одним предложением подтверждая понимание: какой статус GitHub Profile MLOps и почему падал роутер на Llama модели.*
+*Ознакомься с контекстом и PRIVATE_CONTEXT.md. Подтверди одним предложением: статус watchdog и почему Groq недоступен.*
