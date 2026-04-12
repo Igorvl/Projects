@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Behance Scout — Design Feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --card: #1c1c21;
+    --card-hover: #222228;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #e4e4f0;
+    --muted: #6b6b80;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.3px;
+  }
+  .stats-bar {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .stats-bar b { color: var(--text); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 24px 32px 0;
+  }
+  .tab {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab:hover { background: var(--card-hover); color: var(--text); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    border-color: transparent;
+  }
+  .tab .badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tab:not(.active) .badge {
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+    padding: 24px 32px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    border-color: rgba(99,102,241,0.3);
+  }
+  .card.done {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* Cover */
+  .cover {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    background: var(--surface);
+  }
+  .cover-placeholder {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #1e1e2e, #252535);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 36px;
+  }
+
+  /* Card body */
+  .card-body { padding: 16px; }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+  }
+  .freshness-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .f0 { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .f1 { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .f2 { background: rgba(107,107,128,0.15); color: #9ca3af; }
+
+  .card-author {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* Comment block */
+  .comment-block {
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.15);
+    border-radius: 9px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #c4c4d8;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .comment-text { margin-bottom: 8px; }
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .copy-btn:hover { opacity: 0.7; }
+  .copy-btn.copied { color: var(--green); }
+
+  /* Actions */
+  .card-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-visit {
+    flex: 1;
+    padding: 9px 0;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 8px;
+    color: #a5b4fc;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .btn-visit:hover { background: rgba(99,102,241,0.22); }
+  .btn-done {
+    padding: 9px 16px;
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px;
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-done:hover { background: rgba(34,197,94,0.2); }
+
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px 40px;
+  }
+  .page-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .page-btn:hover { background: var(--card-hover); }
+  .page-btn:disabled { opacity: 0.3; cursor: default; }
+  .page-info { color: var(--muted); font-size: 13px; }
+
+  /* Empty state */
+  .empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+  .empty .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty p { font-size: 15px; }
+
+  /* Loader */
+  .loader {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎨 Behance Scout</div>
+  <div class="stats-bar">
+    <span>Fresh: <b id="cnt0">—</b></span>
+    <span>1-3 mo: <b id="cnt1">—</b></span>
+    <span>Older: <b id="cnt2">—</b></span>
+    <span>Total: <b id="cntAll">—</b></span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-bucket="-1" onclick="switchTab(this, -1)">
+    All <span class="badge" id="b-all">—</span>
+  </div>
+  <div class="tab" data-bucket="0" onclick="switchTab(this, 0)">
+    🟢 &lt; 1 month <span class="badge" id="b-0">—</span>
+  </div>
+  <div class="tab" data-bucket="1" onclick="switchTab(this, 1)">
+    🟡 1–3 months <span class="badge" id="b-1">—</span>
+  </div>
+  <div class="tab" data-bucket="2" onclick="switchTab(this, 2)">
+    ⚪ 3+ months <span class="badge" id="b-2">—</span>
+  </div>
+</div>
+
+<div class="grid" id="grid">
+  <div class="loader">Loading...</div>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentBucket = -1;
+let currentPage   = 1;
+let totalPages    = 1;
+
+function switchTab(el, bucket) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentBucket = bucket;
+  currentPage   = 1;
+  loadProjects();
+}
+
+async function loadProjects() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="loader">Loading projects...</div>';
+
+  const url = `/api/projects?bucket=${currentBucket}&page=${currentPage}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  // Update counters
+  document.getElementById('cnt0').textContent = data.counts['0'];
+  document.getElementById('cnt1').textContent = data.counts['1'];
+  document.getElementById('cnt2').textContent = data.counts['2'];
+  document.getElementById('cntAll').textContent = data.counts['all'];
+  document.getElementById('b-all').textContent = data.counts['all'];
+  document.getElementById('b-0').textContent = data.counts['0'];
+  document.getElementById('b-1').textContent = data.counts['1'];
+  document.getElementById('b-2').textContent = data.counts['2'];
+
+  totalPages = Math.ceil(data.total / data.page_size) || 1;
+  renderPagination();
+
+  if (!data.projects.length) {
+    grid.innerHTML = `<div class="empty">
+      <div class="icon">🌙</div>
+      <p>No projects yet. Run the scraper first.</p>
+    </div>`;
+    return;
+  }
+
+  const freshLabels = ['< 1 month', '1–3 months', '3+ months'];
+  const freshClasses = ['f0', 'f1', 'f2'];
+
+  grid.innerHTML = data.projects.map(p => `
+    <div class="card ${p.is_done ? 'done' : ''}" id="card-${p.id}">
+      ${p.screenshot
+        ? `<img class="cover" src="${p.screenshot}" alt="${escHtml(p.title)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ''}
+      <div class="cover-placeholder" style="${p.screenshot ? 'display:none' : ''}">🖼️</div>
+
+      <div class="card-body">
+        <div class="card-meta">
+          <div class="card-title" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
+          <span class="freshness-pill ${freshClasses[p.bucket]}">${freshLabels[p.bucket]}</span>
+        </div>
+        <div class="card-author">by ${escHtml(p.author)}${p.posted_at ? ' · ' + formatDate(p.posted_at) : ''}</div>
+
+        <div class="comment-block">
+          <div class="comment-text">${escHtml(p.comment || '(no comment yet)')}</div>
+          <button class="copy-btn" id="copy-${p.id}" onclick="copyComment('${p.id}', \`${escapeTpl(p.comment)}\`)">
+            📋 Copy comment
+          </button>
+        </div>
+
+        <div class="card-actions">
+          <a class="btn-visit" href="${escHtml(p.url)}" target="_blank" rel="noopener">
+            Open on Behance ↗
+          </a>
+          <button class="btn-done" onclick="markDone('${p.id}')">
+            ✅ Done
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPagination() {
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  pag.innerHTML = `
+    <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1 ? 'disabled' : ''}>← Prev</button>
+    <span class="page-info">Page ${currentPage} of ${totalPages}</span>
+    <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages ? 'disabled' : ''}>Next →</button>
+  `;
+}
+
+function goPage(p) {
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  loadProjects();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+async function copyComment(id, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById(`copy-${id}`);
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    showToast('Comment copied to clipboard!');
+    setTimeout(() => {
+      btn.textContent = '📋 Copy comment';
+      btn.classList.remove('copied');
+    }, 2000);
+  } catch(e) {
+    showToast('Copy failed — select text manually');
+  }
+}
+
+async function markDone(id) {
+  await fetch(`/api/done/${id}`, {method: 'POST'});
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.style.transition = 'opacity 0.4s, transform 0.4s';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(0.95)';
+    setTimeout(() => card.remove(), 400);
+  }
+  showToast('Marked as done ✅');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeTpl(s) {
+  if (!s) return '';
+  return s.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  try {
+    return new Date(d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  } catch { return d.substring(0, 10); }
+}
+
+// Initial load
+loadProjects();
+// Refresh every 5 min
+setInterval(loadProjects, 300000);
+</script>
+</body>
+</html>
