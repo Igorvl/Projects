@@ -32,12 +32,19 @@ def init_db():
             visual_score     REAL DEFAULT 0.0,        -- оценка Qwen-VL (0..1)
             tags             TEXT,                    -- JSON массив тегов
             generated_comment TEXT,                   -- сгенерированный комментарий
+            comment_ru       TEXT,                    -- русский перевод комментария для интерфейса
             comment_generated_at TEXT,
             shown_at         TEXT,                    -- когда показали дизайнеру
             marked_done_at   TEXT,                    -- когда отметили "сделано"
             is_done          INTEGER DEFAULT 0        -- 0/1
         );
+        """)
+        try:
+            conn.execute("ALTER TABLE projects ADD COLUMN comment_ru TEXT;")
+        except sqlite3.OperationalError:
+            pass # колонка уже есть
 
+        conn.executescript("""
         CREATE TABLE IF NOT EXISTS style_samples (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             project_url TEXT NOT NULL,
@@ -93,13 +100,13 @@ def save_project(data: dict) -> bool:
         return cur.rowcount > 0
 
 
-def update_comment(behance_id: str, comment: str):
+def update_comment(behance_id: str, comment_en: str, comment_ru: str = None):
     with get_conn() as conn:
         conn.execute("""
             UPDATE projects
-            SET generated_comment = ?, comment_generated_at = ?
+            SET generated_comment = ?, comment_ru = ?, comment_generated_at = ?
             WHERE behance_id = ?
-        """, (comment, datetime.utcnow().isoformat(), behance_id))
+        """, (comment_en, comment_ru, datetime.utcnow().isoformat(), behance_id))
 
 
 def update_screenshot(behance_id: str, path: str):

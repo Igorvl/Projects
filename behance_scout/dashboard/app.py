@@ -38,7 +38,8 @@ async def get_projects(bucket: int = -1, page: int = 1):
             "author":      r["author_name"] or "",
             "posted_at":   r["posted_at"] or "",
             "comment":     r["generated_comment"] or "",
-            "screenshot":  f"/screenshots/{r['behance_id']}.png" if r["screenshot_path"] else None,
+            "comment_ru":  r["comment_ru"] or "",
+            "screenshot":  f"/screenshots/{Path(r['screenshot_path']).name}" if r["screenshot_path"] else None,
             "bucket":      r["freshness_bucket"],
             "is_done":     r["is_done"],
         })

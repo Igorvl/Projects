@@ -16,11 +16,20 @@ STYLE_PROFILE_PATH = DATA_DIR / "style_profile.json"
 
 load_dotenv(BASE_DIR / ".env")
 
-# LLM Router (наш ai-router)
-LLM_API_BASE = os.getenv("LLM_API_BASE", "http://172.25.9.33:8000/v1")
-LLM_API_KEY  = os.getenv("LLM_API_KEY", "sk-any")
-VISION_MODEL = os.getenv("VISION_MODEL", "qwen-vision-VL-32B")   # Qwen-VL
-COMMENT_MODEL = os.getenv("COMMENT_MODEL", "GLM_5.1")            # для генерации комментов
+# LLM Router (наш ai-router или SiliconFlow)
+LLM_API_BASE = os.getenv("LLM_API_BASE", "http://172.25.9.33:8000/v1").strip(' "\'')
+LLM_API_KEY  = os.getenv("LLM_API_KEY", os.getenv("SILICONFLOW_API_KEY", "sk-any"))
+if LLM_API_KEY:
+    LLM_API_KEY = LLM_API_KEY.strip(' "\'')
+VISION_MODEL = os.getenv("VISION_MODEL", "qwen-vision-VL-32B").strip(' "\'')   # Для анализа обложек
+COMMENT_MODEL = os.getenv("COMMENT_MODEL", "qwen-vision-VL-32B").strip(' "\'')  # Для анализа всего проекта
+
+# Critic LLM (OpenRouter - Hermes 3 405B, fallback to 70B and Llama 3.3 70B)
+CRITIC_API_BASE = os.getenv("CRITIC_API_BASE", "https://openrouter.ai/api/v1").strip(' "\'')
+CRITIC_API_KEY  = os.getenv("CRITIC_API_KEY", "")
+if CRITIC_API_KEY:
+    CRITIC_API_KEY = CRITIC_API_KEY.strip(' "\'')
+CRITIC_MODEL    = os.getenv("CRITIC_MODEL", "nousresearch/hermes-3-llama-3.1-405b,nousresearch/hermes-3-llama-3.1-70b,meta-llama/llama-3.3-70b-instruct")
 
 # Behance
 TARGET_PROFILE_URL = "https://www.behance.net/kseniyaartman/appreciated"

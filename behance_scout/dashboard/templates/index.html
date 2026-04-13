@@ -396,8 +396,9 @@ async function loadProjects() {
 
         <div class="comment-block">
           <div class="comment-text">${escHtml(p.comment || '(no comment yet)')}</div>
+          ${p.comment_ru ? `<div class="comment-text-ru" style="margin-top: 8px; font-size: 11px; color: #8b8b9b; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-bottom: 8px;">RU: ${escHtml(p.comment_ru)}</div>` : ''}
           <button class="copy-btn" id="copy-${p.id}" onclick="copyComment('${p.id}', \`${escapeTpl(p.comment)}\`)">
-            📋 Copy comment
+            📋 Copy comment (EN)
           </button>
         </div>
 

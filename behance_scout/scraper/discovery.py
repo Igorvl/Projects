@@ -161,21 +161,28 @@ async def _get_project_meta_fast(page: Page, url: str) -> dict:
     return result
 
 
+import httpx
+
 async def _screenshot_project(page: Page, behance_id: str) -> str | None:
-    """Скриншот обложки проекта."""
+    """Скачивает правильную обложку (og:image) вместо кривого скриншота."""
     try:
         path = SCREENSHOTS_DIR / f"{behance_id}.png"
-        # Пробуем найти главное изображение
-        img_el = await page.query_selector(
-            "figure img, "
-            "[class*='Cover'] img, "
-            "[class*='ProjectImage'] img, "
-            "[class*='projectCover'] img"
-        )
-        if img_el:
-            await img_el.screenshot(path=str(path))
+        og_image = await page.get_attribute('meta[property="og:image"]', 'content')
+        
+        if og_image:
+            ext = ".jpg"
+            if ".png" in og_image.lower(): ext = ".png"
+            elif ".webp" in og_image.lower(): ext = ".webp"
+            
+            path = SCREENSHOTS_DIR / f"{behance_id}{ext}"
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+                r = await client.get(og_image)
+                r.raise_for_status()
+                with open(path, 'wb') as f:
+                    f.write(r.content)
         else:
-            # Скриншот верхней части страницы
+            path = SCREENSHOTS_DIR / f"{behance_id}.png"
+            # Запасной вариант - скриншот верхней части страницы
             await page.screenshot(
                 path=str(path),
                 clip={"x": 0, "y": 0, "width": 1440, "height": 560}
@@ -188,7 +195,7 @@ async def _screenshot_project(page: Page, behance_id: str) -> str | None:
 
 async def _search_behance(page: Page, query: str, limit: int = 30) -> list[dict]:
     """Ищет проекты на Behance по запросу."""
-    url = f"{BEHANCE_BASE}/search/projects?search={query.replace(' ', '+')}&sort=publishedDate"
+    url = f"{BEHANCE_BASE}/search/projects?search={query.replace(' ', '+')}&sort=published_date"
     results = []
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=25000)
@@ -322,7 +329,45 @@ async def discover_new_projects(target: int = DAILY_TARGET):
 
             # Скриншот
             screenshot = await _screenshot_project(page, proj["behance_id"])
-            
+            if not screenshot:
+                print("    ⏭  Ошибка скачивания обложки")
+                continue
+
+            # --- СТРОГИЙ ВИЗУАЛЬНЫЙ ФИЛЬТР ЦВЕТОВ ---
+            import base64
+            from config import LLM_API_BASE, LLM_API_KEY, VISION_MODEL
+            try:
+                with open(screenshot, "rb") as f:
+                    b64_img = base64.b64encode(f.read()).decode("utf-8")
+                
+                async with httpx.AsyncClient(timeout=45) as client:
+                    vr = await client.post(
+                        f"{LLM_API_BASE}/chat/completions",
+                        headers={"Authorization": f"Bearer {LLM_API_KEY}"},
+                        json={
+                            "model": VISION_MODEL,
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {"type": "text", "text": "Analyze this design portfolio project cover. We forcefully only allow 4 colors: Black, White, Grey, Orange. If you see ANY other noticeable colors like blue, green, red, pink, purple, or pure yellow, you MUST reply starting with 'REJECT'. If it strictly consists of black, white, grey, and/or orange, reply starting with 'APPROVE'."},
+                                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}}
+                                    ]
+                                }
+                            ],
+                            "max_tokens": 50,
+                            "temperature": 0.1
+                        }
+                    )
+                    vr.raise_for_status()
+                    vision_ans = vr.json()["choices"][0]["message"]["content"].strip().upper()
+                
+                if "REJECT" in vision_ans:
+                    print(f"    ⏭  REJECT по цветам обложки (Разрешено только Ч/Б/Серый/Оранжевый)")
+                    continue
+            except Exception as e:
+                print(f"    [Vision Ошибка] {e}")
+
             # Сохраняем
             is_new = db.save_project(proj)
             if is_new:

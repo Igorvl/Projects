@@ -52,6 +52,9 @@
 *   **Autonomous Self-Healing LLM Gateway (Watchdog v2):** Engineered a production-grade cron-driven watchdog (`model_watchdog.py`) that autonomously monitors 8 LLM models across 4 providers (OpenRouter, SiliconFlow, Gemini, Groq), discovers 85+ free replacements in parallel, and applies intelligent replacement logic: immediate swap on PERMANENT_DEATH signals (deprecated/removed keywords) vs. conservative wait-for-N-consecutive-failures (configurable threshold) for transient rate-limits. Implemented persistent failure history (`model_failures.json`) surviving cron restarts, provider-aware geo-block detection (Groq/Gemini TLS fingerprint blocking), httpx 0.28+ compatibility layer, and SOCKS5/HTTP proxy support for traversing geo-restricted networks. Delivers push notifications via ntfy.sh with per-model verdicts (`[⏳ 1/3]` vs `[🔄 replace]`), preventing both unnecessary config churn from transient outages and prolonged downtime from permanent deprecations.
 
 
+*   **Multimodal AI Pipeline Stabilization & API Obfuscation:** Stabilized a fragile multi-stage AI image analysis pipeline (Behance Scout) suffering from severe API rate-limit cascades and AI classification "hallucinations". Bypassed a broken internal semantic router module by injecting a falsified execution path (history spoofing) directly into the API payload, forcing a 'Fast Path' execution without modifying external service code. Resolved Qwen-VL Unicode corruption (`\u007f`) causing JSON parsing failures via strict Regex sanitization, and engineered automated failovers to specialized free-tier LLM critics to bypass OpenRouter '402 Payment Required' blocks.
+
+
 Выдающиеся профессиональные достижения (Project DNA)
 🤖 AI Infrastructure & Data Pipeline
 
@@ -86,3 +89,5 @@
 Разработка единого центра управления (SPA Dashboard): Спроектировал production-grade интерфейс (vanilla JS + FastAPI + asyncpg) для управления AI-взаимодействиями и медиаконтентом. Быстрый UI без лишних зависимостей и интеграция с объектным хранилищем MinIO радикально ускорили работу дизайн-команды с накопленными артефактами.
 
 Автоматизация ведения документации (AI Summarization): Настроил фоновый процесс, который с помощью LLM сжимает тысячи сырых промптов в актуальную двухуровневую «конституцию» проекта. Бизнес получил самообновляемую базу знаний без малейших затрат человеко-часов на её поддержку.
+
+Стабилизация мультимодальных AI-пайплайнов и Payload Injection: Восстановил отказоустойчивость конвейера анализа графики (Behance Scout), парализованного каскадными сбоями API-лимитов и некорректным семантическим роутингом. Вместо переписывания сломанного микросервиса внутренней маршрутизации, внедрил метод подмены истории (history spoofing) прямо в API-payload, заставив роутер пойти по 'Fast Path' алгоритму. Устранил падения JSON-парсеров из-за скрытых юникод-символов (`\u007f`), генерируемых VLM-моделями, через строгую Regex-стерилизацию. Внедрил фолбэк-цепи бесплатных специализированных моделей, обойдя жесткие финансовые блокировки OpenRouter (402 Payment Required).

@@ -103,20 +103,29 @@ async def _get_project_meta(page: Page, project_url: str) -> dict:
     return result
 
 
+import httpx
+
 async def _screenshot_cover(page: Page, project_url: str, behance_id: str) -> str | None:
-    """Скриншот обложки проекта."""
+    """Скачивает правильную обложку (og:image) вместо кривого скриншота."""
     try:
-        cover_el = await page.query_selector(
-            "figure img, [class*='Cover'] img, [class*='ProjectCoverImage'] img"
-        )
-        if not cover_el:
-            # Скриншот всего вьюпорта
-            path = SCREENSHOTS_DIR / f"{behance_id}.png"
-            await page.screenshot(path=str(path), clip={"x": 0, "y": 0, "width": 1440, "height": 600})
+        og_image = await page.get_attribute('meta[property="og:image"]', 'content')
+        
+        if og_image:
+            ext = ".jpg"
+            if ".png" in og_image.lower(): ext = ".png"
+            elif ".webp" in og_image.lower(): ext = ".webp"
+            
+            path = SCREENSHOTS_DIR / f"{behance_id}{ext}"
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+                r = await client.get(og_image)
+                r.raise_for_status()
+                with open(path, 'wb') as f:
+                    f.write(r.content)
         else:
             path = SCREENSHOTS_DIR / f"{behance_id}.png"
-            await cover_el.screenshot(path=str(path))
-        db.update_screenshot(behance_id, str(path))
+            # Запасной вариант - скриншот всего вьюпорта
+            await page.screenshot(path=str(path), clip={"x": 0, "y": 0, "width": 1440, "height": 600})
+            
         return str(path)
     except Exception as e:
         print(f"    [screenshot] Ошибка: {e}")
