@@ -9,10 +9,10 @@
 **Текущая задача:** Успешно завершена стабилизация конвейера **Behance Scout** (Автономный мультимодальный агент-куратор). Сейчас находимся в фазе перехода к новым бэклог-задачам (MLOps-инфраструктура, мониторинг, бэкапы n8n).
 
 **Последние 5 архитектурных изменений:**
-1. **Semantic Auto-Router Fast-Path Bypass:** Из-за rate-лимитов `openrouter/openai/gpt-oss-120b:free` в микросервисе роутера, генерация комментариев прерывалась UI-заглушкой `DNA_PICKER`. Вместо переделки роутера мы написали **API Payload Injection** (`{"role": "assistant", "content": "<!-- DNA_PICKER --> Система DNA"}` -> `{"role": "user", "content": "1"}`), заставив роутер идти по `Fast Path` и пропускать LLM-классификацию.
-2. **Qwen-VL Unicode Sanitization:** Модели VLM возвращали грязные символы (`\u007f`), роняющие Python JSON parser. Добавлена жесткая Regex стерилизация до `json.loads`.
-3. **Critic Model Failover:** OpenRouter отдавал `402 Payment Required` на платные модели. Внедрен автоматический fallback на `google/gemini-2.5-flash:free` и `meta-llama/llama-3.3-70b-instruct:free`.
-4. **Persona (Ksenia 'Dark Luxury'):** Вычищены все AI-измы ("masterful balance", "seamless geometry"), настроен строгий промпт для генерации живых, человечных комментариев в стиле арт-директора с лимитом `max_tokens: 1200`.
+1. **Persona (Ksenia 'Dark Luxury') via Few-Shot RAG:** Арт-директорская персона теперь строго контролируется за счет динамической выгрузки 48 реальных комментариев Ксении из SQLite и их инъекции (few-shot) напрямую в системный промпт VLM-критика (`analysis/comment_gen.py`).
+2. **Geo-Block Evasion (SOCKS5 in httpx):** Из-за блокировок бесплатных API по geo-IP (Gemini, Groq, OpenRouter), в асинхронный клиент `httpx` интегрирована прозрачная поддержка SOCKS5 (`WATCHDOG_PROXY`). Это позволяет изолированно проксировать LLM-трафик, не ломая нативные сетевые функции Playwright.
+3. **Critic Model Failover:** OpenRouter отдавал `402 Payment Required` на платные модели. Внедрен автоматический fallback на `google/gemini-2.5-flash:free` и прямые API (включая SiliconFlow и ZhipuAI).
+4. **Qwen-VL Unicode Sanitization:** Модели VLM возвращали грязные символы (`\u007f`), роняющие Python JSON parser. Добавлена жесткая Regex стерилизация до `json.loads`.
 5. **Database Cleansing Scripts:** Написаны целевые Python/SQLite скрипты для точечного обнуления только сломанных комментариев (hex-дампов и застрявших JSON-строк) с игнорированием сложных bash-escaping проблем.
 
 **Список активных (переходящих) задач и багов:**

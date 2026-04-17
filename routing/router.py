@@ -1103,7 +1103,7 @@ async def call_with_key_rotation(mid, messages, api_key_env, api_base, stream):
                 api_key=key,
                 api_base=api_base,
                 stream=stream,
-                timeout=15
+                timeout=90
             )
 
             if stream:

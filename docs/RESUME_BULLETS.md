@@ -54,6 +54,9 @@
 
 *   **Multimodal AI Pipeline Stabilization & API Obfuscation:** Stabilized a fragile multi-stage AI image analysis pipeline (Behance Scout) suffering from severe API rate-limit cascades and AI classification "hallucinations". Bypassed a broken internal semantic router module by injecting a falsified execution path (history spoofing) directly into the API payload, forcing a 'Fast Path' execution without modifying external service code. Resolved Qwen-VL Unicode corruption (`\u007f`) causing JSON parsing failures via strict Regex sanitization, and engineered automated failovers to specialized free-tier LLM critics to bypass OpenRouter '402 Payment Required' blocks.
 
+*   **Dynamic Few-Shot RAG for LLM Personas:** Engineered an automated style-matching pipeline by pulling a live rotating database of 48 human-written Ksenia Artman comments from SQLite, dynamically injecting them as few-shot examples into the VLM Critic prompt. This strictly enforced a specialized "Dark Luxury Art Director" persona, permanently eliminating generic AI-isms without fine-tuning.
+
+*   **Geo-Block Evasion via Transparent SOCKS5 Proxying:** Bypassed restrictive US/EU API geographic blocking regimes on free-tier LLMs (Groq, Gemini) by engineering a transparent SOCKS5 overlay (`socksio`) integrated directly into the async Python `httpx` client execution context, allowing unmodified Docker and CI/CD operations (e.g. Playwright) to run uninterrupted while targeted LLM network traffic was securely routed globally.
 
 Выдающиеся профессиональные достижения (Project DNA)
 🤖 AI Infrastructure & Data Pipeline
@@ -91,3 +94,7 @@
 Автоматизация ведения документации (AI Summarization): Настроил фоновый процесс, который с помощью LLM сжимает тысячи сырых промптов в актуальную двухуровневую «конституцию» проекта. Бизнес получил самообновляемую базу знаний без малейших затрат человеко-часов на её поддержку.
 
 Стабилизация мультимодальных AI-пайплайнов и Payload Injection: Восстановил отказоустойчивость конвейера анализа графики (Behance Scout), парализованного каскадными сбоями API-лимитов и некорректным семантическим роутингом. Вместо переписывания сломанного микросервиса внутренней маршрутизации, внедрил метод подмены истории (history spoofing) прямо в API-payload, заставив роутер пойти по 'Fast Path' алгоритму. Устранил падения JSON-парсеров из-за скрытых юникод-символов (`\u007f`), генерируемых VLM-моделями, через строгую Regex-стерилизацию. Внедрил фолбэк-цепи бесплатных специализированных моделей, обойдя жесткие финансовые блокировки OpenRouter (402 Payment Required).
+	
+Динамический Few-Shot RAG для AI-Персон: Разработал автоматизированный пайплайн переноса авторского стиля, который подтягивает 48 реальных комментариев арт-директора из SQLite и динамически инжектирует их как few-shot примеры в системный промпт VLM-критика. Это позволило жестко зафиксировать сложную спецификацию "Dark Luxury" persona и вычистить все узнаваемые AI-шаблоны без необходимости сложного (и дорогого) fine-tuning моделей.
+
+Обход Geo-блокировок через инъекцию SOCKS5: Успешно обошел строгие географические блокировки западных API (Groq, Gemini, OpenRouter) на бесплатные модели путем прозрачной интеграции SOCKS5 прокси (`socksio`) напрямую в асинхронный контекст `httpx` клиента. Архитектура разработана так, что целевой LLM-трафик идет через защищенный туннель, а браузер Playwright и CI/CD пайплайны работают с локального IP, исключая риск конфликтов на уровне proxy-серверов или падения сетевого стека Docker.
