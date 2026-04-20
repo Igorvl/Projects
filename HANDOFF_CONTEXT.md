@@ -10,7 +10,7 @@
 
 **Последние 5 архитектурных изменений:**
 1. **Persona (Ksenia 'Dark Luxury') via Few-Shot RAG:** Арт-директорская персона теперь строго контролируется за счет динамической выгрузки 48 реальных комментариев Ксении из SQLite и их инъекции (few-shot) напрямую в системный промпт VLM-критика (`analysis/comment_gen.py`).
-2. **Geo-Block Evasion (SOCKS5 in httpx):** Из-за блокировок бесплатных API по geo-IP (Gemini, Groq, OpenRouter), в асинхронный клиент `httpx` интегрирована прозрачная поддержка SOCKS5 (`WATCHDOG_PROXY`). Это позволяет изолированно проксировать LLM-трафик, не ломая нативные сетевые функции Playwright.
+2. **Geo-Block Evasion & VPN Proxy Migration:** Успешно осуществлен переезд на финский VPS (`fin.igorvl.ru`) с современным транспортным протоколом VLESS + XHTTP. Нативная служба `xray-core` на Ubuntu-хосте проксирует SOCKS5/HTTP трафик (`10808`/`10809`) сквозь `host.docker.internal` прямо в Docker-контейнеры. Это решает блокировки API AI-провайдеров (Gemini, Groq) по Geo-IP.
 3. **Critic Model Failover:** OpenRouter отдавал `402 Payment Required` на платные модели. Внедрен автоматический fallback на `google/gemini-2.5-flash:free` и прямые API (включая SiliconFlow и ZhipuAI).
 4. **Qwen-VL Unicode Sanitization:** Модели VLM возвращали грязные символы (`\u007f`), роняющие Python JSON parser. Добавлена жесткая Regex стерилизация до `json.loads`.
 5. **Database Cleansing Scripts:** Написаны целевые Python/SQLite скрипты для точечного обнуления только сломанных комментариев (hex-дампов и застрявших JSON-строк) с игнорированием сложных bash-escaping проблем.

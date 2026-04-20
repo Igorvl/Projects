@@ -58,6 +58,8 @@
 
 *   **Geo-Block Evasion via Transparent SOCKS5 Proxying:** Bypassed restrictive US/EU API geographic blocking regimes on free-tier LLMs (Groq, Gemini) by engineering a transparent SOCKS5 overlay (`socksio`) integrated directly into the async Python `httpx` client execution context, allowing unmodified Docker and CI/CD operations (e.g. Playwright) to run uninterrupted while targeted LLM network traffic was securely routed globally.
 
+*   **Resilient Geo-Evasion & Server-Level Split Tunneling:** Designed and deployed a robust double-hop VLESS+XHTTP proxy relay chain (Russia → Finland) to systematically bypass DPI (Deep Packet Inspection) and active probing. Engineered native Xray-core split-tunneling at the perimeter gateway to dynamically route domestic Russian traffic/domains directly without tunneling overhead, preserving local latency and completely neutralizing captcha interruptions, while simultaneously encapsulating international LLM/API requests through the secure European tunnel.
+
 Выдающиеся профессиональные достижения (Project DNA)
 🤖 AI Infrastructure & Data Pipeline
 
@@ -98,3 +100,5 @@
 Динамический Few-Shot RAG для AI-Персон: Разработал автоматизированный пайплайн переноса авторского стиля, который подтягивает 48 реальных комментариев арт-директора из SQLite и динамически инжектирует их как few-shot примеры в системный промпт VLM-критика. Это позволило жестко зафиксировать сложную спецификацию "Dark Luxury" persona и вычистить все узнаваемые AI-шаблоны без необходимости сложного (и дорогого) fine-tuning моделей.
 
 Обход Geo-блокировок через инъекцию SOCKS5: Успешно обошел строгие географические блокировки западных API (Groq, Gemini, OpenRouter) на бесплатные модели путем прозрачной интеграции SOCKS5 прокси (`socksio`) напрямую в асинхронный контекст `httpx` клиента. Архитектура разработана так, что целевой LLM-трафик идет через защищенный туннель, а браузер Playwright и CI/CD пайплайны работают с локального IP, исключая риск конфликтов на уровне proxy-серверов или падения сетевого стека Docker.
+
+Отказоустойчивая архитектура обхода DPI и Сплит-Туннелинг: Спроектировал и развернул надежную двухэтапную прокси-цепочку Double-Hop (Россия → Финляндия) на базе протокола VLESS+XHTTP для системного обхода глубокого анализа пакетов (DPI) и сканеров РКН. Внедрил алгоритмы Split-Tunneling (раздельного туннелирования) на уровне пограничного шлюза (Xray-core), что обеспечивает мгновенную локальную маршрутизацию российских доменов без туннелирования (сохраняя пинг и избавляя от капчи), с одновременным прозрачным шифрованием международных API-маршрутов для LLM.
