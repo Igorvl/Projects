@@ -802,19 +802,20 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
             tags=["warning", "robot"]
         )
 
-    if new_free_models:
+    # Шлем сводку по новинкам только днем, раз в сутки
+    if new_free_models and (10 <= datetime.now().hour <= 16):
         top = new_free_models[:5]
         lines = [f"📅 {ts}", f"Найдено {len(new_free_models)} новых free моделей:", ""]
         for fm in top:
-            lines.append(f"🆕 {fm['id']} (ctx: {fm['ctx']//1000}k)")
+            lines.append(f"🆕 [{fm['provider']}] {fm['id']} (ctx: {fm['ctx']//1000}k)")
         if len(new_free_models) > 5:
             lines.append(f"... и ещё {len(new_free_models) - 5} моделей")
-        lines.append("\nЗапусти model_watchdog.py для проверки живости.")
+        
         await send_ntfy(
-            title=f"DNA Router: {len(new_free_models)} new free models on OpenRouter",
+            title=f"DNA Discovery: {len(new_free_models)} новых бесплатных моделей",
             msg="\n".join(lines),
-            priority="low",
-            tags=["tada", "robot"]
+            priority="default",
+            tags=["sparkles", "robot"]
         )
 
     # ── ФИНАЛ ─────────────────────────────────────────────────────────────────
