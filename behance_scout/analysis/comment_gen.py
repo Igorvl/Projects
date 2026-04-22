@@ -191,10 +191,9 @@ async def generate_comment(
     for b64 in b64_images:
         content_list.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
 
-    # Stage 1 идёт НАПРЯМУЮ в SiliconFlow (минуя DNA-роутер)
-    # Причина: DNA-роутер имеет таймаут 15s на Qwen-VL, vision-запросы занимают ~47s → 502
-    vision_key_preview = f"{VISION_API_KEY[:8]}...{VISION_API_KEY[-4:]}" if len(VISION_API_KEY) > 12 else "(не задан!)"
-    print(f"      [Stage 1] Direct API: {VISION_API_BASE} | model: {VISION_MODEL_DIRECT} | key: {vision_key_preview}")
+    vision_models = [m.strip() for m in VISION_MODEL_DIRECT.split(",") if m.strip()]
+    draft_json = None
+    used_vision_model = "None"
     
     import os
     proxy_url = os.getenv("HTTPS_PROXY") or os.getenv("WATCHDOG_PROXY")
@@ -204,49 +203,55 @@ async def generate_comment(
 
     try:
         async with httpx.AsyncClient(timeout=60, **client_kwargs) as client:
-            # Stage 1: Generator (VLM) — ПРЯМОЙ вызов без DNA Payload Injection
-            r1 = await client.post(
-                f"{VISION_API_BASE}/chat/completions",
-                headers={"Authorization": f"Bearer {VISION_API_KEY}"},
-                json={
-                    "model": VISION_MODEL_DIRECT,
-                    "messages": [
-                        {"role": "user", "content": content_list}
-                    ],
-                    "max_tokens": 450,
-                    "temperature": 0.5
-                }
-            )
-            if r1.status_code >= 400:
-                print(f"      [API ERROR] {r1.status_code}: {r1.text}")
-            r1.raise_for_status()
-            try:
-                data = r1.json()
-                draft_text = data["choices"][0]["message"]["content"].strip()
-            except Exception as e:
-                print(f"      [JSON Parse Error] Server returned 200 OK but body is not JSON. Body: '{r1.text}'")
+            # Stage 1: Generator (VLM) — ПРЯМОЙ вызов с Fallback каскадом
+            for v_model in vision_models:
+                print(f"      [Stage 1] Пробуем Vision: {v_model}")
+                try:
+                    r1 = await client.post(
+                        f"{VISION_API_BASE}/chat/completions",
+                        headers={"Authorization": f"Bearer {VISION_API_KEY}"},
+                        json={
+                            "model": v_model,
+                            "messages": [{"role": "user", "content": content_list}],
+                            "max_tokens": 450,
+                            "temperature": 0.5
+                        }
+                    )
+                    r1.raise_for_status()
+                    data = r1.json()
+                    draft_text = data["choices"][0]["message"]["content"].strip()
+                    
+                    # Очистка мусора от Qwen
+                    cleaned_draft_text = draft_text.strip("` \n").replace("json\n", "", 1)
+                    import re
+                    cleaned_draft_text = re.sub(r'[\x00-\x1f\x7f]', '', cleaned_draft_text)
+                    draft_json = json.loads(cleaned_draft_text)
+                    used_vision_model = v_model
+                    
+                    # Структурированный вывод
+                    if "analysis" in draft_json:
+                        analysis = draft_json["analysis"]
+                        print(f"")
+                        print(f"      ┌─ Что VLM ({v_model.split('/')[-1]}) понял о проекте:")
+                        print(f"      │  {analysis.get('project_type_ru') or analysis.get('project_type', '?')}")
+                        print(f"      │")
+                        print(f"      │  Сильные стороны:")
+                        print(f"      │  {analysis.get('strengths_ru') or analysis.get('strengths', '?')}")
+                        print(f"      └────────────────────────────────")
+                    
+                    break # Успех, выходим из каскада
+                    
+                except json.JSONDecodeError:
+                    print(f"      [Vision Warn] Модель {v_model} не вернула JSON, падаем на fallback")
+                    continue
+                except Exception as e:
+                    status = getattr(getattr(e, 'response', None), 'status_code', '?')
+                    print(f"      [Vision Warning] {v_model} — HTTP {status}: {str(e)[:120]}")
+                    continue
+
+            if not draft_json:
+                print("      [Vision Error] Все бесплатные Vision-модели недоступны или исчерпаны лимиты.")
                 return None
-            
-            # Очистка и парсинг ответа Stage 1
-            try:
-                # Очистка мусора от Qwen: убираем юникод-глюки (например, \x7f / DEL)
-                cleaned_draft_text = draft_text.strip("` \n").replace("json\n", "", 1)
-                import re
-                cleaned_draft_text = re.sub(r'[\x00-\x1f\x7f]', '', cleaned_draft_text)
-                draft_json = json.loads(cleaned_draft_text)
-                # Структурированный вывод анализа VLM (на русском)
-                if "analysis" in draft_json:
-                    analysis = draft_json["analysis"]
-                    print(f"")
-                    print(f"      ┌─ Что VLM понял о проекте:")
-                    print(f"      │  {analysis.get('project_type_ru') or analysis.get('project_type', '?')}")
-                    print(f"      │")
-                    print(f"      │  Сильные стороны:")
-                    print(f"      │  {analysis.get('strengths_ru') or analysis.get('strengths', '?')}")
-                    print(f"      └────────────────────────────────")
-            except json.JSONDecodeError:
-                print(f"      [JSON Parse Warn] Stage 1 не вернул валидный JSON, fallback к сырому тексту")
-                draft_json = {"en": draft_text, "ru": "Translation failed"}
 
             # Stage 2: Critic (DeepSeek-V3.2 @ SiliconFlow — тот же провайдер что Stage 1)
             # Динамически загружаем реальные комментарии Ксении для few-shot
@@ -263,10 +268,12 @@ async def generate_comment(
             if VISION_API_KEY:
                 critic_models = [m.strip() for m in CRITIC_MODEL.split(",") if m.strip()]
                 final_json = draft_json
+                used_critic_model = "None"
                 success = False
 
                 for c_model in critic_models:
                     if success: break
+                    print(f"      [Stage 2] Пробуем Critic: {c_model}")
                     try:
                         r2 = await client.post(
                             f"{CRITIC_API_BASE}/chat/completions",
@@ -290,6 +297,8 @@ async def generate_comment(
                         except json.JSONDecodeError:
                             # fallback if JSON is broken
                             final_json["en"] = raw_final
+                        
+                        used_critic_model = c_model
                         success = True
                     except Exception as e:
                         status = getattr(getattr(e, 'response', None), 'status_code', '?')
@@ -297,11 +306,13 @@ async def generate_comment(
                         continue
             else:
                 final_json = draft_json
+                used_critic_model = "Skipped"
                 
         # Сохранение результатов
         en = final_json.get("en", "").strip('"').strip("'").strip()
         ru = final_json.get("ru", "").strip('"').strip("'").strip()
         print(f"")
+        print(f"      ✅ [СИСТЕМА] Выбор моделей: VLM: [{used_vision_model.split('/')[-1]}] | Critic: [{used_critic_model.split('/')[-1]}]")
         print(f"      ► EN: {en}")
         print(f"      ► RU: {ru}")
         print(f"")

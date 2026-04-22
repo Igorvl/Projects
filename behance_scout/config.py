@@ -32,7 +32,7 @@ VISION_API_KEY    = os.getenv("VISION_API_KEY",
     os.getenv("SILICONFLOW_API_KEY",
     os.getenv("CRITIC_API_KEY",        # OpenRouter ключ — если переключились на OR для vision
     os.getenv("LLM_API_KEY", "")))).strip(' "\'')
-VISION_MODEL_DIRECT = os.getenv("VISION_MODEL_DIRECT", "Qwen/Qwen3-VL-32B-Instruct").strip(' "\'')
+VISION_MODEL_DIRECT = os.getenv("VISION_MODEL_DIRECT", "Qwen/Qwen3-VL-32B-Instruct,Qwen/Qwen2.5-VL-72B-Instruct,OpenGVLab/InternVL2-Llama3-76B").strip(' "\'')
 
 # Critic LLM — НАПРЯМУЮ SiliconFlow (тот же провайдер что и Stage 1)
 # DeepSeek-V3.2 — быстрый текстовый модель, отлично редактирует текст (deepseek-ai/DeepSeek-V3.2 в antigravity.json)
