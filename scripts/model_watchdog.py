@@ -802,21 +802,30 @@ async def main(auto_replace: bool = False, dry_run: bool = False):
             tags=["warning", "robot"]
         )
 
-    # Шлем сводку по новинкам только днем, раз в сутки
-    if new_free_models and (10 <= datetime.now().hour <= 16):
-        top = new_free_models[:5]
-        lines = [f"📅 {ts}", f"Найдено {len(new_free_models)} новых free моделей:", ""]
-        for fm in top:
-            lines.append(f"🆕 [{fm['provider']}] {fm['id']} (ctx: {fm['ctx']//1000}k)")
-        if len(new_free_models) > 5:
-            lines.append(f"... и ещё {len(new_free_models) - 5} моделей")
-        
-        await send_ntfy(
-            title=f"DNA Discovery: {len(new_free_models)} новых бесплатных моделей",
-            msg="\n".join(lines),
-            priority="default",
-            tags=["sparkles", "robot"]
-        )
+    # Шлем сводку по новинкам только днем, раз в сутки (Heartbeat)
+    if 10 <= datetime.now().hour <= 16:
+        if new_free_models:
+            top = new_free_models[:5]
+            lines = [f"📅 {ts}", f"Найдено {len(new_free_models)} новых free моделей:", ""]
+            for fm in top:
+                lines.append(f"🆕 [{fm['provider']}] {fm['id']} (ctx: {fm['ctx']//1000}k)")
+            if len(new_free_models) > 5:
+                lines.append(f"... и ещё {len(new_free_models) - 5} моделей")
+            
+            await send_ntfy(
+                title=f"DNA Discovery: {len(new_free_models)} новых бесплатных моделей",
+                msg="\n".join(lines),
+                priority="default",
+                tags=["sparkles", "robot"]
+            )
+        else:
+            # Heartbeat, чтобы ты знал, что крон жив
+            await send_ntfy(
+                title=f"DNA Watchdog: Всё стабильно",
+                msg=f"📅 {ts}\nРынок проверен. Новых бесплатных моделей за сутки не появилось.\nПроблемных моделей в конфиге: {len(problem_models)}",
+                priority="low",
+                tags=["eyes", "robot"]
+            )
 
     # ── ФИНАЛ ─────────────────────────────────────────────────────────────────
     print(f"\n{'='*60}")
