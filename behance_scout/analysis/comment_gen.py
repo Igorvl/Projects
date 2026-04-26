@@ -246,7 +246,7 @@ async def generate_comment(
                     continue
                 except Exception as e:
                     status = getattr(getattr(e, 'response', None), 'status_code', '?')
-                    print(f"      [Vision Warning] {v_model} — HTTP {status}: {str(e)[:120]}")
+                    print(f"      [Vision Warning] {v_model} — HTTP {status}: {repr(e)[:150]}")
                     continue
 
             if not draft_json:
@@ -302,7 +302,7 @@ async def generate_comment(
                         success = True
                     except Exception as e:
                         status = getattr(getattr(e, 'response', None), 'status_code', '?')
-                        print(f"      [Critic Warning] {c_model} — HTTP {status}: {str(e)[:120]}")
+                        print(f"      [Critic Warning] {c_model} — HTTP {status}: {repr(e)[:150]}")
                         continue
             else:
                 final_json = draft_json
