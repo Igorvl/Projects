@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strips Pro Gen — Behance Scout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', sans-serif; }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: #050608; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #23262e; border-radius: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c8aa6e; }
+  input[type=range] { accent-color: #c8aa6e; }
+  input[type=checkbox] { accent-color: #c8aa6e; cursor: pointer; }
+  #root { height: 100vh; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#050608;color:#c8aa6e;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;font-family:sans-serif;">
+    Загрузка Strips Pro Gen...
+  </div>
+</div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+const CATEGORIES = {
+  1: {
+    title: '1. ШКОЛА ДИЗАЙНА',
+    items: [
+      { id: 1, short: 'Post-Swiss Brutalism', val: 'Post-Swiss Typographic Brutalism' },
+      { id: 2, short: 'Alchemical Brutalism', val: 'Curated Alchemical Brutalism' },
+      { id: 3, short: 'Tokyo Avant-Garde', val: 'Tokyo Avant-Garde Grid' },
+      { id: 4, short: 'Monolithic Arch', val: 'Monolithic Information Architecture' },
+      { id: 5, short: 'Kinetic Data', val: 'Kinetic Data Mapping' },
+      { id: 6, short: 'Clinical Transhumanism', val: 'Clinical Transhumanism' },
+      { id: 7, short: 'Systemic Constructivism', val: 'Systemic Constructivism' },
+      { id: 8, short: 'Haute Viticulture', val: 'Haute Viticulture Typographic' },
+      { id: 9, short: 'Aero-Brutalism', val: 'Aerospace Data Brutalism' },
+      { id: 10, short: 'Optical Supremacy', val: 'Optical Supremacy Minimalism' },
+      { id: 11, short: 'Structural Brutalism', val: 'Structural Concrete Brutalism' },
+      { id: 12, short: 'Tactile Dissonance', val: 'Tactile Dissonance Fashion Tech' },
+      { id: 13, short: 'Pressure Metrics', val: 'Deep Sea Pressure Metrics' },
+      { id: 14, short: 'Financial Cybernetics', val: 'High-Frequency Financial Cybernetics' },
+      { id: 15, short: 'Thermal Industrial', val: 'Thermal Fusion Industrial' },
+      { id: 16, short: 'Cryptographic Grid', val: 'Zero-Day Cryptographic Grid' },
+      { id: 17, short: 'Aerodynamic Stealth', val: 'Aerodynamic Stealth Automotive' },
+      { id: 18, short: 'Olfactory Brutalism', val: 'Molecular Olfactory Brutalism' },
+      { id: 19, short: 'Clinical Synthesis', val: 'Clinical Genomics Synthesis' },
+      { id: 20, short: 'Nano-Topography', val: 'Carbon Nano-Topography' },
+      { id: 21, short: 'Subsurface Topology', val: 'Subsurface Material Topology' },
+      { id: 22, short: 'Acoustic Metamaterials', val: 'Acoustic Metamaterial Aesthetics' },
+      { id: 23, short: 'Neural Brutalism', val: 'Generative Neural Brutalism' },
+      { id: 24, short: 'Orbital Brutalism', val: 'Orbital Infrastructure Brutalism' },
+      { id: 25, short: 'Deep-Core Logistics', val: 'Deep-Core Geological Logistics' },
+      { id: 26, short: 'Forensic Minimal', val: 'Clinical Forensic Minimalism' },
+      { id: 27, short: 'Algorithmic Atrophy', val: 'Algorithmic Data Atrophy' },
+      { id: 28, short: 'Hypersonic Aero', val: 'Hypersonic Aerodynamic Grid' },
+      { id: 29, short: 'Isotopic Architecture', val: 'Isotopic Decay Architecture' },
+      { id: 30, short: 'Synaptic Interface', val: 'Synaptic Interface Design' },
+      { id: 31, short: 'Quantum Encryption', val: 'Quantum Encryption Typography' },
+      { id: 32, short: 'Tectonic Deconstruction', val: 'Tectonic Plate Deconstruction' },
+      { id: 33, short: 'Biomimetic Exo-Form', val: 'Biomimetic Exo-Skeleton Structure' },
+      { id: 34, short: 'Cryogenic Preservation', val: 'Sterile Cryogenic Preservation' },
+      { id: 35, short: 'Ballistic Trajectory', val: 'Ballistic Trajectory Mapping' },
+      { id: 36, short: 'Geothermal Brutalism', val: 'Geothermal Extraction Brutalism' },
+      { id: 37, short: 'Cybernetic Typo', val: 'Cybernetic Kinetic Typography' },
+      { id: 38, short: 'Synthetic Cartography', val: 'Synthetic Void Cartography' },
+      { id: 39, short: 'Void-Space Grid', val: 'Absolute Void-Space Architecture' },
+      { id: 40, short: 'Radiographic Minimal', val: 'Radiographic X-Ray Minimalism' },
+      { id: 41, short: 'Bauhaus Grid', val: 'Strict Swiss Bauhaus Grid Typographic' },
+      { id: 42, short: 'Dieter Rams Ind.', val: 'Dieter Rams Functionalist Braun Design' },
+      { id: 43, short: 'Massimo Vignelli', val: 'Massimo Vignelli NYC Subway Modernism' },
+      { id: 44, short: 'Wim Crouwel Arch', val: 'Wim Crouwel Archival Brutalism' },
+      { id: 45, short: 'Muller-Brockmann', val: 'Josef Muller-Brockmann Objective Grid' },
+      { id: 46, short: 'Ulm School', val: 'Ulm School of Design Methodological' },
+      { id: 47, short: 'Metabolist Arch', val: 'Japanese Metabolism Architectural School' },
+      { id: 48, short: 'Tadao Ando Conc.', val: 'Tadao Ando Raw Concrete Spatial' },
+      { id: 49, short: 'Zaha Hadid Dyn.', val: 'Zaha Hadid Brutalist Light Dynamics' },
+      { id: 50, short: 'Carlo Scarpa', val: 'Carlo Scarpa Detail-Oriented Modernism' }
+    ]
+  },
+  2: {
+    title: '2. ЭСТЕТИКА ДНК',
+    items: [
+      { id: 1, short: 'Часовое Искусство', val: 'Haute Horlogerie elegance' },
+      { id: 2, short: 'Данные и Логистика', val: 'Brutalist Data-Logistics' },
+      { id: 3, short: 'Хирургическая Сталь', val: 'Surgical Stainless Steel tools' },
+      { id: 4, short: 'Биохакинг Кибернетика', val: 'Biohacking Cybernetics' },
+      { id: 5, short: 'Мишленовская Подача', val: 'Michelin Star Plating' },
+      { id: 6, short: 'Кулинарная Алхимия', val: 'Culinary Alchemy Data' },
+      { id: 7, short: 'Винные Погреба', val: 'Grand Cru Wine Cellars' },
+      { id: 8, short: 'Синтетическая Логистика', val: 'Synthetic Logistics' },
+      { id: 9, short: 'Орбитальный Космос', val: 'Orbital Aerospace Engineering' },
+      { id: 10, short: 'Скрытая Роскошь', val: 'Stealth Luxury' },
+      { id: 11, short: 'Бетонная Архитектура', val: 'Concrete Architecture' },
+      { id: 12, short: 'Авангардная Мода', val: 'Avant-Garde Haute Couture' },
+      { id: 13, short: 'Квантовая Лаборатория', val: 'Sterile Quantum Laboratory' },
+      { id: 14, short: 'Управление Капиталом', val: 'Old Money Wealth Management' },
+      { id: 15, short: 'Телеметрия Ф1', val: 'F1 Carbon Telemetry' },
+      { id: 16, short: 'Упаковка Парфюмерии', val: 'Niche Perfume Packaging' },
+      { id: 17, short: 'Глубоководные Батискафы', val: 'Abyssal Submersibles' },
+      { id: 18, short: 'Криптографическая Защита', val: 'Cryptographic Security' },
+      { id: 19, short: 'Тяжелая Металлургия', val: 'Heavy Smelting Industry' },
+      { id: 20, short: 'Галерейное Искусство', val: 'High-End Art Gallery Curation' },
+      { id: 21, short: 'Титановые Хранилища', val: 'Titanium Bank Vaults' },
+      { id: 22, short: 'Секвенирование ДНК', val: 'DNA Sequencing Biotech' },
+      { id: 23, short: 'Оптические Линзы', val: 'Precision Optical Lenses' },
+      { id: 24, short: 'Складская Логистика', val: 'Warehouse Logistics' },
+      { id: 25, short: 'Клиническая Форензика', val: 'Clinical Forensics Lab' },
+      { id: 26, short: 'Айдентика Люкса', val: 'Luxury Brand Identity' },
+      { id: 27, short: 'Аналоговый Винил', val: 'Analog Vinyl Pressing' },
+      { id: 28, short: 'Нейронные Сети', val: 'Neural Network Data' },
+      { id: 29, short: 'Авионика Кокпита', val: 'Cockpit Avionics Interfaces' },
+      { id: 30, short: 'Подиумная Мода', val: 'Runway Fashion' },
+      { id: 31, short: 'Серверные Стойки', val: 'High-Density Server Racks' },
+      { id: 32, short: 'Классическая Архитектура', val: 'Classical Architecture' },
+      { id: 33, short: 'Интерфейс Радара', val: 'Military Radar UI' },
+      { id: 34, short: 'Молекулярная Гастрономия', val: 'Molecular Gastronomy' },
+      { id: 35, short: 'Индустриальные Роботы', val: 'Industrial Robotics' },
+      { id: 36, short: 'Изобразительное Искусство', val: 'Fine Art Printmaking' },
+      { id: 37, short: 'Акустическая Камера', val: 'Anechoic Chamber Acoustics' },
+      { id: 38, short: 'Прецизионное Оружие', val: 'Precision Weaponry' },
+      { id: 39, short: 'Абсолютный Нуль', val: 'Absolute Zero Cryogenics' },
+      { id: 40, short: 'Скелетон Механизмы', val: 'Skeleton Watchmaking' },
+      { id: 41, short: 'Физика Материалов', val: 'Advanced Physics of Materials' },
+      { id: 42, short: 'Подповерхностные Ткани', val: 'Subsurface Biological Tissues' },
+      { id: 43, short: 'Семиологические Данные', val: 'Semiologic Hidden Narratives' },
+      { id: 44, short: 'Кинетическая Тяга', val: 'Aerospace Kinetic Propulsion' },
+      { id: 45, short: 'Структурная Целостность', val: 'Structural Integrity Testing' },
+      { id: 46, short: 'Анатомическая Инженерия', val: 'Clinical Anatomical Engineering' },
+      { id: 47, short: 'Глубокий Ресерч', val: 'Deep Scientific Research Data' },
+      { id: 48, short: 'Акустическая Левитация', val: 'Sonic Acoustic Levitation' },
+      { id: 49, short: 'Захват Углерода', val: 'Carbon Capture Technologies' },
+      { id: 50, short: 'Гидропонная Ботаника', val: 'Sterile Hydroponic Botany' },
+      { id: 51, short: 'Геотермальная Буровая', val: 'Heavy Geothermal Drilling' },
+      { id: 52, short: 'Кибер-Логистика', val: 'Cyber-Warfare Logistics' },
+      { id: 53, short: 'Нано-Терапия', val: 'Nanobody Therapeutics Lab' },
+      { id: 54, short: 'Экзопланетная Добыча', val: 'Exo-Planetary Ore Mining' },
+      { id: 55, short: 'Микрофлюидные Чипы', val: 'Microfluidic Silicon Chips' },
+      { id: 56, short: 'Глубоководный Кабель', val: 'Deep-Sea Data Cables' },
+      { id: 57, short: 'Гипербарическая Камера', val: 'Hyperbaric Pressure Chambers' },
+      { id: 58, short: 'Форензик Одонтология', val: 'Forensic Odontology Scans' },
+      { id: 59, short: 'Квантовый Трейдинг', val: 'Quantum Algorithmic Trading' },
+      { id: 60, short: 'Аэродинамическая Труба', val: 'Wind Tunnel Aerodynamics' },
+      { id: 61, short: 'Архивный Музей', val: 'Dusty Archival Museum Storage' },
+      { id: 62, short: 'Типографский Станок', val: 'Vintage Heidelberg Printing Press' },
+      { id: 63, short: 'Хирургическая Оптика', val: 'Vintage Medical Optical Instruments' },
+      { id: 64, short: 'Аптечный Склад', val: 'Old-world Apothecary Storage' },
+      { id: 65, short: 'Архитектурное Бюро', val: 'Physical Architectural Model Workshop' },
+      { id: 66, short: 'Пленочная Фотография', val: 'Analog Film Photography Darkroom' },
+      { id: 67, short: 'Авиационный Ангар', val: 'Heavy Aviation Maintenance Hangar' },
+      { id: 68, short: 'Реставрация Искусства', val: 'Fine Art Restoration Laboratory' },
+      { id: 69, short: 'Часовая Мастерская', val: 'Swiss Watchmaker Workbench' },
+      { id: 70, short: 'Ботанический Гербарий', val: 'Classical Botanical Herbarium Archives' }
+    ]
+  },
+  3: {
+    title: '3. 3 ЦВЕТА',
+    items: [
+      { id: 1, short: 'Vantablack, White, Orange', val: 'First Base: deep Vantablack, Second Base: pure White, Third Base: intense Safety Orange' },
+      { id: 2, short: 'Graphite, Bone, Cyan', val: 'First Base: cool Graphite Grey, Second Base: Bone White, Third Base: digital Electric Cyan' },
+      { id: 3, short: 'Navy, Silver, Neon Yellow', val: 'First Base: abyssal Navy Blue, Second Base: reflective Silver, Third Base: Fluorescent Yellow' },
+      { id: 4, short: 'Charcoal, Ash, Crimson', val: 'First Base: heavy Charcoal, Second Base: Matte Ash Grey, Third Base: visceral Crimson Red' },
+      { id: 5, short: 'Concrete, White, Ultramarine', val: 'First Base: raw Concrete Grey, Second Base: crisp White, Third Base: pure Ultramarine Blue' },
+      { id: 6, short: 'Pitch Black, Chrome, Mint', val: 'First Base: Pitch Black, Second Base: cold Chrome Silver, Third Base: artificial Neon Mint' },
+      { id: 7, short: 'Olive, Sand, Hazard Yellow', val: 'First Base: military Olive Drab, Second Base: Sand Beige, Third Base: industrial Hazard Yellow' },
+      { id: 8, short: 'Midnight, Gold, White', val: 'First Base: Midnight Blue, Second Base: Champagne Gold, Third Base: pure White' },
+      { id: 9, short: 'Tungsten, White, Optic Green', val: 'First Base: Matte Tungsten Grey, Second Base: White, Third Base: piercing Optical Laser Green' },
+      { id: 10, short: 'Umber, Ivory, Digital Cyan', val: 'First Base: earthy Burnt Umber, Second Base: Ivory White, Third Base: hyper-digital Cyan' },
+      { id: 11, short: 'Sepia, Charcoal, White', val: 'First Base: warm Sepia, Second Base: crushed Charcoal Black, Third Base: Pure White' },
+      { id: 12, short: 'Slate Blue, Pale Grey, Coral', val: 'First Base: cold Slate Blue, Second Base: Pale Grey, Third Base: sudden Coral Pink' },
+      { id: 13, short: 'Anthracite, Silver, Magenta', val: 'First Base: Anthracite Coal Grey, Second Base: Silver, Third Base: Fluorescent Magenta' },
+      { id: 14, short: 'Lead Grey, White, Toxic Green', val: 'First Base: heavy Lead Grey, Second Base: White, Third Base: Toxic Fluorite Green' },
+      { id: 15, short: 'Pitch Black, Pale Gold, Burgundy', val: 'First Base: Pitch Black, Second Base: Pale Gold, Third Base: aristocratic Deep Burgundy' },
+      { id: 16, short: 'Titanium, White, Laser Red', val: 'First Base: matte Titanium Grey, Second Base: White, Third Base: optical Laser Red' },
+      { id: 17, short: 'Obsidian, Chrome, Violet', val: 'First Base: dark Obsidian Black, Second Base: Chrome, Third Base: deep Ultraviolet' },
+      { id: 18, short: 'Dark Forest, Aluminum, Red', val: 'First Base: organic Dark Forest Green, Second Base: Aluminum Silver, Third Base: Signal Red' },
+      { id: 19, short: 'Pure White, Silver, Deep Blue', val: 'First Base: Pure White, Second Base: brushed Silver, Third Base: Deep Oceanic Blue' },
+      { id: 20, short: 'Vantablack, Off-White, Acid Neon', val: 'First Base: Vantablack, Second Base: Off-White parchment, Third Base: Acid Neon Yellow' },
+      { id: 21, short: 'Concrete, Rust, Navy', val: 'First Base: Raw Concrete, Second Base: Oxidized Rust, Third Base: Deep Navy' },
+      { id: 22, short: 'Parchment, Ink, Gold', val: "First Base: Aged Parchment, Second Base: Printer's Ink Black, Third Base: Faded Gold" },
+      { id: 23, short: 'Matte Black, Brass, White', val: 'First Base: Matte Black, Second Base: Machined Brass, Third Base: Pure White' },
+      { id: 24, short: 'Hosp. Green, Steel, Bone', val: 'First Base: Faded Hospital Green, Second Base: Surgical Steel, Third Base: Bone White' },
+      { id: 25, short: 'Asphalt, Safety Orange, White', val: 'First Base: Wet Asphalt, Second Base: Safety Orange, Third Base: Reflective White' },
+      { id: 26, short: 'Blueprint Blue, White, Red', val: 'First Base: Cyanotype Blueprint Blue, Second Base: Grid White, Third Base: Marker Red' },
+      { id: 27, short: 'Cardboard, Lead, White', val: 'First Base: Corrugated Cardboard Brown, Second Base: Heavy Lead Grey, Third Base: Matte White' },
+      { id: 28, short: 'Wine Dark, Cork, Off-White', val: 'First Base: Deep Burgundy Wine, Second Base: Natural Cork, Third Base: Off-White' },
+      { id: 29, short: 'Terracotta, Cement, Charcoal', val: 'First Base: Fired Terracotta, Second Base: Raw Cement, Third Base: Crushed Charcoal' },
+      { id: 30, short: 'Cobalt, Ivory, Copper', val: 'First Base: Deep Cobalt Blue, Second Base: Ivory, Third Base: Polished Copper' },
+      { id: 31, short: 'Travertine, Plaster, Steel', val: 'First Base: warm Terracotta Travertine, Second Base: Gypsum Plaster, Third Base: cold Steel' },
+      { id: 32, short: 'Corten Steel, Bottle Glass, Slate', val: 'First Base: rusted Corten Steel, Second Base: Bottle Green Glass, Third Base: dark Rock Slate' },
+      { id: 33, short: 'Breeze Block, Safety Pink, Obsidian', val: 'First Base: grey Breeze Block, Second Base: fluorescent Safety Pink, Third Base: glossy Obsidian' },
+      { id: 34, short: 'Galvanized Zinc, Pitch Black, Ind. Yellow', val: 'First Base: Galvanized Zinc texture, Second Base: Pitch Black, Third Base: faded Industrial Yellow' },
+      { id: 35, short: 'Terrazzo, Off-White, Copper Patina', val: 'First Base: Terrazzo Stone, Second Base: Ivory Off-White, Third Base: turquoise Copper Patina' },
+      { id: 36, short: 'Limestone, Dark Oak, Brushed Brass', val: 'First Base: pale Limestone, Second Base: almost black Dark Oak, Third Base: matte Brushed Brass' },
+      { id: 37, short: 'Kraft Paper, Magenta, Bone', val: "First Base: brown Kraft Paper, Second Base: pure Printer's Magenta, Third Base: Bone White" },
+      { id: 38, short: 'Microfilm Blue, Newsprint, Crimson', val: 'First Base: deep Microfilm Blue, Second Base: yellowed Newsprint, Third Base: Carmine Crimson Red' },
+      { id: 39, short: 'Carbon Paper, Typewriter Blue, Grey', val: 'First Base: dark purple Carbon Paper, Second Base: faded Typewriter Blue, Third Base: Warm Grey' },
+      { id: 40, short: 'Manila Folder, Graphite, Wax Red', val: 'First Base: yellowish Manila Folder, Second Base: matte Pencil Graphite, Third Base: Wax Seal Red' },
+      { id: 41, short: 'Vellum, Indigo Ink, Tarnished Gold', val: 'First Base: translucent Vellum, Second Base: thick Indigo Ink, Third Base: Tarnished Gold leaf' },
+      { id: 42, short: 'Cyanotype Blue, Blueprint White, Lead', val: 'First Base: rich Cyanotype Blue, Second Base: Blueprint Line White, Third Base: Lead Grey' },
+      { id: 43, short: 'Surgical Green, Iodine Amber, Titanium', val: 'First Base: sterile Surgical Green, Second Base: Medical Iodine Amber, Third Base: Titanium' },
+      { id: 44, short: 'Formalin Aqua, Porcelain, Steel', val: 'First Base: eerie Formalin Aqua, Second Base: white Laboratory Porcelain, Third Base: Stainless Steel' },
+      { id: 45, short: 'Petri Dish Glass, Agar Yellow, Black', val: 'First Base: reflective Petri Dish Glass, Second Base: cloudy Agar Yellow, Third Base: absolute Pitch Black' },
+      { id: 46, short: 'Dental Plaster, Cobalt Blue, Silver', val: 'First Base: matte Dental Plaster White, Second Base: sharp Cobalt Blue glass, Third Base: Silver' },
+      { id: 47, short: 'Barium White, X-Ray Blue, Lead Shield', val: 'First Base: thick Barium White, Second Base: translucent X-Ray Blue, Third Base: Lead Shield Grey' },
+      { id: 48, short: 'Latex Glove Blue, Betadine, White', val: 'First Base: Nitrile Glove Blue, Second Base: dark Betadine Red, Third Base: blinding Sterile White' },
+      { id: 49, short: 'Abyssal Blue, Biolum Green, Basalt', val: 'First Base: deep Abyssal Blue, Second Base: toxic Bioluminescent Green, Third Base: porous black Basalt' },
+      { id: 50, short: 'Amber Resin, Fossil Wood, Chalk', val: 'First Base: translucent Amber Resin, Second Base: black Fossilized Wood, Third Base: dusty Chalk White' },
+      { id: 51, short: 'Algae Green, Deep Navy, Salt White', val: 'First Base: swampy Algae Green, Second Base: dark Oceanic Navy, Third Base: crystalline Salt White' },
+      { id: 52, short: 'Magma Red, Volcanic Ash, Sulfur', val: 'First Base: dark Magma Red, Second Base: matte Volcanic Ash, Third Base: toxic Sulfur Yellow' },
+      { id: 53, short: 'Glacial Ice Blue, Slate, Lichen', val: 'First Base: subsurface Glacial Ice Blue, Second Base: dark Slate Rock, Third Base: pale Lichen Green' },
+      { id: 54, short: 'Mudstone, River Silt, Pale Root', val: 'First Base: grey-brown Mudstone, Second Base: viscous River Silt, Third Base: pale Underground Root' },
+      { id: 55, short: 'Kevlar Yellow, Gunmetal, Orange', val: 'First Base: mustard Kevlar Yellow, Second Base: matte Gunmetal, Third Base: Aviation Orange' },
+      { id: 56, short: 'Anodized Olive, Carbon Fiber, Crimson', val: 'First Base: anodized Military Olive, Second Base: Carbon Fiber weave, Third Base: Crimson Tracer Red' },
+      { id: 57, short: 'Night Vision Green, Asphalt, IR Red', val: 'First Base: Night Vision Phosphor Green, Second Base: rough Asphalt, Third Base: invisible Infrared Red' },
+      { id: 58, short: 'Thermal Blue, Heatmap Red, Void Black', val: 'First Base: deep Thermal Blue, Second Base: glowing Heatmap Red, Third Base: absolute Void Black' },
+      { id: 59, short: 'Silicon Wafer Green, Gold, Black', val: 'First Base: Silicon Wafer Green, Second Base: technical Contact Gold, Third Base: matte Plastic Black' },
+      { id: 60, short: 'Parachute Silk, Aviation Orange, Tarmac', val: 'First Base: crumpled Parachute Silk White, Second Base: rescue Aviation Orange, Third Base: Tarmac Grey' }
+    ]
+  },
+  4: {
+    title: '4. РОТАЦИЯ ЦВЕТА',
+    items: [
+      { id: 1, short: 'Идеальная Ротация 80/15/5', val: 'Strip 1 a 80% First Base/15% Sec/5% Acc. Strip 2 a 80% Second Base/15% Sec/5% Acc. Strip 3 a 80% Third Base/15% Sec/5% Acc. Strip 4 a 33% First Base/33% Second Base/33% Third Base' },
+      { id: 2, short: 'Ротация 70/20/10', val: 'Strip 1 a 70% First Base/20% Sec/10% Acc. Strip 2 a 70% Second Base/20% Sec/10% Acc. Strip 3 a 70% Third Base/20% Sec/10% Acc. Strip 4 a 33% First Base/33% Second Base/33% Third Base' },
+      { id: 3, short: 'Равномерный Сдвиг 60/30/10', val: 'Strip 1 a 60% First Base/30% Sec/10% Acc. Strip 2 a 60% Second Base/30% Sec/10% Acc. Strip 3 a 60% Third Base/30% Sec/10% Acc. Strip 4 a 33% First Base/33% Second Base/33% Third Base' },
+      { id: 4, short: 'Доминанта First Base + Вспышки', val: 'Strips 1, 2, and 3 a 80% First Base. Strip 1 uses 15% Second Base/5% Third Base. Strip 2 uses 15% Third Base/5% Second Base. Strip 3 uses 10% Second Base/10% Third Base. Strip 4 a 80% Second Base/20% Third Base' },
+      { id: 5, short: 'Темный Ритм', val: 'Strip 1 a 80% First Base/10% Sec/10% Acc. Strip 2 a 60% First Base/30% Sec/10% Acc. Strip 3 a 40% First Base/40% Sec/20% Acc. Strip 4 a 20% First Base/60% Sec/20% Acc' },
+      { id: 6, short: 'Нарастание Third Base', val: 'Strip 1 a 5% Third Base. Strip 2 a 15% Third Base. Strip 3 a 40% Third Base. Strip 4 a 80% Third Base. First Base and Second Base fill the rest proportionally' },
+      { id: 7, short: 'Близнецы и Антиподы', val: 'Strips 1 and 4 a 70% First Base/20% Sec/10% Acc. Strips 2 and 3 a 70% Third Base/20% Sec/10% Acc' },
+      { id: 8, short: 'Сплит 50/30/20 Ротация', val: 'Strip 1 a 50% First Base/30% Sec/20% Acc. Strip 2 a 50% Second Base/30% Sec/20% Acc. Strip 3 a 50% Third Base/30% Sec/20% Acc. Strip 4 a 33% First Base/33% Second Base/33% Third Base' },
+      { id: 9, short: 'Монолит First Base + Детали', val: 'All 4 strips a 80% First Base, but the remaining 20% alternates between Second Base and Third Base exclusively on each strip' },
+      { id: 10, short: 'Изоляция vs Триада', val: 'Strips 1, 2, 3 a 90% First Base/5% Sec/5% Acc. Strip 4 an explosive 33% First Base/33% Second Base/33% Third Base' },
+      { id: 11, short: 'Шахматный Баланс', val: 'Strip 1: First Base dominant. Strip 2: Second Base dominant. Strip 3: First Base dominant. Strip 4: Second Base dominant. Third Base is always a strict 10% detail' },
+      { id: 12, short: 'Тотальный Баланс 40/40/20', val: 'Strip 1 a 40% First Base/40% Second Base/20% Third Base. Strip 2 a 40% Second Base/40% Third Base/20% First Base. Strip 3 a 40% Third Base/40% First Base/20% Second Base. Strip 4 a mix' },
+      { id: 13, short: 'Всплеск Third Base в Центре', val: 'Strips 1 and 4 a 80% First Base/15% Sec/5% Acc. Strips 2 and 3 a 60% Third Base/30% First Base/10% Sec' },
+      { id: 14, short: 'Угасание First Base', val: 'Strip 1 a 90% First Base. Strip 2 a 60% First Base. Strip 3 a 30% First Base. Strip 4 a 5% First Base. Second Base and Third Base increase proportionally' },
+      { id: 15, short: 'Тяжелый Микс 45/45/10', val: 'All strips a 45% First Base/45% Second Base, but the 10% Third Base placement shifts radically on each strip' },
+      { id: 16, short: 'Идеальная Ротация 85/10/5', val: 'Strip 1 a 85% First Base/10% Sec/5% Acc. Strip 2 a 85% Second Base/10% Sec/5% Acc. Strip 3 a 85% Third Base/10% Sec/5% Acc. Strip 4 a 33% First Base/33% Second Base/33% Third Base' },
+      { id: 17, short: 'Диагональный Third Base', val: 'Third Base starts at 5% on Strip 1, grows to 15% on Strip 2, 30% on Strip 3, and dominates Strip 4 at 60%' },
+      { id: 18, short: 'Сплит Половинок', val: 'Strip 1 a 80% First Base. Strip 2 a 80% Second Base. Strip 3 exactly 50% First Base/50% Second Base. Strip 4 exactly 50% Second Base/50% Third Base' },
+      { id: 19, short: 'Мягкий Сдвиг 60/35/5', val: 'Strip 1 a 60% First Base/35% Sec/5% Acc. Strip 2 a 60% Second Base/35% Sec/5% Acc. Strip 3 a 60% Third Base/35% Sec/5% Acc. Strip 4 a mix' },
+      { id: 20, short: 'Тотальная Асимметрия', val: 'Strip 1 a 80% First Base/10% Sec/10% Acc. Strip 2 a 50% Second Base/30% First Base/20% Third Base. Strip 3 a 80% Third Base/10% First Base/10% Second Base. Strip 4 a 33% First Base/33% Second Base/33% Third Base' }
+    ]
+  },
+  5: {
+    title: '5. СТРУКТУРА',
+    items: [
+      { id: 1, short: 'Агрессивный Оверлэп', val: 'an asymmetric grid where typography overlaps heavily' },
+      { id: 2, short: 'Плотный Тетрис', val: 'a hyper-dense Tetris-like grid of tightly interlocking graphic blocks' },
+      { id: 3, short: 'Деконструированный Разлом', val: 'a fractured grid violently split down a central axis' },
+      { id: 4, short: 'Тотальный Монолит', val: 'a continuous dense block of justified text filling the canvas edge-to-edge' },
+      { id: 5, short: 'Маргинальный Фокус', val: 'extreme marginalia with heavy text forced to the edges' },
+      { id: 6, short: 'Типографический Стэкинг', val: 'heavy stacking that is incredibly dense at the bottom' },
+      { id: 7, short: 'Газетный Брутализм', val: 'a strict multi-columnar financial newspaper layout packed with data' },
+      { id: 8, short: 'Радиальный Взрыв', val: 'lines of typography exploding outward from a vanishing point' },
+      { id: 9, short: 'Концентрический Радар', val: 'a circular radar-like grid radiating from a center' },
+      { id: 10, short: 'Диагональный Сдвиг', val: 'a rigorous 45-degree angled sliding grid packed with elements' },
+      { id: 11, short: 'Золотое Сечение', val: 'flawless mathematical Golden Ratio proportions filled with micro-text' },
+      { id: 12, short: 'Кинетический Блюр', val: 'a grid implying motion via repeated stretched text' },
+      { id: 13, short: 'Модульные Блоки', val: 'a Tetris-like modular grid of interlocking text blocks' },
+      { id: 14, short: 'Асимметричный Столп', val: 'one single massive vertical column of typography' },
+      { id: 15, short: 'Макро-Микро Коллизия', val: 'extreme scale contrast between 150pt and dense 6pt text clusters' },
+      { id: 16, short: 'Информационный Шум', val: 'a layout overwhelmed by overlapping layers of graphic noise and vectors' },
+      { id: 17, short: 'Вложенные Рамки', val: 'a dense system of interlocking technical borders and UI frames' },
+      { id: 18, short: 'Глитч-Смещение', val: 'a grid mechanically shifted along horizontal bands' },
+      { id: 19, short: 'Индустриальный Индекс', val: 'a pure directory format resembling a packed flight board' },
+      { id: 20, short: 'Бесконечный Скролл', val: 'a grid where text physically wraps around the edges endlessly' },
+      { id: 21, short: 'Сетка Баухауса', val: 'a rigid 12-column Bauhaus typographic grid' },
+      { id: 22, short: 'Индексный Каталог', val: 'a strict alphabetical archival index layout' },
+      { id: 23, short: 'Модулор Корбюзье', val: "proportions strictly following Le Corbusier's Modulor" },
+      { id: 24, short: 'Рваная Верстка', val: 'flush left, ragged right strict typography' },
+      { id: 25, short: 'Технический Паспорт', val: 'a layout resembling a vintage industrial manual' },
+      { id: 26, short: 'Билетная Матрица', val: 'a matrix structure imitating old train tickets' },
+      { id: 27, short: 'Пантонный Веер', val: 'a stacked layout resembling a Pantone swatch book' },
+      { id: 28, short: 'Швейцарский Плакат', val: 'a classic Swiss style poster grid with massive negative space' },
+      { id: 29, short: 'Картотека', val: 'a layout mimicking a library card catalog system' },
+      { id: 30, short: 'Печатная Гранка', val: 'a proof-sheet layout with crop marks and color bars' },
+      { id: 31, short: 'Академический Журнал', val: 'Academic journal abstract layout' },
+      { id: 32, short: 'Энциклопедический Словарь', val: 'Dictionary encyclopedia structure' },
+      { id: 33, short: 'Японская Вертикаль', val: 'Minimal Japanese vertical editorial' },
+      { id: 34, short: 'Финансовый Вестник', val: 'Dense financial newspaper layout' },
+      { id: 35, short: 'Ботанический Фолиант', val: 'Classical botanical folio layout' },
+      { id: 36, short: 'Секретное Досье', val: 'Classified military dossier file' },
+      { id: 37, short: 'Архитектурный План', val: 'Architectural floor plan blueprint grid' },
+      { id: 38, short: 'Бетонные Стыки', val: 'Concrete slab expansion joints structure' },
+      { id: 39, short: 'Стеллажная Система', val: 'Modular industrial shelving unit' },
+      { id: 40, short: 'Серверная Матрица', val: 'High-density server rack array' },
+      { id: 41, short: 'Зонирование Города', val: 'Urban city zoning map grid' },
+      { id: 42, short: 'Грузовой Манифест', val: 'Logistical freight manifest log' },
+      { id: 43, short: 'Каскад ДНК', val: 'Vertical cascading DNA sequencing' },
+      { id: 44, short: 'Химическая Таблица', val: 'Modular matrix resembling the periodic table' },
+      { id: 45, short: 'Дашборд Телеметрии', val: 'Aerospace telemetry dashboard UI' },
+      { id: 46, short: 'Геологические Слои', val: 'Horizontal layered geological strata' },
+      { id: 47, short: 'Астрономическая Карта', val: 'Astronomical star chart mapping' },
+      { id: 48, short: 'Таблица Клин. Данных', val: 'Dense clinical trial data table' },
+      { id: 49, short: 'Сетка Микрофиш', val: 'Vintage archival microfiche reader grid' },
+      { id: 50, short: 'Журнал Улик', val: 'Police forensic evidence log' },
+      { id: 51, short: 'Музейная Табличка', val: 'Minimalist museum description plaque' },
+      { id: 52, short: 'Корешок Винила', val: 'Vinyl record sleeve spine typography' },
+      { id: 53, short: 'Схема Часовщика', val: 'Circular radiating technical diagram' },
+      { id: 54, short: 'Патентная Заявка', val: 'Vintage industrial patent application' },
+      { id: 55, short: 'Двойная Ось (Split)', val: 'Dual-axis split-screen layout' },
+      { id: 56, short: 'Кассовая Лента', val: 'Continuous vertical thermal receipt roll' },
+      { id: 57, short: 'Перфорированный Билет', val: 'Perforated vintage transit ticket stub' },
+      { id: 58, short: 'Плавающие Панели', val: 'Overlapping brutalist floating panels' },
+      { id: 59, short: 'Кинетический Бегунок', val: 'Continuously scrolling kinetic ticker' },
+      { id: 60, short: 'Вайрфрейм Каркас', val: 'Raw digital wireframe mesh' }
+    ]
+  },
+  6: {
+    title: '6. ГРАФИКА И МАРКИРОВКА',
+    items: [
+      { id: 1, short: 'Штрихкод (EAN-13)', val: 'massive scannable industrial EAN-13 barcodes' },
+      { id: 2, short: 'Радарная Развертка', val: 'military radar sweeps' },
+      { id: 3, short: 'Векторное Поле', val: 'dense vector field arrows' },
+      { id: 4, short: 'Бирка Haute Couture', val: 'haute couture garment tags' },
+      { id: 5, short: 'Тепловизор', val: 'thermal imaging heatmaps' },
+      { id: 6, short: 'Таможенная Марка', val: 'customs shipping stickers' },
+      { id: 7, short: 'Рентген-Скан', val: 'X-ray vector scans' },
+      { id: 8, short: 'Фармацевтика', val: 'clinical pharmaceutical dosage labels' },
+      { id: 9, short: 'Топография', val: '3D topographical contour lines' },
+      { id: 10, short: 'Геологический Керн', val: 'geological core sample tags' },
+      { id: 11, short: 'Решетка Вороного', val: 'biomimetic Voronoi lattices' },
+      { id: 12, short: 'IP Индекс', val: 'server rack IP routing tables' },
+      { id: 13, short: 'Муар Паттерн', val: 'optical moire interference patterns' },
+      { id: 14, short: 'Биржевой Тикер', val: 'financial ticker tapes' },
+      { id: 15, short: 'Схема Платы', val: 'printed circuit board routing traces' },
+      { id: 16, short: 'RFID Метка', val: 'RFID schematic tags' },
+      { id: 17, short: 'Акустическая Волна', val: 'high-fidelity sonogram waveforms' },
+      { id: 18, short: 'Почтовый Штемпель', val: 'vintage postal marks' },
+      { id: 19, short: 'Рой Частиц', val: 'algorithmic particle swarms' },
+      { id: 20, short: 'Телеметрия Ф1', val: 'F1 motorsport telemetry UI' },
+      { id: 21, short: 'Механические Кейкапы', val: 'mechanical keyboard UI grids' },
+      { id: 22, short: 'Серийный Номер', val: 'detailed serialized numbers' },
+      { id: 23, short: 'Симуляция Жидкости', val: 'fluid dynamics vectors' },
+      { id: 24, short: 'Пакет для Улик', val: 'police evidence bag chain-of-custody data' },
+      { id: 25, short: 'Орбита Траектория', val: 'overlapping orbital trajectories' },
+      { id: 26, short: 'Паспортный Штамп', val: 'border control visa marks' },
+      { id: 27, short: 'Взрыв-Схема', val: 'mechanical exploded views' },
+      { id: 28, short: 'Авиационная Декаль', val: 'aerospace warning decals' },
+      { id: 29, short: 'Крипто-Хэш', val: 'monolithic cryptographic hash blocks' },
+      { id: 30, short: 'Кошелек Seed-Фраза', val: 'cold-wallet seed phrases' },
+      { id: 31, short: 'Изометрическая Сетка', val: 'isometric 3D wireframes' },
+      { id: 32, short: 'Pantone Чип', val: 'Pantone color matching chips' },
+      { id: 33, short: 'Карта Созвездий', val: 'astronomical constellation charts' },
+      { id: 34, short: 'Биохазард Индикатор', val: 'HAZMAT diamond placards' },
+      { id: 35, short: 'Электронный Микроскоп', val: 'scanning electron microscope textures' },
+      { id: 36, short: 'Ботанический Ярлык', val: 'botanical specimen tags' },
+      { id: 37, short: 'Посадочный Талон', val: 'complex airline boarding pass layouts and airport gate indicators' },
+      { id: 38, short: 'Грузовая Накладная', val: 'functional logistical shipping waybills and warehouse zone indicators' },
+      { id: 39, short: 'Магнитные Линии', val: 'magnetic field dipole lines' },
+      { id: 40, short: 'VIN Номер Авто', val: 'automotive VIN chassis plates' },
+      { id: 41, short: 'Векторы Рассеивания', val: 'subsurface scattering vectors' },
+      { id: 42, short: 'Карта Напряжения', val: 'kinetic stress heatmaps' },
+      { id: 43, short: 'Анатомический Срез', val: 'clinical anatomical cross-sections' },
+      { id: 44, short: 'Фотонная Интерференция', val: 'photonic interference patterns' },
+      { id: 45, short: 'Чертеж Ускорителя', val: 'particle accelerator blueprints' },
+      { id: 46, short: 'Показания Сейсмографа', val: 'seismograph frequency readouts' },
+      { id: 47, short: 'Спектрометрия', val: 'chemical spectrometry graphs' },
+      { id: 48, short: 'Сонарная Батиметрия', val: 'abyssal sonar bathymetry' },
+      { id: 49, short: 'HUD Захвата Цели', val: 'drone target acquisition HUD' },
+      { id: 50, short: 'Углеродное Датирование', val: 'carbon dating certifications' },
+      { id: 51, short: 'Геодезический Купол', val: 'geodesic dome schematics' },
+      { id: 52, short: 'Шеврон Напряжения', val: 'high-voltage warning chevrons' },
+      { id: 53, short: 'UI Чистой Комнаты', val: 'cleanroom particle count UI' },
+      { id: 54, short: 'Траектория Спутника', val: 'satellite trajectory vectors' },
+      { id: 55, short: 'Шкала Дозиметра', val: 'radiation dosimeter scales' },
+      { id: 56, short: 'Логические Вентили', val: 'microchip logic gates routing' },
+      { id: 57, short: 'Таймстамп Экструзии', val: 'polymer extrusion timestamps' },
+      { id: 58, short: 'Формулы Орбиты', val: 'orbital mechanics formulas' },
+      { id: 59, short: 'Био-Скан Доступа', val: 'bio-metric security scans' },
+      { id: 60, short: 'Маркер Герметизации', val: 'void sealing logistics markings' }
+    ]
+  },
+  7: {
+    title: '7. СУПЕР-ГРАФИКА',
+    items: [
+      { id: 1, short: 'SL2024 / Логистика', val: "Massive headers 'SL2024', '024' with micro-text: 'LOT N°: 9091, POLYMER, EAN-13'" },
+      { id: 2, short: 'SOMA / Биохакинг', val: "Massive headers 'SOMA', 'V.2' with micro-text: 'CELLULAR_REGEN, ISO-MED, CRISPR'" },
+      { id: 3, short: 'MOLECULA / Алхимия', val: "Massive headers 'MOLECULA', 'AX-99' with micro-text: 'EXTRACT_RATIO: 1:400, PH-3, TEMP'" },
+      { id: 4, short: 'VELVET / Виноделие', val: "Massive headers 'VELVET', '001' with micro-text: 'VINTAGE: 2022, TERROIR, TANNIN'" },
+      { id: 5, short: 'ARCHIVE / Сети', val: "Massive headers 'NEURAL ARCHIVE', '032' with micro-text: 'NODE_01, TCP/IP, LATENCY'" },
+      { id: 6, short: 'AURA / Архитектура', val: "Massive headers 'AURA CONSTRUCT', 'Z-1' with micro-text: 'ELEVATION, STRUCTURAL_LOAD, FOUNDATION'" },
+      { id: 7, short: 'OBSIDIAN / Финансы', val: "Massive headers 'OBSIDIAN VAULT', 'V-7' with micro-text: 'ASSET: A, ENCRYPTION: AES, OMEGA'" },
+      { id: 8, short: 'KINETIC / Роботы', val: "Massive headers 'KINETIC', 'X-9' with micro-text: 'TORQUE: 450Nm, SERVO_DRIVE, KINEMATIC'" },
+      { id: 9, short: 'CHRONOS / Космос', val: "Massive headers 'CHRONOS', 'M-3' with micro-text: 'MACH 3, ORBITAL_MECHANICS, THRUST'" },
+      { id: 10, short: 'LUMINA / Фотоника', val: "Massive headers 'LUMINA MATRIX', 'F-4' with micro-text: 'WAVELENGTH: 450nm, REFRACTION_INDEX, PHOTON'" },
+      { id: 11, short: 'TECTONIC / Инженерия', val: "Massive headers 'TECTONIC SHIFT', 'A-4' with micro-text: 'STRESS_TEST, TENSILE_STRENGTH, LOAD'" },
+      { id: 12, short: 'SILK / Мода', val: "Massive headers 'SILK & STEEL', 'S-2' with micro-text: 'THREAD_COUNT: 2000, TACTILE_WEAVE, BESPOKE'" },
+      { id: 13, short: 'ABYSSAL / Океан', val: "Massive headers 'ABYSSAL DEEP', 'D-10' with micro-text: 'DEPTH: 10000M, BATHYMETRIC_DATA, SONAR'" },
+      { id: 14, short: 'PRAXIS / Трейдинг', val: "Massive headers 'PRAXIS LOGIC', 'HFT' with micro-text: 'MICROSECOND_DELAY, QUANT_ALGO, TICKER'" },
+      { id: 15, short: 'HELIOS / Энергия', val: "Massive headers 'HELIOS FORGE', 'P-1' with micro-text: 'PLASMA_TEMP, IGNITION_SEQ, FLUX'" },
+      { id: 16, short: 'AEGIS / Кибер', val: "Massive headers 'AEGIS PROTOCOL', 'Z-D' with micro-text: 'FIREWALL_BREACH, ZERO_DAY, MALWARE'" },
+      { id: 17, short: 'VANGUARD / Моторспорт', val: "Massive headers 'VANGUARD', 'R-12' with micro-text: 'DOWNFORCE: 80KG, TELEMETRY, APEX'" },
+      { id: 18, short: 'METRIC / Парфюм', val: "Massive headers 'METRIC NOIR', 'N-5' with micro-text: 'BASE_NOTE: OUD, OLFACTORY_PYRAMID, SILLAGE'" },
+      { id: 19, short: 'APEX / Биотех', val: "Massive headers 'APEX GENOMICS', 'G-9' with micro-text: 'DNA_SEQ, MUTATION_RATE, GENE'" },
+      { id: 20, short: 'QUANTUM / Нанотех', val: "Massive headers 'QUANTUM WEAVE', 'Q-W' with micro-text: 'CARBON_NANOTUBE, GRAPHENE_LATTICE, BONDING'" },
+      { id: 21, short: 'BAUHAUS / Архитектура', val: "Massive headers 'BAUHAUS', '1919' with micro-text: 'FORM_FOLLOWS_FUNCTION, WEIMAR'" },
+      { id: 22, short: 'ARCHIVE / Искусство', val: "Massive headers 'MUSEUM', 'OBJ-01' with micro-text: 'RESTORATION_LOG, DATE_ACQUIRED, WARD'" },
+      { id: 23, short: 'CEMENT / Брутализм', val: "Massive headers 'CEMENT', 'B-7' with micro-text: 'PORTLAND_MIX, COMPRESSION_TEST, AGGREGATE'" },
+      { id: 24, short: 'OPTICS / Линзы', val: "Massive headers 'APERTURE', 'F/1.4' with micro-text: 'FOCAL_LENGTH, ZEISS, REFRACTION'" },
+      { id: 25, short: 'BOTANICA / Гербарий', val: "Massive headers 'FLORA', 'GENUS' with micro-text: 'SPECIMEN_ID, CHLOROPHYLL, HABITAT'" },
+      { id: 26, short: 'PRESS / Типография', val: "Massive headers 'HEIDELBERG', 'CYL' with micro-text: 'CMYK, OFFSET_LITHOGRAPHY, DOT_GAIN'" },
+      { id: 27, short: 'AVIONIC / Аэро', val: "Massive headers 'AERO-NAUT', 'M-1' with micro-text: 'WIND_TUNNEL, DRAG_COEFFICIENT, LIFT'" },
+      { id: 28, short: 'HOROLOGY / Часы', val: "Massive headers 'CALIBER', '321' with micro-text: 'ESCAPEMENT, TOURBILLON, VPH_28800'" },
+      { id: 29, short: 'CLINIC / Медицина', val: "Massive headers 'SCALPEL', 'ISO-9' with micro-text: 'STERILIZATION_LOG, STAINLESS, AUTOCLAVE'" },
+      { id: 30, short: 'ANALOG / Аудио', val: "Massive headers 'VINYL', '33_RPM' with micro-text: 'MASTER_TAPE, GROOVE_DEPTH, FIDELITY'" }
+    ]
+  },
+  8: {
+    title: '8. МАТЕРИАЛ И ПЕЧАТЬ',
+    items: [
+      { id: 1, short: 'Слепое Тиснение / Хлопок', val: 'extreme blind deboss pressing into 800gsm heavy cotton stock' },
+      { id: 2, short: 'УФ-Лак / Матовый Картон', val: 'raised spot UV varnish over deep matte black cardboard' },
+      { id: 3, short: 'Металлик Пантон / Пергамент', val: 'metallic Pantone ink printed on rough historical parchment paper' },
+      { id: 4, short: 'Горячая Эмаль / Базальт Бумага', val: 'hot enamel stamping on thick porous basalt-textured paper' },
+      { id: 5, short: 'Микро-Перфорация / Тайвек', val: 'laser micro-perforation cutting through synthetic Tyvek material' },
+      { id: 6, short: 'Лазерный Ожог / Угольная Бумага', val: 'laser-ablated scorching on crushed charcoal paper' },
+      { id: 7, short: 'Голографическая Фольга', val: 'razor-sharp iridescent holographic foil hot-stamping' },
+      { id: 8, short: 'Выпуклая Шелкография', val: 'thick, raised, tactile silkscreen ink on cold press paper' },
+      { id: 9, short: 'Свинцовый Набор / Letterpress', val: 'heavy traditional letterpress biting deeply into soft paper' },
+      { id: 10, short: 'Термо-Хроматическая Краска', val: 'heat-reactive thermochromic ink that shifts color gradient' },
+      { id: 11, short: 'Сусальное Золото', val: 'hand-applied 24k gold leaf gilding over typography' },
+      { id: 12, short: 'Прозрачный Акрил / Гравировка', val: 'inside-glass laser engraving on frosted acrylic sheets' },
+      { id: 13, short: 'Магнитная Печать (MICR)', val: 'magnetic ink character recognition (MICR) raised printing' },
+      { id: 14, short: 'Фосфоресцентный Пигмент', val: 'matte phosphorescent glow-in-the-dark pigment layers' },
+      { id: 15, short: 'Кевларовая Нить', val: 'actual capillary Kevlar thread stitched through the paper' },
+      { id: 16, short: 'Ржавая Шелкография', val: 'tactile rust-textured silkscreen imitating oxidized metal' },
+      { id: 17, short: 'Бриллиантовая Пыль', val: 'black diamond dust inlay filling the engraved text' },
+      { id: 18, short: 'Прозрачная Смола', val: 'thick domes of optically clear resin dropped onto text' },
+      { id: 19, short: 'Чеканка / Металл Фольга', val: 'reverse repousse embossing on micron-thin metal foil' },
+      { id: 20, short: 'Сургучная ЧПУ-Печать', val: 'CNC-stamped geometric synthetic wax seals applied to the surface' }
+    ]
+  },
+  9: {
+    title: '9. ОПТИКА И СВЕТ',
+    items: [
+      { id: 1, short: 'Macro 100mm / Slit-Scan', val: 'a Macro 100mm f/2.8 lens with intense slit-scan laser lighting' },
+      { id: 2, short: 'Tilt-Shift / Gobo Shadows', val: 'a Tilt-Shift lens creating perfect geometry with architectural Gobo shadows' },
+      { id: 3, short: 'Ring Flash / Hard Edges', val: 'a Ring Flash creating hyper-sharp, hard-edged pop-art shadows' },
+      { id: 4, short: 'Softbox / Shadowless', val: 'massive sterile diffused softboxes for a completely shadowless, clinical look' },
+      { id: 5, short: 'Edge-Lit / Cinematic', val: 'cinematic edge-lit rim lighting separating the strips from the void' },
+      { id: 6, short: 'HMI Projector / Optical Snoot', val: 'an HMI daylight projector using an optical snoot to spotlight specific data' },
+      { id: 7, short: 'Low-Key / Chiaroscuro', val: 'low-key Chiaroscuro lighting wrapping the objects in deep Renaissance shadows' },
+      { id: 8, short: 'Tungsten / Warm Spot', val: 'warm, directional Tungsten studio spotlights creating long elegant shadows' },
+      { id: 9, short: 'UV Blacklight', val: 'ultraviolet blacklight photography revealing hidden fluorescent layers' },
+      { id: 10, short: 'Electron Microscope Scan', val: 'a Scanning Electron Microscope (SEM) aesthetic with infinite depth of field' },
+      { id: 11, short: 'Thermal Imaging Lens', val: 'a FLIR thermal imaging aesthetic with chromatic heat signatures' },
+      { id: 12, short: '50mm Prime / Golden Hour', val: 'a 50mm prime lens bathed in warm, harsh Golden Hour sunlight' },
+      { id: 13, short: 'Slit-Lamp / Clinical', val: 'an ophthalmic slit-lamp bio-microscope lighting setup for surgical precision' },
+      { id: 14, short: 'Fiber Optic / Pinpoint', val: 'micro-fiber optic pinpoint lighting highlighting extreme typographic details' },
+      { id: 15, short: 'Flash Photography / Paparazzi', val: 'direct, blown-out on-camera flash photography mimicking raw paparazzi shots' },
+      { id: 16, short: 'Slanted Light / Texture', val: 'extreme raking/slanted light to maximize the physical texture of the paper' },
+      { id: 17, short: 'Sub-aquatic Caustics', val: 'lighting projected through rippling water to create sub-aquatic caustics' },
+      { id: 18, short: 'Neon Tube / Cyberpunk', val: 'practical neon tube lighting casting harsh, artificial color gradients' },
+      { id: 19, short: 'Diffused Tent / E-Commerce', val: 'a perfect white diffused light tent for absolute product clarity' },
+      { id: 20, short: 'X-Ray Backlight', val: 'a sterile lightbox backlighting the strips like a medical X-ray film' }
+    ]
+  },
+  10: {
+    title: '10. ТРИГГЕР-ФОКУС',
+    items: [
+      { id: 1, short: 'Геометрический Блок', val: 'a colossal solid geometric block' },
+      { id: 2, short: 'Векторный Срез', val: 'a harsh vector slice violently splitting the layout' },
+      { id: 3, short: 'Штрих Маркера', val: 'a disruptive, hyper-vibrant graphic marker slash redacting data' },
+      { id: 4, short: 'Идеальный Круг', val: 'a flawless, void-like black circle cutting through the grid' },
+      { id: 5, short: 'Диодный Пиксель', val: 'a single graphic row of glowing LED-style pixels' },
+      { id: 6, short: 'Плоский Эмбосс', val: 'a flat-vector simulated blind emboss effect' },
+      { id: 7, short: 'Графический Надор', val: 'a sharp graphic illustration of a paper tear revealing contrasting color' },
+      { id: 8, short: 'Хромированный Вектор', val: 'a hyper-reflective metallic ink overlay rendered graphically' },
+      { id: 9, short: 'Векторный Хазард', val: 'a sharp geometric chevron hazard banner' },
+      { id: 10, short: 'Иллюстрация Ожога', val: 'a scorched graphic laser burn mark cutting through text' },
+      { id: 11, short: 'Круглая Печать', val: 'a strict circular vector certification stamp' },
+      { id: 12, short: 'Блэкаут-Полоса', val: 'a heavy, solid blackout redaction bar' },
+      { id: 13, short: 'Фосфорная Графика', val: 'a graphic simulation of a phosphorescent glow-in-the-dark section' },
+      { id: 14, short: 'Хроматический Глитч', val: 'a simulated heat-reactive chromatic glitch smudge' },
+      { id: 15, short: 'Взрывной Халфтон', val: 'an extreme, blown-out halftone dot pattern overlay' },
+      { id: 16, short: 'Бесконечный Штрихкод', val: 'a dense barcode stretched vertically to infinity' },
+      { id: 17, short: 'Массивный Иероглиф', val: 'a massive unreadable Kanji/Cyrillic vector letterform' },
+      { id: 18, short: 'Муар Блок', val: 'an optical illusion moire pattern block' },
+      { id: 19, short: 'Концентрическая Мишень', val: 'a perfectly drafted concentric sniper reticle' },
+      { id: 20, short: 'Фрагмент Гравюры', val: 'a sharply cropped fragment of a classical engraving mixed with data' },
+      { id: 21, short: 'Красная Печать', val: 'a stark, physical red wax seal' },
+      { id: 22, short: 'Канцелярская Скрепка', val: 'a hyper-realistic metallic paperclip holding a note' },
+      { id: 23, short: 'Отпечаток Пальца', val: 'a realistic, dusty thumbprint smudging the text' },
+      { id: 24, short: 'След от Чашки Кофе', val: 'a faint, overlapping coffee ring stain' },
+      { id: 25, short: 'Технический Скотч', val: 'a piece of rough masking tape covering data' },
+      { id: 26, short: 'Прокол Дырокола', val: 'a perfectly round hole punch showing the background void' },
+      { id: 27, short: 'Капля Чернил', val: "a single, thick droplet of wet black printer's ink" },
+      { id: 28, short: 'Мерная Линейка', val: 'a physical translucent plastic ruler laid over the layout' },
+      { id: 29, short: 'Штамп ОТК', val: "a faded, misaligned 'PASSED QUALITY CONTROL' rubber stamp" },
+      { id: 30, short: 'Царапина на Металле', val: 'a deep, realistic scratch simulating damaged metal' }
+    ]
+  }
+};
+
+const App = () => {
+  const [selectedItems, setSelectedItems] = useState({});
+  const [itemWeights, setItemWeights] = useState({});
+  const [mjParams, setMjParams] = useState({ ar: '9:16', stylize: 250, chaos: 0, weird: 0, sref: '' });
+  const [psdnMode, setPsdnMode] = useState(false);
+  const [parserInput, setParserInput] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiError, setAiError] = useState('');
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      try {
+        const state = JSON.parse(decodeURIComponent(hash));
+        if (state.s) setSelectedItems(state.s);
+        if (state.w) setItemWeights(state.w);
+        if (state.p) setMjParams(prev => ({ ...prev, ...state.p }));
+        if (state.ps !== undefined) setPsdnMode(state.ps);
+      } catch (e) {
+        console.error("URL Parsing error", e);
+      }
+    } else {
+      const defaultState = {};
+      Object.keys(CATEGORIES).forEach(key => defaultState[key] = []);
+      setSelectedItems(defaultState);
+    }
+    setIsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isReady) return;
+    const state = { s: selectedItems, w: itemWeights, p: mjParams, ps: psdnMode };
+    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify(state)));
+    const parserStr = Object.entries(selectedItems)
+      .filter(([_, arr]) => arr && arr.length > 0)
+      .map(([cId, arr]) => `${cId}(${arr.join(', ')})`)
+      .join(' - ');
+    setParserInput(parserStr);
+  }, [selectedItems, itemWeights, mjParams, psdnMode, isReady]);
+
+  const handleToggle = (categoryId, itemId) => {
+    setSelectedItems(prev => {
+      const catSelections = prev[categoryId] || [];
+      if (catSelections.includes(itemId)) {
+        const newWeights = { ...itemWeights };
+        delete newWeights[`${categoryId}-${itemId}`];
+        setItemWeights(newWeights);
+        return { ...prev, [categoryId]: catSelections.filter(id => id !== itemId) };
+      } else {
+        return { ...prev, [categoryId]: [...catSelections, itemId] };
+      }
+    });
+  };
+
+  const handleDoubleClick = (categoryId, itemId) => {
+    const key = `${categoryId}-${itemId}`;
+    setItemWeights(prev => ({
+      ...prev,
+      [key]: prev[key] === 2 ? 1 : 2
+    }));
+  };
+
+  const handleParse = (e) => {
+    const val = e.target.value;
+    setParserInput(val);
+    if (!val) { setSelectedItems({}); setItemWeights({}); return; }
+    const newSelections = {};
+    Object.keys(CATEGORIES).forEach(key => newSelections[key] = []);
+    const parts = val.split('-');
+    parts.forEach(part => {
+      const match = part.match(/(\d+)\(([\d,\s]+)\)/);
+      if (match) {
+        const catId = match[1];
+        const itemIds = match[2].split(',').map(s => parseInt(s.trim()));
+        if (CATEGORIES[catId]) newSelections[catId] = itemIds.filter(id => !isNaN(id));
+      }
+    });
+    setSelectedItems(newSelections);
+  };
+
+  // ========================================
+  // AI GENERATION — routes through our LLM router
+  // ========================================
+  const generateAIConcept = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    setAiError('');
+
+    const catalogSummary = Object.entries(CATEGORIES).map(([cId, cat]) =>
+      `C${cId}[${cat.title}]: ${cat.items.map(i => `${i.id}=${i.short}`).join(' | ')}`
+    ).join('\n');
+
+    try {
+      const resp = await fetch('/api/strips/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concept: aiPrompt.trim(), catalog_summary: catalogSummary })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${resp.status}`);
+      }
+
+      const newSelections = await resp.json();
+      if (newSelections.error) throw new Error(newSelections.error);
+
+      const validSelections = {};
+      Object.keys(CATEGORIES).forEach(key => validSelections[key] = []);
+      Object.keys(newSelections).forEach(cId => {
+        if (validSelections[cId] !== undefined && Array.isArray(newSelections[cId])) {
+          validSelections[cId] = newSelections[cId].filter(id =>
+            CATEGORIES[cId]?.items.some(item => item.id === id)
+          );
+        }
+      });
+
+      setSelectedItems(validSelections);
+      setItemWeights({});
+    } catch (err) {
+      console.error(err);
+      setAiError(`Ошибка: ${err.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generatePrompt = () => {
+    const getVal = (cId) => {
+      const selections = selectedItems[cId];
+      if (!selections || selections.length === 0) return `[[C${cId}]]`;
+      return selections
+        .map(id => {
+          const item = CATEGORIES[cId].items.find(i => i.id === id);
+          if (!item) return '';
+          const weight = itemWeights[`${cId}-${id}`];
+          return weight > 1 ? `${item.val}::${weight}` : item.val;
+        })
+        .filter(Boolean)
+        .join(' and ');
+    };
+
+    const psdnOptics = psdnMode ? " Enhanced with hyper-realistic P.S.D.N. optical physics, extreme subsurface scattering, caustic reflections, and structural tension." : "";
+    const mjEngine = `--ar ${mjParams.ar} --style raw --v 6.1 --s ${mjParams.stylize} ${mjParams.chaos > 0 ? `--c ${mjParams.chaos} ` : ''}${mjParams.weird > 0 ? `--w ${mjParams.weird} ` : ''}${mjParams.sref ? `--sref ${mjParams.sref} ` : ''}--no sliced image, crossed elements, overwhelming clutter`;
+
+    return `Act as a world-renowned art director. You are creating a museum-quality exhibition collection of four distinct pieces. Your task is to generate a photorealistic flat-lay photograph of four tall, vertical, skinny bookmark-style design strips arranged side-by-side with physical gaps between them.
+
+CRITICAL ANTI-SLICING & HIERARCHY RULE: The image MUST NOT look like a single poster cut into pieces. No graphic element can cross the gaps. Apply a sophisticated balance of negative space and high-density data clusters. Leave deliberate "air" to let the design breathe, but ensure the micro-text and vectors are grouped into highly detailed technical blocks.
+
+[Paradigm & Conceptual DNA] The aesthetic follows the ${getVal(1)} school. The conceptual design DNA fuses the aesthetics of: ${getVal(2)}.
+
+[Color Palette & EXACT ROTATION] The unified 3-color palette is strictly: ${getVal(3)}. Let us define them as First Base, Second Base, and Third Base (with the remaining two acting as Sec and Acc on each strip). CRITICAL COLOR ROTATION: All 4 strips must use all 3 colors, but their proportional dominance must rotate exactly as follows: ${getVal(4)}. Each strip must obey its specific mathematical color ratio.
+
+[Structure & Graphics] The layout uses ${getVal(5)}. Introduce structured dynamic composition using: ${getVal(6)}. Super-graphics and dense micro-text must read exactly: ${getVal(7)}.
+
+[Tactility & Optics] Printed using ${getVal(8)}. Captured using ${getVal(9)}.${psdnOptics}
+
+[Trigger] The mechanical logic is disrupted by ${getVal(10)} on ONE strip.
+
+[Technical Specs] Ultra-crisp, photorealistic. Maximalist brutalist typographic logic. Flawless micro-text rendering. No soft gradients. ${mjEngine}`;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatePrompt());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const statusString = useMemo(() => {
+    return Object.keys(CATEGORIES).map(cId => `C${cId}[${selectedItems[cId]?.length || 0}]`).join(' · ');
+  }, [selectedItems]);
+
+  return (
+    <div className="flex flex-row h-screen w-full bg-[#050608] text-[#d4d4d4] font-sans overflow-hidden">
+
+      {/* LEFT PANEL */}
+      <div className="w-[380px] shrink-0 flex flex-col h-screen border-r border-[#23262e] bg-[#0f1115] shadow-[5px_0_20px_rgba(0,0,0,0.5)] z-20">
+
+        {/* Header */}
+        <div className="p-5 border-b border-[#23262e] shrink-0">
+          <h2 className="m-0 text-xl tracking-widest uppercase font-black text-white">STRIPS PRO GEN</h2>
+          <div className="flex justify-between items-center mt-1">
+            <div className="text-[10px] text-[#c8aa6e] tracking-widest uppercase">V16: K.S.A.R. & P.S.D.N.</div>
+            <a href="/" className="text-[10px] text-[#7a8294] hover:text-[#c8aa6e] no-underline transition-colors">← Dashboard</a>
+          </div>
+        </div>
+
+        {/* Scrollable controls */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 custom-scrollbar">
+
+          {/* MJ Engine */}
+          <div className="p-5 border-b border-[#23262e] bg-[#12141a]">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-xs font-bold tracking-widest text-white uppercase">MJ Engine</span>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={psdnMode} onChange={() => setPsdnMode(!psdnMode)} />
+                <span className={psdnMode ? 'text-[#c8aa6e] font-bold text-[10px] tracking-wider' : 'text-[#7a8294] text-[10px] tracking-wider'}>P.S.D.N.</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-[#7a8294] uppercase tracking-wider">Format (--ar)</label>
+                <select value={mjParams.ar} onChange={e => setMjParams({...mjParams, ar: e.target.value})} className="bg-[#050608] border border-[#23262e] text-[#d4d4d4] p-1.5 text-xs outline-none focus:border-[#c8aa6e] rounded-sm">
+                  <option value="9:16">9:16 (Strips)</option>
+                  <option value="1:1">1:1 (Monolith)</option>
+                  <option value="16:9">16:9 (Landscape)</option>
+                  <option value="21:9">21:9 (Cinematic)</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-[#7a8294] uppercase tracking-wider">Style (--sref)</label>
+                <input type="text" value={mjParams.sref} onChange={e => setMjParams({...mjParams, sref: e.target.value})} placeholder="URL..." className="bg-[#050608] border border-[#23262e] text-[#d4d4d4] p-1.5 text-xs outline-none focus:border-[#c8aa6e] rounded-sm" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[10px] uppercase tracking-wider">
+                  <span className="text-[#7a8294]">Stylize</span>
+                  <span className="text-[#c8aa6e] font-mono">{mjParams.stylize}</span>
+                </div>
+                <input type="range" min="0" max="1000" step="50" value={mjParams.stylize} onChange={e => setMjParams({...mjParams, stylize: parseInt(e.target.value)})} className="h-1 bg-[#23262e] appearance-none rounded-full cursor-pointer" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[10px] uppercase tracking-wider">
+                  <span className="text-[#7a8294]">Chaos</span>
+                  <span className="text-[#c8aa6e] font-mono">{mjParams.chaos}</span>
+                </div>
+                <input type="range" min="0" max="100" step="5" value={mjParams.chaos} onChange={e => setMjParams({...mjParams, chaos: parseInt(e.target.value)})} className="h-1 bg-[#23262e] appearance-none rounded-full cursor-pointer" />
+              </div>
+              <div className="flex flex-col gap-1.5 col-span-2">
+                <div className="flex justify-between text-[10px] uppercase tracking-wider">
+                  <span className="text-[#7a8294]">Weird</span>
+                  <span className="text-[#c8aa6e] font-mono">{mjParams.weird}</span>
+                </div>
+                <input type="range" min="0" max="3000" step="100" value={mjParams.weird} onChange={e => setMjParams({...mjParams, weird: parseInt(e.target.value)})} className="h-1 bg-[#23262e] appearance-none rounded-full cursor-pointer" />
+              </div>
+            </div>
+          </div>
+
+          {/* AI Generator & Parser */}
+          <div className="p-5 border-b border-[#23262e] flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-[#7a8294] uppercase tracking-wider">Semantic AI Parser</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && generateAIConcept()}
+                  placeholder="Опишите атмосферу..."
+                  className="flex-1 p-2 bg-[#050608] border border-[#c8aa6e]/30 text-[#d4d4d4] text-xs outline-none focus:border-[#c8aa6e] transition-colors placeholder-[#4b5563] rounded-sm"
+                  disabled={isGenerating}
+                />
+                <button
+                  onClick={generateAIConcept}
+                  disabled={isGenerating || !aiPrompt.trim()}
+                  className={`px-3 py-2 font-bold uppercase text-[10px] tracking-wider border-none rounded-sm cursor-pointer transition-colors whitespace-nowrap ${isGenerating ? 'bg-[#23262e] text-[#7a8294]' : 'bg-[#c8aa6e] text-[#050608] hover:bg-[#d6b77c]'}`}
+                >
+                  {isGenerating ? '...' : 'ИИ-СБОРКА'}
+                </button>
+              </div>
+              {aiError && <div className="text-red-500 text-[10px] mt-1">{aiError}</div>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] text-[#7a8294] uppercase tracking-wider flex justify-between">
+                <span>Code String</span>
+                <span className="text-[#c8aa6e] opacity-70 cursor-help" title="2x Click on any tag to increase weight (::2)">(2x Click = Weight)</span>
+              </label>
+              <input
+                type="text"
+                value={parserInput}
+                onChange={handleParse}
+                placeholder="1(1) - 4(1) - 6(2, 3)..."
+                className="w-full p-2 bg-[#050608] border border-[#23262e] text-[#c8aa6e] font-mono text-xs outline-none focus:border-[#c8aa6e] transition-colors rounded-sm"
+              />
+            </div>
+          </div>
+
+          {/* Prompt Output */}
+          <div className="flex-1 flex flex-col p-5 bg-[#050608] min-h-[180px]">
+            <div className="text-[10px] text-[#7a8294] font-mono mb-2 flex justify-between flex-wrap gap-1">
+              <span>STATUS:</span>
+              <span className="text-[#c8aa6e] text-right">{statusString}</span>
+            </div>
+            <textarea
+              readOnly
+              value={generatePrompt()}
+              className="flex-1 w-full bg-[#0f1115] text-[#d4d4d4] border border-[#23262e] p-3 font-mono text-[11px] leading-relaxed resize-none outline-none focus:border-[#c8aa6e]/50 transition-colors rounded-sm custom-scrollbar"
+            />
+          </div>
+        </div>
+
+        {/* Copy Button */}
+        <button
+          onClick={copyToClipboard}
+          className={`shrink-0 w-full h-[56px] font-black uppercase text-sm tracking-[0.2em] transition-colors duration-200 border-none cursor-pointer ${copied ? 'bg-white text-black' : 'bg-[#c8aa6e] text-[#050608] hover:bg-[#d6b77c]'}`}
+        >
+          {copied ? '✓ COPIED TO CLIPBOARD' : 'COPY PROMPT'}
+        </button>
+      </div>
+
+      {/* RIGHT PANEL — Categories */}
+      <div className="flex-1 h-screen overflow-y-auto bg-[#050608] p-8 flex flex-col gap-8 pb-32 custom-scrollbar">
+        {Object.entries(CATEGORIES).map(([cId, category]) => (
+          <div key={cId}>
+            <div className="flex items-center gap-4 mb-4">
+              <h3 className="m-0 text-sm text-[#c8aa6e] tracking-[0.15em] uppercase font-bold shrink-0">{category.title}</h3>
+              <div className="flex-1 h-px bg-[#23262e]"></div>
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(155px,1fr))] gap-2">
+              {category.items.map(item => {
+                const isSelected = selectedItems[cId]?.includes(item.id);
+                const weight = itemWeights[`${cId}-${item.id}`] || 1;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleToggle(cId, item.id)}
+                    onDoubleClick={(e) => { e.preventDefault(); handleDoubleClick(cId, item.id); }}
+                    title={item.val}
+                    className={`px-2.5 py-2 text-[11px] font-mono border text-left min-h-[36px] transition-all duration-150 cursor-pointer rounded-sm flex justify-between items-center
+                      ${isSelected
+                        ? 'bg-[#c8aa6e] border-[#c8aa6e] text-[#050608] font-bold'
+                        : 'bg-[#0f1115] border-[#23262e] text-[#7a8294] hover:border-[#c8aa6e]/40 hover:bg-[#13151a]'
+                      }`}
+                  >
+                    <span className="truncate pr-2">{item.id}. {item.short}</span>
+                    {isSelected && weight > 1 && (
+                      <span className="px-1.5 py-0.5 bg-[#050608] text-[#c8aa6e] rounded-sm text-[9px] font-black border border-black/20 shrink-0">::2</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        input[type=range]::-webkit-slider-thumb { background: #c8aa6e; }
+        input[type=range]::-moz-range-thumb { background: #c8aa6e; border: none; }
+      `}} />
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
