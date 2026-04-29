@@ -1,4 +1,4 @@
-# Project DNA: ⚡ Antigravity Handoff Context (2026-04-13)
+# Project DNA: ⚡ Antigravity Handoff Context (2026-04-29)
 
 **Критически важно:** Этот файл содержит инъекцию контекста для нового ИИ-ассистента при смене сессии. Внимательно изучи текущее состояние, чтобы не предлагать отвергнутые решения и понимать архитектурные особенности данного окружения. Обязательно прочитай `project_dna_full_context.md` и `PRIVATE_CONTEXT.md` в рабочей директории, прежде чем приступать к коду.
 
@@ -6,28 +6,80 @@
 
 ## 📸 1. Snapshot состояния (State Snapshot)
 
-**Текущая задача:** Успешно завершена стабилизация конвейера **Behance Scout** (Автономный мультимодальный агент-куратор). Сейчас находимся в фазе перехода к новым бэклог-задачам (MLOps-инфраструктура, мониторинг, бэкапы n8n).
+**Текущая задача:** Завершён релиз **Strips Pro Gen V46** — инструмента генерации Midjourney-промптов для Ксении Артман. Инструмент работает как standalone-страница `/strips` FastAPI-дашборда Behance Scout на сервере `172.25.9.33:7788`.
 
 **Последние 5 архитектурных изменений:**
-1. **Persona (Ksenia 'Dark Luxury') via Few-Shot RAG:** Арт-директорская персона теперь строго контролируется за счет динамической выгрузки 48 реальных комментариев Ксении из SQLite и их инъекции (few-shot) напрямую в системный промпт VLM-критика (`analysis/comment_gen.py`).
-2. **Geo-Block Evasion & VPN Proxy Migration:** Успешно осуществлен переезд на финский VPS (`fin.igorvl.ru`) с современным транспортным протоколом VLESS + XHTTP. Нативная служба `xray-core` на Ubuntu-хосте проксирует SOCKS5/HTTP трафик (`10808`/`10809`) сквозь `host.docker.internal` прямо в Docker-контейнеры. Это решает блокировки API AI-провайдеров (Gemini, Groq) по Geo-IP.
-3. **Critic Model Failover:** OpenRouter отдавал `402 Payment Required` на платные модели. Внедрен автоматический fallback на `google/gemini-2.5-flash:free` и прямые API (включая SiliconFlow и ZhipuAI).
-4. **Qwen-VL Unicode Sanitization:** Модели VLM возвращали грязные символы (`\u007f`), роняющие Python JSON parser. Добавлена жесткая Regex стерилизация до `json.loads`.
-5. **Database Cleansing Scripts:** Написаны целевые Python/SQLite скрипты для точечного обнуления только сломанных комментариев (hex-дампов и застрявших JSON-строк) с игнорированием сложных bash-escaping проблем.
+1. **Strips Pro Gen V46 (strips.html):** Обновлён генератор промптов с V45 до V46. Добавлены: формат `Косметика/Парфюм`, Behance Mode, пользовательские сохраняемые протоколы (localStorage), поля `projectTitle` и `customText`, взаимоисключение Matrix/Behance режимов. Файл: `behance_scout/dashboard/templates/strips.html`.
+2. **Custom Protocols (localStorage):** Реализована система пользовательских пресетов — сохранение текущего состояния в `localStorage` с именем, загрузка при старте, удаление по кнопке ✕. Ключ: `ksar_custom_protocols`.
+3. **Cosmetics Format:** Добавлен новый тип формата `cosmetics` (Косметика/Парфюм) с ролью luxury packaging designer, адаптером материалов (heavy glass, metal inlay, ceramic frit), отдельными правилами (минимализм, негативное пространство) и камерой (marble surface / raking light).
+4. **URL Hash State Extended:** В URL hash добавлены поля `bh` (behanceMode), `pt` (projectTitle), `ct` (customText) для полного восстановления состояния между сессиями.
+5. **Deploy Flow зафиксирован:** Сервер живёт на Linux Ubuntu (`linux-job`, `172.25.9.33`). Папка: `/home/igorvl/ai-design-workspace/behance_scout/`. Запуск: `venv/bin/python run.py --dashboard`. Деплой: ручной Ctrl+C/Ctrl+V через GUI файловый менеджер (WinSCP или SMB). После замены `strips.html` — перезапуск сервера НЕ нужен (читает с диска при каждом запросе). После замены `app.py` — перезапуск нужен (`sudo pkill -f uvicorn` → `venv/bin/python run.py --dashboard`).
 
 **Список активных (переходящих) задач и багов:**
+*   [Task] **Strips V47:** Возможные будущие улучшения — поле для Brief (краткое описание проекта), история последних N промптов, экспорт пресетов в JSON.
+*   [Bug] **Разбор пустой ошибки "HTTP ?:"** Ожидание вывода логов с production-сервера с детальным трейсом `repr(e)` от `httpx` при вызове `api.siliconflow.com`.
 *   [Task] **Observability/Monitoring:** Внедрение Loki + Promtail для агрегации логов в Grafana.
 *   [Task] **Backup Automation:** Автоматическое резервное копирование Docker-вольюма `n8n_data` на Synology NAS.
-*   [Task] **G11 Context Integration:** Разработка Middleware для инъекции диалогового контекста RAG (Project DNA) обратно во входящие промпты LLM.
-*   [Bug/Debt] Рефакторинг `dashboard` — вынесение загрузки изображений `uploadImages()` в shared function (v3.0.0).
-*   [Bug/Debt] Удаление битых файлов из MinIO в директории `test-project/`.
+
+---
+
+## 🗂️ Архитектура Strips Pro Gen
+
+**Файловая структура:**
+```
+behance_scout/
+├── run.py                          # Точка входа, uvicorn запуск
+├── config.py                       # DASHBOARD_PORT=7788, DASHBOARD_HOST=0.0.0.0
+└── dashboard/
+    ├── app.py                      # FastAPI: GET /strips → читает strips.html с диска
+    │                               # POST /api/strips/ai → LLM каскад (OpenRouter → SiliconFlow)
+    └── templates/
+        └── strips.html             # V46 — standalone React app (Babel CDN)
+```
+
+**Маршруты:**
+- `GET /strips` → читает `templates/strips.html` с диска при каждом запросе (без кэша)
+- `POST /api/strips/ai` → LLM-генерация параметров по текстовому концепту, каскад провайдеров
+
+**Стек front-end (strips.html):**
+- React 18 (CDN, UMD build)
+- Babel Standalone (JSX в браузере)
+- Tailwind CSS (CDN)
+- Vanilla CSS переменные + кастомные классы
+- Состояние в URL hash (`#%7B...%7D`) — полное восстановление по ссылке
+- Custom protocols в `localStorage` (ключ `ksar_custom_protocols`)
+
+**Категории V46 (11 категорий):**
+| # | Название | Размер |
+|---|---|---|
+| C1 | Школа Дизайна | 123 элемента |
+| C2 | Эстетика ДНК | 120 элементов |
+| C3 | 3 Цвета | 60 палитр |
+| C4 | Ротация Цвета | 20 схем |
+| C5 | Структура | 60 элементов |
+| C6 | Графика и Маркировка | 60 элементов |
+| C7 | Супер-Графика | 30 заголовков |
+| C8 | Материал и Печать | 20 техник |
+| C9 | Оптика и Камера | 20 линз |
+| C10 | Триггер-Фокус | 60 дисрупторов |
+| C11 | Свет и Атмосфера | 20 схем |
+
+**Форматы (TARGET_FORMATS):**
+`strips` · `poster` · `identity` · `packaging` · `cosmetics` (NEW V46) · `space` · `product` · `merch` · `editorial` · `ui` · `wayfinding` · `aero` · `installation` · `motion`
+
+**Протоколы (встроенные пресеты):**
+- `ABYSSAL` — глубоководный ресёрч, каустика
+- `CLINICAL` — стерильная мед-инженерия
+- `TECTONIC` — тяжёлый бетон, разрушение
+- `STEALTH $` — тихая роскошь, идеальная сборка
+- + пользовательские (localStorage)
 
 ---
 
 ## ⚖️ 2. Гайдлайны и Code Style (Строгие правила!)
 
 1. **Защита существующей архитектуры:** Никогда не предлагайте "переписать систему с нуля" на другой фреймворк или "заменить SQLite на PostgreSQL для Behance Scout". Работайте в рамках существующих технологий и файловых структур (Vanilla JS для фронта, FastAPI + asyncpg для роутера).
-2. **Решение проблем без изменения чужого кода:** Как показал Bypass с `DNA_PICKER`, мы предпочитаем решать проблемы на стороне клиента (хитрая инъекция в API), а не переписывать код стабильно работающего бэкенд-роутера. 
+2. **Решение проблем без изменения чужого кода:** Как показал Bypass с `DNA_PICKER`, мы предпочитаем решать проблемы на стороне клиента (хитрая инъекция в API), а не переписывать код стабильно работающего бэкенд-роутера.
 3. **Fail Fast Pattern:** В браузерных расширениях и API-запросах всегда используйте жесткие таймауты (`AbortSignal.timeout(5000)` в JS / `asyncio.sleep` или `timeout=60` в httpx), чтобы не вешать потоки.
 4. **Резюме-Ориентированность:** Любое значимое внедрение новой технологии должно автоматически сопровождаться записью в `docs/RESUME_BULLETS.md` (на англ. и русском) в формате достижения старшего инженера (Senior MLOps/DevOps).
 5. **Теория и Обучение (Learning Blocks):** При введении новых технологий (Promtail, Loki, VLANs), всегда предваряй техническое объяснение секцией `**📚 Learning Block — [Topic]**`. Пользователь активно обучается во время интеграций.
@@ -38,15 +90,19 @@
 ## 🚫 3. Summary диалога (Отвергнутые и принятые пути)
 
 **Что МЫ УЖЕ ПРОБОВАЛИ И ОТВЕРГЛИ:**
-*   *Отвергнуто:* Изменение логики самого роутера `routing/router.py`, чтобы он не вызывал `DNA_PICKER`. (Причина: 로утер — это общий gateway для кучи фронтендов. Сломали бы логику Open WebUI).
-*   *Отвергнуто:* Попытки ловить сломанные комментарии в SQLite через SQL LIKE `%{\"en%`. (Причина: Поведение экранирования внутри PowerShell ломает SQL-базу. Принятый подход — использование Python-микроскриптов для чистки SQL).
-*   *Отвергнуто:* Использование `gemini-2.0-fallback` в балансировщике. (Причина: Перешли на zero-cost `qwen3.6-plus:free` от OpenRouter).
-*   *Отвергнуто:* Self-hosted macOS runner для Safari. (Причина: Завершилось провалом виртуализации, перешли на Orion Browser).
+*   *Отвергнуто:* Выполнение парсинга Behance Scout (в частности, первичный логин с обходом капчи) headlessly на Ubuntu-сервере. (Причина: Google Auth блокирует безголовые браузеры. Принятое решение: скрипт `login_local.py` генерирует `session.json` на локальном ПК с UI, затем ключ копируется на сервер).
+*   *Отвергнуто:* Изменение логики самого роутера `routing/router.py`, чтобы он не вызывал `DNA_PICKER`. (Причина: Угроза стабильности Open WebUI).
+*   *Отвергнуто:* Установка библиотек глобально на Ubuntu 24.04 (Причина: Блокировка `EXTERNALLY-MANAGED`. Принято: Строгая изоляция через `python3 -m venv venv`).
+*   *Отвергнуто:* Self-hosted macOS runner для Safari. (Причина: Провал виртуализации).
+*   *Отвергнуто:* Полный рефайл strips.html в одном tool-call (лимит токенов). Принято: точечные `multi_replace_file_content` по секциям.
 
 **Что УСПЕШНО ИСПОЛЬЗУЕТСЯ:**
-*   `qwen-vision-VL-32B` — как главная VLM модель для анализа скриншотов проектов (выбор обложек и оценка стиля).
-*   `Playwright headless browser` (с задержкой `networkidle`) для подгрузки изображений с Behance, обходя lazy loading.
+*   **Strips Pro Gen (standalone React в HTML):** Babel CDN + React UMD в одном HTML-файле — максимальная простота деплоя, нет build-шага.
+*   **Hash-based State:** Весь стейт кодируется в URL hash → шаринг сессий, восстановление без БД.
+*   **localStorage Protocols:** Пользовательские пресеты без бэкенда.
+*   **Fallback Sequence:** В случае падения LLM провайдера скрипт автоматически обходит список запасных моделей без остановки процесса.
+*   **Manual Synchronization Pattern:** Раздельные Git-репозитории на Windows-ПК и Ubuntu-сервере; точечный перенос важных изменений и ключей.
 *   Synology NAS (Active Backup for Business + Docker Registry) как центральный хаб хранения и Disaster Recovery.
 
 **Следующий шаг ассистента:**
-Прочитать этот файл, подтвердить готовность командой "Handoff Accepted" и спросить у Пользователя, какую задачу из Бэклога (Monitoring, Backups, G11) берем в работу.
+Прочитать этот файл, подтвердить понимание и уточнить у Пользователя текущую задачу. Последнее состояние: Strips Pro Gen V46 задеплоен на `172.25.9.33:7788/strips`.
