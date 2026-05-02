@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Strips Pro Gen V46 — Behance Scout</title>
+  <title>Strips Pro Gen V48 — Behance Scout</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -22,46 +22,46 @@
     input[type=checkbox] { accent-color: #c8aa6e; cursor: pointer; width: 14px; height: 14px; }
     textarea { resize: none; }
     .chip {
-      display: inline-flex; align-items: center; gap: 2px;
-      padding: 2px 6px; border-radius: 2px; font-size: 9.5px; font-family: 'Inter', sans-serif;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 2px; font-size: 14px; font-family: 'Inter', sans-serif;
       cursor: pointer; border: 1px solid #23262e; background: #0d0f14; color: #606472;
-      transition: all 0.12s; user-select: none; line-height: 1.45; white-space: nowrap;
+      transition: all 0.12s; user-select: none; line-height: 1.5; white-space: nowrap;
     }
     .chip:hover { border-color: #c8aa6e50; color: #c8aa6e; }
     .chip.selected { background: #c8aa6e; border-color: #c8aa6e; color: #050608; font-weight: 700; }
     .chip.w2 { background: #c8aa6e; border-color: #ffffff; color: #050608; font-weight: 900; box-shadow: 0 0 0 1.5px #c8aa6e, 0 0 0 2.5px #fff; }
     .chip.excluded { background: #1a0606; border-color: #5a1a1a; color: #cc4444; text-decoration: line-through; }
     .chip.excluded:hover { border-color: #cc4444; }
-    .excl-btn { font-size: 8px; opacity: 0; margin-left: 1px; line-height: 1; transition: opacity 0.1s; cursor: pointer; padding: 0 1px; }
+    .excl-btn { font-size: 12px; opacity: 0; margin-left: 2px; line-height: 1; transition: opacity 0.1s; cursor: pointer; padding: 0 1px; }
     .chip:hover .excl-btn { opacity: 0.7; }
     .chip.excluded .excl-btn { opacity: 1; color: #888; }
-    .ctrl-label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #4a5068; margin-bottom: 4px; }
-    .ctrl-input { width: 100%; background: #0d0f14; border: 1px solid #23262e; color: #c8c8c8; border-radius: 2px; padding: 5px 8px; font-size: 11px; font-family: 'Inter', sans-serif; outline: none; }
+    .ctrl-label { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #4a5068; margin-bottom: 6px; }
+    .ctrl-input { width: 100%; background: #0d0f14; border: 1px solid #23262e; color: #c8c8c8; border-radius: 2px; padding: 7px 11px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; }
     .ctrl-input:focus { border-color: #c8aa6e60; }
-    .ctrl-select { width: 100%; background: #0d0f14; border: 1px solid #23262e; color: #c8c8c8; border-radius: 2px; padding: 5px 8px; font-size: 11px; font-family: 'Inter', sans-serif; outline: none; cursor: pointer; }
+    .ctrl-select { width: 100%; background: #0d0f14; border: 1px solid #23262e; color: #c8c8c8; border-radius: 2px; padding: 7px 11px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; cursor: pointer; }
     .psd-bar { height: 3px; border-radius: 2px; transition: width 0.2s; }
-    .section-hdr { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #4a5068; padding: 0 0 6px 0; border-bottom: 1px solid #1a1d25; margin-bottom: 8px; }
-    .proto-btn { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 8px; border: 1px solid #2a2d36; background: #0d0f14; color: #7a8294; border-radius: 2px; cursor: pointer; transition: all 0.15s; }
+    .section-hdr { font-size: 13px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #4a5068; padding: 0 0 8px 0; border-bottom: 1px solid #1a1d25; margin-bottom: 10px; }
+    .proto-btn { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 7px 12px; border: 1px solid #2a2d36; background: #0d0f14; color: #7a8294; border-radius: 2px; cursor: pointer; transition: all 0.15s; }
     .proto-btn:hover { border-color: #c8aa6e; color: #c8aa6e; }
-    .ar-btn { font-size: 9px; font-weight: 700; padding: 3px 7px; border: 1px solid #23262e; background: #0d0f14; color: #606472; border-radius: 2px; cursor: pointer; transition: all 0.12s; letter-spacing: 0.05em; }
+    .ar-btn { font-size: 13px; font-weight: 700; padding: 5px 11px; border: 1px solid #23262e; background: #0d0f14; color: #606472; border-radius: 2px; cursor: pointer; transition: all 0.12s; letter-spacing: 0.05em; }
     .ar-btn.active { background: #c8aa6e20; border-color: #c8aa6e; color: #c8aa6e; }
-    .fmt-pill { font-size: 9px; font-weight: 600; padding: 3px 9px; border: 1px solid #23262e; background: #0d0f14; color: #606472; border-radius: 2px; cursor: pointer; transition: all 0.12s; white-space: nowrap; letter-spacing: 0.05em; }
+    .fmt-pill { font-size: 13px; font-weight: 600; padding: 5px 13px; border: 1px solid #23262e; background: #0d0f14; color: #606472; border-radius: 2px; cursor: pointer; transition: all 0.12s; white-space: nowrap; letter-spacing: 0.04em; }
     .fmt-pill.active { background: #c8aa6e; border-color: #c8aa6e; color: #050608; }
-    .copy-btn { width: 100%; padding: 11px; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; border: 1px solid #c8aa6e; background: transparent; color: #c8aa6e; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .copy-btn { width: 100%; padding: 15px; font-size: 14px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; border: 1px solid #c8aa6e; background: transparent; color: #c8aa6e; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
     .copy-btn:hover { background: #c8aa6e; color: #050608; }
     .copy-btn.copied { background: #1a3a1a; border-color: #4a8a4a; color: #4a8a4a; }
-    .toggle-btn { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 4px 0; }
-    .toggle-label { font-size: 10px; color: #8a8ea8; }
-    .toggle-track { width: 28px; height: 14px; border-radius: 7px; background: #1a1d25; position: relative; transition: all 0.2s; border: 1px solid #23262e; flex-shrink: 0; }
+    .toggle-btn { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 6px 0; }
+    .toggle-label { font-size: 14px; color: #8a8ea8; }
+    .toggle-track { width: 38px; height: 20px; border-radius: 10px; background: #1a1d25; position: relative; transition: all 0.2s; border: 1px solid #23262e; flex-shrink: 0; }
     .toggle-track.on { background: #c8aa6e30; border-color: #c8aa6e; }
-    .toggle-thumb { position: absolute; top: 2px; width: 8px; height: 8px; border-radius: 50%; background: #404050; transition: all 0.2s; left: 2px; }
-    .toggle-track.on .toggle-thumb { left: 16px; background: #c8aa6e; }
-    .ai-btn { padding: 5px 10px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; background: #c8aa6e15; border: 1px solid #c8aa6e40; color: #c8aa6e; cursor: pointer; border-radius: 2px; transition: all 0.15s; white-space: nowrap; font-family: 'Inter', sans-serif; }
+    .toggle-thumb { position: absolute; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #404050; transition: all 0.2s; left: 3px; }
+    .toggle-track.on .toggle-thumb { left: 21px; background: #c8aa6e; }
+    .ai-btn { padding: 7px 14px; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; background: #c8aa6e15; border: 1px solid #c8aa6e40; color: #c8aa6e; cursor: pointer; border-radius: 2px; transition: all 0.15s; white-space: nowrap; font-family: 'Inter', sans-serif; }
     .ai-btn:hover:not(:disabled) { background: #c8aa6e; color: #050608; }
     .ai-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .quantum-btn { width: 100%; padding: 7px; font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; background: transparent; border: 1px dashed #c8aa6e40; color: #c8aa6e80; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .quantum-btn { width: 100%; padding: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; background: transparent; border: 1px dashed #c8aa6e40; color: #c8aa6e80; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
     .quantum-btn:hover { border-color: #c8aa6e; color: #c8aa6e; background: #c8aa6e08; }
-    .clr-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; border: 1px solid #23262e; }
+    .clr-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; border: 1px solid #23262e; }
   </style>
 </head>
 <body>
@@ -176,7 +176,16 @@ const CATEGORIES = {
   10: {
     title: '10. ТРИГГЕР-ФОКУС',
     items: [
-      {id:1,short:'Геометрический Блок',val:'a colossal solid geometric block',t:{spatial:'a colossal monolithic architectural concrete block intersecting the room',product:'a solid geometric heavy metal casing disrupting the ergonomic flow',aero:'a solid geometric heavy metal casing disrupting the aerodynamic flow',apparel:'a massive rubberized geometric block bonded to the fabric',digital:'a solid blank data-block obscuring the telemetry'}},{id:2,short:'Векторный Срез',val:'a harsh vector slice violently splitting the layout',t:{spatial:'a sharp architectural fissure splitting the concrete floor',product:'a deep precision-milled CNC slice cutting through the hardware',aero:'a deep precision-milled aerodynamic slice cutting through the hull',apparel:'a harsh asymmetrical structural seam splitting the garment',digital:'a violent diagonal screen-tear glitch across the interface'}},{id:3,short:'Штрих Маркера',val:'a disruptive, hyper-vibrant graphic marker slash redacting data',t:{spatial:'a disruptive, hyper-vibrant neon light tube slashing across the room',product:'a vibrant industrial warning stripe painted across the metal',aero:'a vibrant high-visibility warning stripe painted across the fuselage',apparel:'a raw, painted strike-through across the chest panel',digital:'a hyper-vibrant digital redaction bar glitching over data'}},{id:4,short:'Идеальный Круг',val:'a flawless, void-like black circle cutting through the grid',t:{spatial:'a perfectly circular architectural void leading to total darkness',product:'a flawless, light-absorbing circular void machined into the chassis',aero:'a flawless, light-absorbing jet intake void machined into the chassis',apparel:'a perfect circular cutout revealing a contrasting internal layer',digital:'a pure black unrendered circular void in the 3D space'}},{id:5,short:'Диодный Пиксель',val:'a single graphic row of glowing LED-style pixels'},{id:6,short:'Плоский Эмбосс',val:'a flat-vector simulated blind emboss effect'},{id:7,short:'Графический Надор',val:'a sharp graphic illustration of a paper tear revealing contrasting color'},{id:8,short:'Хромированный Вектор',val:'a hyper-reflective metallic ink overlay rendered graphically'},{id:9,short:'Векторный Хазард',val:'a sharp geometric chevron hazard banner'},{id:10,short:'Иллюстрация Ожога',val:'a scorched graphic laser burn mark cutting through text'},{id:11,short:'Круглая Печать',val:'a strict circular vector certification stamp'},{id:12,short:'Блэкаут-Полоса',val:'a heavy, solid blackout redaction bar'},{id:13,short:'Фосфорная Графика',val:'a graphic simulation of a phosphorescent glow-in-the-dark section'},{id:14,short:'Хроматический Глитч',val:'a simulated heat-reactive chromatic glitch smudge'},{id:15,short:'Взрывной Халфтон',val:'an extreme, blown-out halftone dot pattern overlay'},{id:16,short:'Бесконечный Штрихкод',val:'a dense barcode stretched vertically to infinity'},{id:17,short:'Массивный Иероглиф',val:'a massive unreadable Kanji/Cyrillic vector letterform'},{id:18,short:'Муар Блок',val:'an optical illusion moire pattern block'},{id:19,short:'Концентрическая Мишень',val:'a perfectly drafted concentric sniper reticle'},{id:20,short:'Фрагмент Гравюры',val:'a sharply cropped fragment of a classical engraving mixed with data'},{id:21,short:'Красная Печать',val:'a stark, physical red wax seal'},{id:22,short:'Канцелярская Скрепка',val:'a hyper-realistic metallic paperclip holding a note'},{id:23,short:'Отпечаток Пальца',val:'a realistic, dusty thumbprint smudging the text'},{id:24,short:'След от Кофе',val:'a faint, overlapping coffee ring stain'},{id:25,short:'Технический Скотч',val:'a piece of rough masking tape covering data'},{id:26,short:'Прокол Дырокола',val:'a perfectly round hole punch showing the background void'},{id:27,short:'Капля Чернил',val:"a single, thick droplet of wet black printer's ink"},{id:28,short:'Мерная Линейка',val:'a physical translucent plastic ruler laid over the layout'},{id:29,short:"Штамп ОТК",val:"a faded, misaligned 'PASSED QUALITY CONTROL' rubber stamp"},{id:30,short:'Царапина на Металле',val:'a deep, realistic scratch simulating damaged metal'},{id:31,short:'Жесткий Залом',val:'a harsh, physical crease/fold mark in the paper'},{id:32,short:'Загнутый Уголок',val:'a dog-eared corner revealing the unprinted back'},{id:33,short:'Архивная Нить',val:'a thick archival binding thread stitched directly through the layout'},{id:34,short:'Слепое Тиснение',val:'a deeply embossed, inkless notary public seal'},{id:35,short:'Белая Замазка',val:'a thick, textured smear of white correction fluid'},{id:36,short:'Выцветший Штамп',val:'a faded, partially stamped blue library accession mark'},{id:37,short:'Инв. Наклейка',val:'a partially torn, stubborn paper inventory sticker'},{id:38,short:'Забитый Текст (XXX)',val:'typewriter strike-through text redacting critical data'},{id:39,short:'Обрывок Майлара',val:'translucent Mylar archival tape repairing a microscopic tear'},{id:40,short:'След От Пальца',val:'a subtle wipe mark removing dust from a matte black surface'},{id:41,short:'Несовмещение Красок',val:'a harsh CMYK misregistration shifting only the cyan channel'},{id:42,short:'Метка Реза',val:'intrusive offset crop marks and color bars overlapping the design'},{id:43,short:'Растекшаяся Краска',val:'an over-inked letterpress character bleeding into the paper'},{id:44,short:'Осыпающаяся Фольга',val:'flaking, degraded metallic foil stamping'},{id:45,short:'След Ролика',val:'a faint mechanical indentation from a printing press feeder roller'},{id:46,short:'Сбой Муара',val:'a localized halftone dot moire pattern printing error'},{id:47,short:'Клей Корешка',val:'a stray droplet of hardened, yellowish bookbinding glue'},{id:48,short:'Вырубка (Die-Cut)',val:'a clean, functional geometric die-cut hole showing the void behind'},{id:49,short:'Сбой УФ-Лака',val:'raised spot UV varnish misaligned from its target typography'},{id:50,short:'Грубый Обрез',val:'a rough, deckled paper edge interrupting the clean geometry'},{id:51,short:'Осколок Стекла',val:'a shard of microscope slide glass refracting the typography below'},{id:52,short:'Оптический Крест',val:"a razor-thin, red optical calibration crosshair"},{id:53,short:'Свинцовая Метка',val:"a physical lead radiographic 'L' or 'R' marker placed on the layout"},{id:54,short:'Термический Ожог',val:'a precise, circular laser-scorched burn mark'},{id:55,short:'Сетка Фарадея',val:'a torn top layer revealing a conductive Faraday copper mesh beneath'},{id:56,short:'След Лакмуса',val:'a precise drop of chemical reagent discoloring the paper matrix'},{id:57,short:'Обрывок Шкалы',val:'a fragment of a translucent surgical measuring tape'},{id:58,short:'Разрез Скальпелем',val:'a flawless, razor-sharp surgical scalpel slit through the cardboard'},{id:59,short:'Микро-Сверление',val:'a row of microscopic CNC-drilled precision holes'},{id:60,short:'Полимерная Заглушка',val:'a physical silicone industrial plug embedded into the surface'},
+      {id:1,short:'Геометрический Блок',val:'a colossal solid geometric block',t:{spatial:'a colossal monolithic architectural concrete block intersecting the room',product:'a solid geometric heavy metal casing disrupting the ergonomic flow',aero:'a solid geometric heavy metal casing disrupting the aerodynamic flow',apparel:'a massive rubberized geometric block bonded to the fabric',digital:'a solid blank data-block obscuring the telemetry'}},{id:2,short:'Векторный Срез',val:'a harsh vector slice violently splitting the layout',t:{spatial:'a sharp architectural fissure splitting the concrete floor',product:'a deep precision-milled CNC slice cutting through the hardware',aero:'a deep precision-milled aerodynamic slice cutting through the hull',apparel:'a harsh asymmetrical structural seam splitting the garment',digital:'a violent diagonal screen-tear glitch across the interface'}},{id:3,short:'Штрих Маркера',val:'a disruptive, hyper-vibrant graphic marker slash redacting data',t:{spatial:'a disruptive, hyper-vibrant neon light tube slashing across the room',product:'a vibrant industrial warning stripe painted across the metal',aero:'a vibrant high-visibility warning stripe painted across the fuselage',apparel:'a raw, painted strike-through across the chest panel',digital:'a hyper-vibrant digital redaction bar glitching over data'}},{id:4,short:'Идеальный Круг',val:'a flawless, void-like black circle cutting through the grid',t:{spatial:'a perfectly circular architectural void leading to total darkness',product:'a flawless, light-absorbing circular void machined into the chassis',aero:'a flawless, light-absorbing jet intake void machined into the chassis',apparel:'a perfect circular cutout revealing a contrasting internal layer',digital:'a pure black unrendered circular void in the 3D space'}},{id:5,short:'Диодный Пиксель',val:'a single graphic row of glowing LED-style pixels',t:{spatial:'a row of embedded architectural LED floor lights',product:'a functional row of physical glowing telemetry diodes',aero:'a functional row of physical glowing avionics diodes',apparel:'a flexible matrix of glowing LED threads woven into the sleeve',digital:'a cluster of dead, glowing pixels disrupting the grid'}},{id:6,short:'Плоский Эмбосс',val:'a flat-vector simulated blind emboss effect',t:{spatial:'a massive structural relief carved directly into the concrete wall',product:'a heavy industrial blind deboss stamped into the metal casing',aero:'a heavy industrial blind deboss stamped into the aerospace paneling',apparel:'a 3D embossed logo pressed heavily into the thick fabric',digital:'a simulated 3D bevel error rendering incorrectly in the UI'}},{id:7,short:'Графический Надор',val:'a sharp graphic illustration of a paper tear revealing contrasting color',t:{spatial:'a jagged tear in the architectural facade revealing structural rebar',product:'a jagged, torn edge of metal revealing internal components',aero:'a jagged, torn edge of carbon-fiber revealing internal engine components',apparel:'a raw, distressed fabric tear exposing contrasting lining',digital:'a jagged polygon tear revealing wireframe mesh underneath'}},{id:8,short:'Хромированный Вектор',val:'a hyper-reflective metallic ink overlay rendered graphically',t:{spatial:'a massive, hyper-reflective chrome pillar dominating the space',product:'a polished, hyper-reflective chrome accent piece on the matte body',aero:'a polished, hyper-reflective chrome exhaust accent piece on the matte hull',apparel:'a highly reflective liquid-chrome applique bonded to the textile',digital:'a simulated ray-traced chrome 3D artifact floating in the UI'}},{id:9,short:'Векторный Хазард',val:'a sharp geometric chevron hazard banner',t:{spatial:'physical industrial hazard chevrons painted on the architecture',product:'stark warning chevrons printed on the mechanical stress points',aero:'stark warning chevrons printed near the jet intake zones',apparel:'heavy tactical hazard chevrons printed on the tactical straps',digital:'a flashing hazard-stripe banner overriding the digital dashboard'}},{id:10,short:'Иллюстрация Ожога',val:'a scorched graphic laser burn mark cutting through text',t:{spatial:'a physical blast scorch mark scarring the concrete interior',product:'a realistic laser-ablated burn mark on the titanium casing',aero:'a realistic atmospheric-reentry scorch mark on the heat shield',apparel:'a literal scorched burn hole through the technical fabric',digital:'a simulated thermal overload reading corrupting the screen'}},{id:11,short:'Круглая Печать',val:'a strict circular vector certification stamp',t:{spatial:'a massive circular certification seal cast into the floor',product:'a deep circular industrial inspection stamp engraved on the metal',aero:'a deep circular military inspection stamp painted on the fuselage',apparel:'a heavy rubberized circular inspection badge heat-pressed on',digital:'a rotating digital authentication seal overlay'}},{id:12,short:'Блэкаут-Полоса',val:'a heavy, solid blackout redaction bar',t:{spatial:'a heavy, light-absorbing blackout monolith obstructing the view',product:'a solid strip of light-absorbing Vantablack coating',aero:'a solid strip of light-absorbing stealth Vantablack coating',apparel:'a massive strip of matte black tactical taping',digital:'a solid digital blackout block redacting the core data'}},{id:13,short:'Фосфорная Графика',val:'a graphic simulation of a phosphorescent glow-in-the-dark section',t:{spatial:'an eerie ambient phosphorescent glow emanating from the walls',product:'physical glow-in-the-dark tritium inserts functional in darkness',aero:'physical glow-in-the-dark tritium inserts functional for night landings',apparel:'luminescent glow-in-the-dark thread woven into the seams',digital:'a glowing, overexposed UI element blooming on the screen'}},{id:14,short:'Хроматический Глитч',val:'a simulated heat-reactive chromatic glitch smudge',t:{spatial:'a chromatic dispersion light effect bending through architectural glass',product:'a heat-reactive chromatic titanium burn (bluing effect)',aero:'a severe heat-reactive chromatic titanium burn on the exhaust nozzle',apparel:'a holographic, chromatic-shifting fabric panel',digital:'a violent RGB chromatic aberration glitch tearing the interface'}},{id:15,short:'Взрывной Халфтон',val:'an extreme, blown-out halftone dot pattern overlay',t:{spatial:'a massive wall perforated with an industrial halftone dot matrix',product:'an extreme, blown-out perforated speaker-grill matrix',aero:'an extreme, blown-out perforated cooling matrix',apparel:'a heavy, tactile halftone dot silicone print on the garment',digital:'a blown-out digital dither pattern corrupting the render'}},{id:16,short:'Бесконечный Штрихкод',val:'a dense barcode stretched vertically to infinity',t:{spatial:'a dense array of vertical architectural louvers resembling a barcode',product:'a deeply milled, functional machine-readable barcode matrix',aero:'a deeply milled, functional aerodynamic drag-reduction matrix',apparel:'a massive, stretched barcode graphic printed across the entire back',digital:'an infinite, scrolling digital barcode matrix'}},{id:17,short:'Массивный Иероглиф',val:'a massive unreadable Kanji/Cyrillic vector letterform',t:{spatial:'a massive brutalist concrete pillar shaped like a Kanji character',product:'a heavy industrial Kanji designation milled into the chassis',aero:'a massive military Kanji designation painted on the wings',apparel:'a massive, illegible Kanji letterform heavily embroidered',digital:'a massive, corrupted Kanji character floating in the UI void'}},{id:18,short:'Муар Блок',val:'an optical illusion moire pattern block',t:{spatial:'overlapping architectural mesh fences creating a dizzying moire effect',product:'overlapping fine metal grills creating a functional optical moire',aero:'overlapping fine aerodynamic grills creating a functional optical moire',apparel:'translucent mesh fabric layers creating a kinetic moire illusion',digital:'a digital aliasing moire error caused by dense pixel grids'}},{id:19,short:'Концентрическая Мишень',val:'a perfectly drafted concentric sniper reticle',t:{spatial:'a perfectly drafted circular helipad or target painted on the floor',product:'a precise optical calibration target etched into the lens ring',aero:'a precise optical calibration target painted on the sensor array',apparel:'a tactical crosshair reticle printed heavily on the chest',digital:'a locked-on, rotating digital sniper reticle UI element'}},{id:20,short:'Фрагмент Гравюры',val:'a sharply cropped fragment of a classical engraving mixed with data',t:{spatial:'a sharply cropped fragment of a classical marble frieze embedded in concrete',product:'a fragment of classical filigree engraving abruptly ending on raw metal',aero:'a fragment of nose-art abruptly ending on raw aerospace metal',apparel:'a raw, distressed patch of a classical engraving sewn onto tech-wear',digital:'a fragmented scan of a classical engraving glitching in the database'}},{id:21,short:'Красная Печать',val:'a stark, physical red wax seal'},{id:22,short:'Канцелярская Скрепка',val:'a hyper-realistic metallic paperclip holding a note'},{id:23,short:'Отпечаток Пальца',val:'a realistic, dusty thumbprint smudging the text'},{id:24,short:'След от Кофе',val:'a faint, overlapping coffee ring stain'},{id:25,short:'Технический Скотч',val:'a piece of rough masking tape covering data'},{id:26,short:'Прокол Дырокола',val:'a perfectly round hole punch showing the background void'},{id:27,short:'Капля Чернил',val:"a single, thick droplet of wet black printer's ink"},{id:28,short:'Мерная Линейка',val:'a physical translucent plastic ruler laid over the layout'},{id:29,short:"Штамп ОТК",val:"a faded, misaligned 'PASSED QUALITY CONTROL' rubber stamp"},{id:30,short:'Царапина на Металле',val:'a deep, realistic scratch simulating damaged metal'},{id:31,short:'Жесткий Залом',val:'a harsh, physical crease/fold mark in the paper'},{id:32,short:'Загнутый Уголок',val:'a dog-eared corner revealing the unprinted back'},{id:33,short:'Архивная Нить',val:'a thick archival binding thread stitched directly through the layout'},{id:34,short:'Слепое Тиснение',val:'a deeply embossed, inkless notary public seal'},{id:35,short:'Белая Замазка',val:'a thick, textured smear of white correction fluid'},{id:36,short:'Выцветший Штамп',val:'a faded, partially stamped blue library accession mark'},{id:37,short:'Инв. Наклейка',val:'a partially torn, stubborn paper inventory sticker'},{id:38,short:'Забитый Текст (XXX)',val:'typewriter strike-through text redacting critical data'},{id:39,short:'Обрывок Майлара',val:'translucent Mylar archival tape repairing a microscopic tear'},{id:40,short:'След От Пальца',val:'a subtle wipe mark removing dust from a matte black surface'},{id:41,short:'Несовмещение Красок',val:'a harsh CMYK misregistration shifting only the cyan channel'},{id:42,short:'Метка Реза',val:'intrusive offset crop marks and color bars overlapping the design'},{id:43,short:'Растекшаяся Краска',val:'an over-inked letterpress character bleeding into the paper'},{id:44,short:'Осыпающаяся Фольга',val:'flaking, degraded metallic foil stamping'},{id:45,short:'След Ролика',val:'a faint mechanical indentation from a printing press feeder roller'},{id:46,short:'Сбой Муара',val:'a localized halftone dot moire pattern printing error'},{id:47,short:'Клей Корешка',val:'a stray droplet of hardened, yellowish bookbinding glue'},{id:48,short:'Вырубка (Die-Cut)',val:'a clean, functional geometric die-cut hole showing the void behind'},{id:49,short:'Сбой УФ-Лака',val:'raised spot UV varnish misaligned from its target typography'},{id:50,short:'Грубый Обрез',val:'a rough, deckled paper edge interrupting the clean geometry'},{id:51,short:'Осколок Стекла',val:'a shard of microscope slide glass refracting the typography below'},{id:52,short:'Оптический Крест',val:"a razor-thin, red optical calibration crosshair"},{id:53,short:'Свинцовая Метка',val:"a physical lead radiographic 'L' or 'R' marker placed on the layout"},{id:54,short:'Термический Ожог',val:'a precise, circular laser-scorched burn mark'},{id:55,short:'Сетка Фарадея',val:'a torn top layer revealing a conductive Faraday copper mesh beneath'},{id:56,short:'След Лакмуса',val:'a precise drop of chemical reagent discoloring the paper matrix'},{id:57,short:'Обрывок Шкалы',val:'a fragment of a translucent surgical measuring tape'},{id:58,short:'Разрез Скальпелем',val:'a flawless, razor-sharp surgical scalpel slit through the cardboard'},{id:59,short:'Микро-Сверление',val:'a row of microscopic CNC-drilled precision holes'},{id:60,short:'Полимерная Заглушка',val:'a physical silicone industrial plug embedded into the surface'},
+      {id:61,short:'Размытый Силуэт',val:'a blurred, ghostly silhouetted human figure in motion, providing cinematic scale and kinetic tension',t:{spatial:'a blurred, ghostly silhouetted human figure walking through the space',product:'a blurred, out-of-focus human hand reaching for the device',aero:'a blurred, silhouetted engineer interacting with the vehicle',apparel:'a blurred, ghostly silhouetted human figure wearing the garment',digital:'a blurred silhouette of a user reflected in the dark screen'}},
+      {id:62,short:'Руки в Перчатках',val:'tactile hands wearing sterile nitrile inspection gloves interacting with the subject',t:{spatial:'hands in sterile nitrile gloves adjusting an architectural detail',product:'hands in sterile nitrile inspection gloves holding the hardware',aero:'hands in sterile nitrile gloves performing maintenance on the hull',apparel:'hands in sterile nitrile gloves pulling on the straps',digital:'a hand in a sterile nitrile glove interacting with a touchscreen'}},
+      {id:63,short:'Техник в Hazmat',val:'a faceless technician wearing a heavy industrial hazmat suit in the background',t:{spatial:'a faceless technician in a heavy industrial hazmat suit observing the space',product:'a faceless technician in a hazmat suit inspecting the artifact',aero:'a faceless technician in a heavy hazmat suit standing near the landing gear',apparel:'a faceless technician in a heavy industrial hazmat suit modeling the gear',digital:'a reflection of a technician in a hazmat suit on the UI monitor'}},
+      {id:64,short:'Толпа на Выдержке',val:'a ghostly long-exposure crowd of human figures flowing around the subject',t:{spatial:'a ghostly long-exposure crowd flowing through the architecture',product:'a ghostly long-exposure crowd passing behind the isolated hardware',aero:'a ghostly long-exposure crowd of personnel moving around the hangar',apparel:'a ghostly long-exposure crowd of people rushing past the static model',digital:'a conceptual long-exposure blur of data-streams representing users'}},
+      {id:65,short:'Шрифт Брайля',val:'a tactile functional Braille dot-punching sequence',t:{spatial:'tactile architectural Braille wayfinding nodes protruding from the surface',product:'CNC-milled functional Braille interface dots',aero:'aerodynamic tactile Braille warning nodes',apparel:'heavy silicone-injected Braille pattern on the fabric',digital:'a digital grid of pulsating Braille data nodes'}},
+      {id:66,short:'Отрывная Лента',val:'a physically ripped tear-tape zipper revealing the inner layer',t:{spatial:'a brutally torn architectural dividing screen revealing the inner structure',product:'a physically ripped tamper-evident metal strip revealing the inner chassis',aero:'a peeled-back aerodynamic inspection tape revealing the avionics',apparel:'a functionally ripped tear-away seam revealing the inner technical layer',digital:'a violently torn UI masking layer revealing the raw code beneath'}},
+      {id:67,short:'VOID Стикер',val:'a peeled tamper-evident VOID security sticker leaving silver residue',t:{spatial:'a massive peeled tamper-evident VOID security sticker on the transit door',product:'a peeled tamper-evident VOID security sticker on the chassis seam',aero:'a peeled military tamper-evident VOID security sticker on the payload bay',apparel:'a peeled tamper-evident VOID fabric decal leaving adhesive residue',digital:'a glitching VOID security protocol overlay'}},
+      {id:68,short:'Вакуумная Складка',val:'extreme cinematic vacuum seal plastic wrinkles and tension folds',t:{spatial:'extreme architectural tensile fabric structures pulled to maximum tension',product:'extreme cinematic vacuum seal plastic wrapping around the hardware',aero:'extreme heat-shrink aero-protective wrapping with tension folds',apparel:'extreme vacuum-sealed fabric folds clinging to the silhouette',digital:'a distorted displacement map resembling vacuum-sealed glass'}},
+      {id:69,short:'Стальная Скоба',val:'a heavy industrial surgical steel staple violently piercing the layout',t:{spatial:'a massive industrial steel staple physically binding two concrete slabs',product:'a heavy industrial surgical steel staple physically binding the casing',aero:'a heavy industrial titanium staple physically binding the aero-panels',apparel:'a heavy industrial surgical steel staple physically binding the seams',digital:'a heavy metallic 3D staple artifact piercing the digital UI grid'}},
     ]
   },
 };
@@ -511,27 +520,58 @@ const App = () => {
     setExcludedItems({}); setItemWeights({});
   };
 
+  const fetchWithRetry = async (url, opts, retries=5) => {
+    let delay = 1000;
+    for (let i=0; i<retries; i++) {
+      try {
+        const r = await fetch(url, opts);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return await r.json();
+      } catch(e) {
+        if (i===retries-1) throw e;
+        await new Promise(res=>setTimeout(res,delay));
+        delay*=2;
+      }
+    }
+  };
+
   const generateAIConcept = async () => {
     if (!aiPrompt.trim()) return;
     setIsGenerating(true); setAiError('');
-    try {
-      const resp = await fetch('/api/strips/ai', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({concept:aiPrompt.trim()}),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(()=>({}));
-        throw new Error(err.error || `HTTP ${resp.status}`);
+    const apiKey = '';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    let catalogCtx = 'Available categories:\n';
+    Object.entries(CATEGORIES).forEach(([cId,cat]) => {
+      catalogCtx += `Cat ${cId} (${cat.title}):\n`;
+      cat.items.forEach(item => { catalogCtx += `  ID ${item.id}: ${item.short}\n`; });
+    });
+    const sysInstr = `You are an elite art director AI. Map the concept to design parameters.\n${catalogCtx}\nSelect 1 item for cats 1,3,4,5,8,9,10,11. Select 2-4 for cats 2,6. Select 1 for cat 7. Respond ONLY with valid JSON mapping category IDs to arrays of item IDs.`;
+    const payload = {
+      contents:[{parts:[{text:`Design config for: ${aiPrompt.trim()}`}]}],
+      systemInstruction:{parts:[{text:sysInstr}]},
+      generationConfig:{
+        responseMimeType:'application/json',
+        responseSchema:{type:'OBJECT',properties:Object.fromEntries(Object.keys(CATEGORIES).map(k=>[k,{type:'ARRAY',items:{type:'INTEGER'}}]))}
       }
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-      const valid = {};
-      Object.keys(CATEGORIES).forEach(k => valid[k]=[]);
-      Object.keys(data).forEach(cId => {
-        if (valid[cId]!==undefined && Array.isArray(data[cId])) valid[cId]=data[cId].filter(id=>!isNaN(id));
-      });
-      setSelectedItems(valid); setExcludedItems({}); setItemWeights({});
+    };
+    try {
+      if (!apiKey) {
+        const resp = await fetch('/api/strips/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({concept:aiPrompt.trim()})});
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        const valid={}; Object.keys(CATEGORIES).forEach(k=>valid[k]=[]);
+        Object.keys(data).forEach(cId=>{ if(valid[cId]!==undefined&&Array.isArray(data[cId])) valid[cId]=data[cId].filter(id=>!isNaN(id)); });
+        setSelectedItems(valid); setExcludedItems({}); setItemWeights({});
+      } else {
+        const result = await fetchWithRetry(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const txt = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!txt) throw new Error('Empty response');
+        const parsed = JSON.parse(txt);
+        const valid={}; Object.keys(CATEGORIES).forEach(k=>valid[k]=[]);
+        Object.keys(parsed).forEach(cId=>{ if(valid[cId]!==undefined&&Array.isArray(parsed[cId])) valid[cId]=parsed[cId].filter(id=>!isNaN(id)); });
+        setSelectedItems(valid); setExcludedItems({}); setItemWeights({});
+      }
     } catch(err) {
       console.error(err); setAiError(`Ошибка: ${err.message}`);
     } finally { setIsGenerating(false); }
@@ -640,8 +680,8 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
   }, [selectedItems]);
 
   if (!isReady) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#050608',color:'#c8aa6e',fontSize:'11px',letterSpacing:'0.2em',textTransform:'uppercase',fontFamily:'Inter,sans-serif'}}>
-      Инициализация V45...
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#050608',color:'#c8aa6e',fontSize:'14px',letterSpacing:'0.2em',textTransform:'uppercase',fontFamily:'Inter,sans-serif'}}>
+      Инициализация V47...
     </div>
   );
 
@@ -657,10 +697,10 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
         <div style={{padding:'12px 16px 10px',borderBottom:'1px solid #1a1d25',flexShrink:0}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
-              <div style={{fontSize:'10px',fontWeight:900,letterSpacing:'0.2em',color:'#c8aa6e',textTransform:'uppercase'}}>STRIPS PRO GEN</div>
-              <div style={{fontSize:'8px',color:'#3a3d4a',letterSpacing:'0.1em',marginTop:'1px'}}>V46 · K.S.A.R. + P.S.D.N.</div>
+              <div style={{fontSize:'13px',fontWeight:900,letterSpacing:'0.2em',color:'#c8aa6e',textTransform:'uppercase'}}>STRIPS PRO GEN</div>
+              <div style={{fontSize:'12px',color:'#3a3d4a',letterSpacing:'0.1em',marginTop:'2px'}}>V48 · K.S.A.R. + P.S.D.N.</div>
             </div>
-            <a href="/" style={{fontSize:'9px',color:'#3a3d4a',textDecoration:'none',letterSpacing:'0.1em'}} onMouseEnter={e=>e.target.style.color='#c8aa6e'} onMouseLeave={e=>e.target.style.color='#3a3d4a'}>← DASHBOARD</a>
+            <a href="/" style={{fontSize:'11px',color:'#3a3d4a',textDecoration:'none',letterSpacing:'0.1em'}} onMouseEnter={e=>e.target.style.color='#c8aa6e'} onMouseLeave={e=>e.target.style.color='#3a3d4a'}>← DASHBOARD</a>
           </div>
         </div>
 
@@ -708,7 +748,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
             </div>
             {Object.keys(customProtocols).length>0 && (
               <>
-                <div style={{fontSize:'8px',color:'#3a3d4a',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:'4px',marginTop:'6px'}}>Пользовательские</div>
+                <div style={{fontSize:'10px',color:'#3a3d4a',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:'4px',marginTop:'6px'}}>Пользовательские</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px'}}>
                   {Object.entries(customProtocols).map(([k,p])=>(
                     <button key={k} className="proto-btn" onClick={()=>applyProtocol(k,true)} title={p.desc} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -734,15 +774,15 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
               </div>
             </div>
             <div style={{marginBottom:'6px'}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Stylize</span><span style={{fontSize:'10px',color:'#c8aa6e',fontWeight:700}}>{mjParams.stylize}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Stylize</span><span style={{fontSize:'13px',color:'#c8aa6e',fontWeight:700}}>{mjParams.stylize}</span></div>
               <input type="range" min={0} max={1000} value={mjParams.stylize} onChange={e=>setMjParams(p=>({...p,stylize:+e.target.value}))} style={{width:'100%',height:'3px'}} />
             </div>
             <div style={{marginBottom:'6px'}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Chaos</span><span style={{fontSize:'10px',color:'#c8aa6e',fontWeight:700}}>{mjParams.chaos}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Chaos</span><span style={{fontSize:'13px',color:'#c8aa6e',fontWeight:700}}>{mjParams.chaos}</span></div>
               <input type="range" min={0} max={100} value={mjParams.chaos} onChange={e=>setMjParams(p=>({...p,chaos:+e.target.value}))} style={{width:'100%',height:'3px'}} />
             </div>
             <div style={{marginBottom:'6px'}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Weird</span><span style={{fontSize:'10px',color:'#c8aa6e',fontWeight:700}}>{mjParams.weird}</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Weird</span><span style={{fontSize:'13px',color:'#c8aa6e',fontWeight:700}}>{mjParams.weird}</span></div>
               <input type="range" min={0} max={3000} value={mjParams.weird} onChange={e=>setMjParams(p=>({...p,weird:+e.target.value}))} style={{width:'100%',height:'3px'}} />
             </div>
             <div>
@@ -757,8 +797,8 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
             {[['subsurface','Subsurface','#4a8aff'],['tension','Tension','#ff4a4a'],['clinical','Clinical','#4affa0']].map(([k,label,color])=>(
               <div key={k} style={{marginBottom:'8px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
-                  <span style={{fontSize:'9px',color:'#5a5e78',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</span>
-                  <span style={{fontSize:'10px',color:color,fontWeight:700}}>{psdnParams[k]}%</span>
+                  <span style={{fontSize:'11px',color:'#5a5e78',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em'}}>{label}</span>
+                  <span style={{fontSize:'13px',color:color,fontWeight:700}}>{psdnParams[k]}%</span>
                 </div>
                 <input type="range" min={0} max={100} value={psdnParams[k]} onChange={e=>setPsdnParams(p=>({...p,[k]:+e.target.value}))} style={{width:'100%',height:'3px'}} />
                 <div style={{width:`${psdnParams[k]}%`,height:'2px',background:color,borderRadius:'1px',marginTop:'2px',transition:'width 0.2s'}} />
@@ -798,11 +838,11 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
               <div className={`toggle-track ${rawReality?'on':''}`}><div className="toggle-thumb" /></div>
             </div>
             <div style={{marginBottom:'7px'}}>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Luxury</span><span style={{fontSize:'10px',color:'#c8aa6e',fontWeight:700}}>{luxuryLevel}%</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Luxury</span><span style={{fontSize:'13px',color:'#c8aa6e',fontWeight:700}}>{luxuryLevel}%</span></div>
               <input type="range" min={0} max={100} value={luxuryLevel} onChange={e=>setLuxuryLevel(+e.target.value)} style={{width:'100%',height:'3px'}} />
             </div>
             <div>
-              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Decay / Entropy</span><span style={{fontSize:'10px',color:'#c8aa6e',fontWeight:700}}>{decayLevel}%</span></div>
+              <div style={{display:'flex',justifyContent:'space-between'}}><span className="ctrl-label">Decay / Entropy</span><span style={{fontSize:'13px',color:'#c8aa6e',fontWeight:700}}>{decayLevel}%</span></div>
               <input type="range" min={0} max={100} value={decayLevel} onChange={e=>setDecayLevel(+e.target.value)} style={{width:'100%',height:'3px'}} />
             </div>
           </div>
@@ -830,7 +870,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
                 {isGenerating?'..':'СБОРКА'}
               </button>
             </div>
-            {aiError && <div style={{fontSize:'9px',color:'#cc4444',marginTop:'4px',letterSpacing:'0.05em'}}>{aiError}</div>}
+            {aiError && <div style={{fontSize:'11px',color:'#cc4444',marginTop:'4px',letterSpacing:'0.05em'}}>{aiError}</div>}
           </div>
 
           {/* Code parser */}
@@ -842,7 +882,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
 
           {/* Status */}
           {statusStr && (
-            <div style={{fontSize:'8px',color:'#3a3d4a',letterSpacing:'0.08em',marginBottom:'10px',lineHeight:'1.6',wordBreak:'break-all'}}>
+            <div style={{fontSize:'11px',color:'#3a3d4a',letterSpacing:'0.08em',marginBottom:'10px',lineHeight:'1.6',wordBreak:'break-all'}}>
               {statusStr}
             </div>
           )}
@@ -853,7 +893,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
               {c3sel.hex.map((h,i)=>(
                 <div key={i} style={{width:'18px',height:'18px',borderRadius:'2px',background:h,border:'1px solid #2a2d36',flexShrink:0}} title={h} />
               ))}
-              <span style={{fontSize:'9px',color:'#4a5068',marginLeft:'4px'}}>{c3sel.short}</span>
+              <span style={{fontSize:'11px',color:'#4a5068',marginLeft:'4px'}}>{c3sel.short}</span>
             </div>
           )}
 
@@ -861,7 +901,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
           <div style={{marginBottom:'6px'}}>
             <div className="section-hdr">Промпт</div>
             <textarea readOnly value={prompt} className="ctrl-input custom-scroll"
-              style={{height:'160px',lineHeight:'1.5',fontSize:'9px',color:'#8a8ea8',cursor:'text'}} />
+              style={{height:'170px',lineHeight:'1.5',fontSize:'11px',color:'#8a8ea8',cursor:'text'}} />
           </div>
 
         </div>
@@ -882,8 +922,8 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
           return (
             <div key={cId} style={{borderBottom:'1px solid #0d0f14',padding:'12px 16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-                <span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.15em',color:'#c8aa6e',textTransform:'uppercase'}}>{cat.title}</span>
-                <span style={{fontSize:'8px',color:'#3a3d4a',letterSpacing:'0.05em'}}>
+                <span style={{fontSize:'12px',fontWeight:900,letterSpacing:'0.15em',color:'#c8aa6e',textTransform:'uppercase'}}>{cat.title}</span>
+                <span style={{fontSize:'10px',color:'#3a3d4a',letterSpacing:'0.05em'}}>
                   {sels.length>0&&<span style={{color:'#c8aa6e80'}}>{sels.length} sel</span>}
                   {excls.length>0&&<span style={{color:'#8b1a1a',marginLeft:'6px'}}>{excls.length} excl</span>}
                   <span style={{marginLeft:'6px',color:'#2a2d36'}}>{cat.items.length} total</span>
@@ -904,7 +944,7 @@ CRITICAL COLOR ROTATION: ${getVal(4)}.
                     >
                       <span style={{opacity:0.5,marginRight:'2px'}}>{item.id}</span>
                       {item.short}
-                      {isSel&&w>1&&<span style={{fontSize:'7px',marginLeft:'1px',opacity:0.8}}>×2</span>}
+                      {isSel&&w>1&&<span style={{fontSize:'9px',marginLeft:'1px',opacity:0.8}}>×2</span>}
                       {item.hex&&isSel&&(
                         <span style={{display:'inline-flex',gap:'2px',marginLeft:'3px'}}>
                           {item.hex.map((h,i)=><span key={i} className="clr-dot" style={{background:h}} />)}
