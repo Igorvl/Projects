@@ -1,0 +1,88 @@
+// ============================================================================
+// БАЗА ДАННЫХ: EXPANSION PACK 6 (LEGACY & DATA-VIZ ARCHIVE + MAGMA RESTORE)
+// Восстановленные артефакты из V4.1: диаграммы, мастера дизайна, печатный брак.
+// ID начинаются с 201 для избежания конфликтов.
+// ============================================================================
+
+// Добавить в CATEGORIES[1].items (1. ШКОЛА ДИЗАЙНА)
+const EXT_CATEGORY_1_MASTERS = [
+  { id: 201, short: 'Vignelli Systems', val: 'Massimo Vignelli Systems Transit Grid' },
+  { id: 202, short: 'Müller-Brockmann', val: 'Josef Müller-Brockmann Strict Grid' },
+  { id: 203, short: 'Paula Scher', val: 'Paula Scher Super-Graphics' },
+  { id: 204, short: 'Herb Lubalin', val: 'Herb Lubalin Tight Ligatures' },
+  { id: 205, short: 'Wim Crouwel', val: 'Wim Crouwel Mathematical Objectivity' },
+  { id: 206, short: 'Otl Aicher', val: 'Otl Aicher Systematic Pictograms' },
+  { id: 207, short: 'Emil Ruder', val: 'Emil Ruder Modular Typography' },
+  { id: 208, short: 'Russian Constructivism', val: 'Russian Constructivist Diagonal' },
+  { id: 209, short: 'Deconstructivist Arch', val: 'Deconstructivist Architecture Layout' },
+  { id: 210, short: 'Art Deco Geometric', val: 'Art Deco Geometric Grid' }
+];
+
+// Добавить в CATEGORIES[2].items (2. ЭСТЕТИКА ДНК)
+const EXT_CATEGORY_2_SCIENCE = [
+  { id: 201, short: 'Antique Cartography', val: 'Antique Cartography and Mapmaking' },
+  { id: 202, short: 'Nautical Navigation', val: 'Nautical and Maritime Navigation' },
+  { id: 203, short: 'Aeronautical Charts', val: 'Aeronautical Flight Charts' },
+  { id: 204, short: 'Geologic Surveys', val: 'Geologic and Topographic Surveys' },
+  { id: 205, short: 'Meteorological Inst.', val: 'Meteorological Instruments and Weather Data' },
+  { id: 206, short: 'Oceanography Sonar', val: 'Oceanography Sonar Mapping' },
+  { id: 207, short: 'Offshore Wind Turbines', val: 'Offshore Wind Turbine Engineering' },
+  { id: 208, short: 'Deep Sea Drilling Rigs', val: 'Deep Sea Drilling Rig Tech' },
+  { id: 209, short: 'Aeroponics Farming', val: 'Aeroponics Vertical Farming' },
+  { id: 210, short: 'Maglev Engineering', val: 'Maglev Train Engineering' }
+];
+
+// Добавить в CATEGORIES[3].items (3. ЦВЕТА)
+const EXT_CATEGORY_3_COLORS = [
+  { id: 116, short: 'Rust, Olive, Bone', val: 'First Base: Rust Orange, Second Base: Olive Green, Third Base: Bone', hex: ['#B7410E', '#808000', '#E3DAC9'] }
+];
+
+// Добавить в CATEGORIES[5].items (5. СТРУКТУРА)
+const EXT_CATEGORY_5_DATAVIZ = [
+  { id: 201, short: 'Treemap Layout', val: 'nested rectangular Treemap data visualization layout' },
+  { id: 202, short: 'Sunburst Radial', val: 'radial Sunburst hierarchical ring layout' },
+  { id: 203, short: 'Dendrogram Tree', val: 'branching tree-like dendrogram structure' },
+  { id: 204, short: 'Sankey Flow', val: 'flowing Sankey diagram energy flow structure' },
+  { id: 205, short: 'Alluvial Waves', val: 'Alluvial diagram with structural wave flows' },
+  { id: 206, short: 'Force-Directed Graph', val: 'Force-Directed graph with repelling text nodes' },
+  { id: 207, short: 'Radar/Spider Chart', val: 'Radar/Spider chart polygon structure' },
+  { id: 208, short: 'Venn Intersections', val: 'overlapping circular Venn diagram text boundaries' },
+  { id: 209, short: 'Nomogram Scales', val: 'complex 2D mathematical Nomogram scale layout' },
+  { id: 210, short: 'Smith Chart', val: 'Smith chart circular radio frequency grid' },
+  { id: 211, short: 'Feynman Diagram', val: 'subatomic Feynman diagram particle trajectory layout' },
+  { id: 212, short: 'Lyapunov Fractal', val: 'Lyapunov fractal chaotic boundary grid' },
+  { id: 213, short: 'Thermal Heatmap Blocks', val: 'grid based on thermal heatmap intensity blocks' }
+];
+
+// Добавить в CATEGORIES[6].items (6. ГРАФИКА И МАРКИРОВКА)
+const EXT_CATEGORY_6_SCANS = [
+  { id: 201, short: 'DNA Electrophoresis', val: 'DNA gel electrophoresis banding patterns' },
+  { id: 202, short: 'Mass Spectrometry', val: 'molecular mass spectrometry data graphs' },
+  { id: 203, short: 'NMR Signal Peaks', val: 'Nuclear Magnetic Resonance (NMR) signal peaks' },
+  { id: 204, short: 'IR Spectroscopy', val: 'Infrared (IR) spectroscopy absorption dips' },
+  { id: 205, short: 'AFM Surface Topology', val: 'Atomic Force Microscopy (AFM) surface topology' },
+  { id: 206, short: 'MRI Brain Slices', val: 'MRI brain scan sagittal slice graphics' },
+  { id: 207, short: 'LiDAR Point-Cloud', val: '3D LiDAR point-cloud architectural scans' },
+  { id: 208, short: 'Photogrammetry Mesh', val: 'photogrammetry wireframe mesh intersection points' },
+  { id: 209, short: 'PET Tomography', val: 'PET scan computed tomography cross-sections' },
+  { id: 210, short: 'EEG Brainwaves', val: 'EEG brainwave alpha/beta rhythm lines' },
+  { id: 211, short: 'Gas Chromatogram', val: 'chemical gas chromatogram peaks' }
+];
+
+// Добавить в CATEGORIES[7].items (7. СУПЕР-ГРАФИКА)
+const EXT_CATEGORY_7_SUPERGRAPHICS = [
+  { id: 41, short: 'MAGMA / Геотермалка', val: "Massive headers 'MAGMA DEEP', 'T-8' with micro-text: 'MAGMA_TEMP, CORE_PRESSURE'" }
+];
+
+// Добавить в CATEGORIES[10].items (10. ТРИГГЕР-ФОКУС)
+const EXT_CATEGORY_10_DEFECTS = [
+  { id: 201, short: 'Сдвиг CMYK (Misregistration)', val: 'a severe CMYK misregistration printing error creating blurred color ghosting', t: { spatial: 'a severe holographic projection misregistration creating blurred color ghosting', product: 'a severe multi-pass CNC misregistration error creating overlapping grooves', aero: 'a severe decal misregistration printing error creating blurred color ghosting', apparel: 'a severe screen-print misregistration error creating blurred color ghosting', digital: 'a severe RGB channel split chromatic aberration misregistration error' } },
+  { id: 202, short: 'Загнутый Угол (Dog-ear)', val: 'a harsh, physical dog-ear crease folded heavily through the paper', t: { spatial: 'a harsh, physical bent metal beam folded heavily into the structure', product: 'a harsh, physical bent metal corner folded heavily from impact', aero: 'a harsh, physical bent aero-flap folded heavily from aerodynamic stress', apparel: 'a harsh, physical dog-ear crease folded permanently into the stiff fabric', digital: 'a 3D skeuomorphic dog-ear page curl folding over the UI screen' } },
+  { id: 203, short: 'Скоба Степплера', val: 'a heavy industrial steel staple piercing the layout', t: { spatial: 'a massive heavy industrial steel beam acting as a staple in the concrete', product: 'a heavy industrial steel staple brutally piercing the delicate hardware', aero: 'a heavy industrial steel locking staple piercing the composite panel', apparel: 'a heavy industrial steel staple violently piercing the delicate silk', digital: 'a photorealistic heavy industrial steel staple piercing the digital interface' } },
+  { id: 204, short: 'Сдвиг Голограммы', val: 'a misaligned security hologram foil patch peeling at the corner', t: { spatial: 'a misaligned smart-glass panel peeling at the corner', product: 'a misaligned security hologram sticker peeling off the metal casing', aero: 'a misaligned thermal reflecting foil patch peeling at the corner', apparel: 'a misaligned holographic heat-transfer patch peeling off the fabric', digital: 'a misaligned digital security hologram patch peeling off the screen' } },
+  { id: 205, short: 'Калибровочные Бары CMYK', val: 'exposed CMYK color calibration printing bars invading the layout', t: { spatial: 'exposed industrial color calibration test swatches painted on the wall', product: 'exposed CNC anodization color calibration test bars on the metal', aero: 'exposed aerospace paint-calibration test stripes invading the layout', apparel: 'exposed fabric dye calibration test swatches left on the garment', digital: 'exposed RGB monitor calibration test bars invading the layout' } },
+  { id: 206, short: 'Метки Резака', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor\'s pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
+  { id: 207, short: 'Металлическая Пружина', val: 'a metal twin-loop wire binding ring punched through the left margin', t: { spatial: 'a massive metal twin-loop wire binding the architectural volumes', product: 'a metal twin-loop wire binding mechanism punched through the casing', aero: 'a heavy metal twin-loop wire hinge mechanism on the aero-flap', apparel: 'a metal twin-loop wire binding ring punched brutally through the fabric', digital: 'a 3D photorealistic metal wire binding ring punched through the screen' } },
+  { id: 208, short: 'Потек Воды (Water Damage)', val: 'severe water damage with bleeding ink and warped, buckled paper', t: { spatial: 'severe concrete water damage with bleeding rust and warped textures', product: 'severe water damage and oxidation buckling the pristine metal surface', aero: 'severe atmospheric moisture damage with bleeding rust streaks', apparel: 'severe water damage with bleeding fabric dye and warped, buckled material', digital: 'a photorealistic water droplet simulation blurring and warping the UI data' } },
+  { id: 209, short: 'Архивная Наклейка', val: 'a dog-eared, yellowing archival catalog sticker overlapping the grid', t: { spatial: 'a massive, faded industrial zoning sticker overlapping the concrete grid', product: 'a dog-eared, yellowing archival inventory sticker overlapping the hardware', aero: 'a dog-eared, weathered aerospace inspection sticker on the hull', apparel: 'a dog-eared, yellowing dry-cleaning inventory sticker overlapping the seam', digital: 'a photorealistic sticky-note skeuomorph overlapping the digital grid' } }
+];

@@ -1761,7 +1761,7 @@ const MAY_3_COLORS = [
   {id:90, short:'Blueprint, Grid White, Yellow', val:'First Base: Cyanotype Blueprint, Second Base: Grid White, Third Base: Hazard Yellow', hex:['#1A3E68', '#FFFFFF', '#FFD700']},
   {id:91, short:'Charcoal, Ash, Toxic Green', val:'First Base: crushed Charcoal, Second Base: Ash Grey, Third Base: Toxic Fluorite Green', hex:['#36454F', '#B2BEB5', '#7FFF00']},
   {id:92, short:'Platinum, Champagne, Violet', val:'First Base: Matte Platinum, Second Base: Champagne Gold, Third Base: deep Ultraviolet', hex:['#E5E4E2', '#F7E7CE', '#7F00FF']},
-  {id:93, short:'Cardboard, Ink, Magenta', val:'First Base: Corrugated Cardboard, Second Base: Printer\', hex:['#997950', '#1C1C1C', '#FF0090']},
+  {id:93, short:'Cardboard, Ink, Magenta', val:"First Base: Corrugated Cardboard, Second Base: Printer's Ink Black, Third Base: Fluorescent Magenta", hex:['#997950', '#1C1C1C', '#FF0090']},
   {id:94, short:'Mars Dust, Titanium, Cyan', val:'First Base: oxidized Mars Dust Red, Second Base: Titanium, Third Base: Electric Cyan', hex:['#8C3B26', '#878681', '#00FFFF']},
   {id:95, short:'Olive, Sand, Laser Red', val:'First Base: military Olive Drab, Second Base: Sand Beige, Third Base: optical Laser Red', hex:['#6B8E23', '#C2B280', '#FF0000']},
   {id:96, short:'Midnight, Obsidian, Brass', val:'First Base: Midnight Blue, Second Base: Obsidian Black, Third Base: Machined Brass', hex:['#191970', '#0B0B0B', '#B5A642']},
@@ -1868,10 +1868,10 @@ const MAY_3_MATERIALS = [
 ];
 
 const MAY_3_TRIGGERS = [
-  {id:80, short:'деальный алом кани', val:'a sharp, perfectly pressed tailor\'},
+  {id:80, short:'деальный алом кани', val:"a sharp, perfectly pressed tailor's chalk mark on dark fabric"},
   {id:81, short:'ђазбитаЯ инза', val:'a heavily cracked, spiderwebbed optical glass camera lens'},
   {id:82, short:'леющий голек', val:'a single, glowing red-hot ember burning a hole through the surface'},
-  {id:83, short:'ђазмазанный Њел', val:'a tactile smudge of white tailor\'},
+  {id:83, short:'ђазмазанный Њел', val:"a tactile smudge of white tailor's chalk powder on dark suiting fabric"},
   {id:84, short:'ЉаплЯ оска', val:'a congealed, opaque drop of melted white candle wax'},
   {id:85, short:'ирургическаЯ гла', val:'a hyper-realistic, curved surgical steel suture needle piercing the layout'},
   {id:86, short:'Ћголенный Њедь', val:'a cluster of frayed, exposed copper wiring bursting from a clean seam'},
@@ -1900,7 +1900,7 @@ const LEGACY_COLORS_31_60 = [
   {id:34,short:'GalvZinc+Black+IndYellow',val:'Galvanized Zinc texture, Pitch Black, and faded Industrial Yellow',hex:['#A0A0A0','#000000','#EED202']},
   {id:35,short:'Terrazzo+OffWhite+CopperPatina',val:'Terrazzo Stone, Ivory Off-White, and turquoise Copper Patina',hex:['#E3E4E0','#F8F8FF','#43B3AE']},
   {id:36,short:'Limestone+DarkOak+Brass',val:'pale Limestone, almost black Dark Oak, and matte Brushed Brass',hex:['#DED8C6','#261A15','#C3A368']},
-  {id:37,short:'KraftPaper+Magenta+Bone',val:'brown Kraft Paper, pure Printer\'s Magenta, and Bone White',hex:['#B8977E','#FF0090','#E3DAC9']},
+  {id:37,short:'KraftPaper+Magenta+Bone',val:'brown Kraft Paper, pure Printer s Magenta, and Bone White',hex:['#B8977E','#FF0090','#E3DAC9']},
   {id:38,short:'MicrofilmBlue+Newsprint+Crimson',val:'deep Microfilm Blue, yellowed Newsprint, and Carmine Crimson Red',hex:['#0B1E36','#F5DEB3','#960018']},
   {id:39,short:'CarbonPaper+TypewriterBlue+WarmGrey',val:'dark purple Carbon Paper, faded Typewriter Blue, and Warm Grey',hex:['#281E30','#4169E1','#BCAAA4']},
   {id:40,short:'ManilaFolder+Graphite+WaxRed',val:'yellowish Manila Folder, matte Pencil Graphite, and Wax Seal Red',hex:['#E6D3A8','#404040','#AA2211']},
@@ -1927,6 +1927,98 @@ const LEGACY_COLORS_31_60 = [
 ];
 
 
+// ============================================================================
+// EXPANSION PACK 6 (from БАЗА ДАННЫХ -3 мая-new.txt)
+// ============================================================================
+// ============================================================================
+// Р‘РђР—Рђ Р”РђРќРќР«РҐ: EXPANSION PACK 6 (LEGACY & DATA-VIZ ARCHIVE + MAGMA RESTORE)
+// Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Рµ Р°СЂС‚РµС„Р°РєС‚С‹ РёР· V4.1: РґРёР°РіСЂР°РјРјС‹, РјР°СЃС‚РµСЂР° РґРёР·Р°Р№РЅР°, РїРµС‡Р°С‚РЅС‹Р№ Р±СЂР°Рє.
+// ID РЅР°С‡РёРЅР°СЋС‚СЃСЏ СЃ 201 РґР»СЏ РёР·Р±РµР¶Р°РЅРёСЏ РєРѕРЅС„Р»РёРєС‚РѕРІ.
+// ============================================================================
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[1].items (1. РЁРљРћР›Рђ Р”Р�Р—РђР™РќРђ)
+const EXT_CATEGORY_1_MASTERS = [
+  { id: 201, short: 'Vignelli Systems', val: 'Massimo Vignelli Systems Transit Grid' },
+  { id: 202, short: 'MГјller-Brockmann', val: 'Josef MГјller-Brockmann Strict Grid' },
+  { id: 203, short: 'Paula Scher', val: 'Paula Scher Super-Graphics' },
+  { id: 204, short: 'Herb Lubalin', val: 'Herb Lubalin Tight Ligatures' },
+  { id: 205, short: 'Wim Crouwel', val: 'Wim Crouwel Mathematical Objectivity' },
+  { id: 206, short: 'Otl Aicher', val: 'Otl Aicher Systematic Pictograms' },
+  { id: 207, short: 'Emil Ruder', val: 'Emil Ruder Modular Typography' },
+  { id: 208, short: 'Russian Constructivism', val: 'Russian Constructivist Diagonal' },
+  { id: 209, short: 'Deconstructivist Arch', val: 'Deconstructivist Architecture Layout' },
+  { id: 210, short: 'Art Deco Geometric', val: 'Art Deco Geometric Grid' }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[2].items (2. Р­РЎРўР•РўР�РљРђ Р”РќРљ)
+const EXT_CATEGORY_2_SCIENCE = [
+  { id: 201, short: 'Antique Cartography', val: 'Antique Cartography and Mapmaking' },
+  { id: 202, short: 'Nautical Navigation', val: 'Nautical and Maritime Navigation' },
+  { id: 203, short: 'Aeronautical Charts', val: 'Aeronautical Flight Charts' },
+  { id: 204, short: 'Geologic Surveys', val: 'Geologic and Topographic Surveys' },
+  { id: 205, short: 'Meteorological Inst.', val: 'Meteorological Instruments and Weather Data' },
+  { id: 206, short: 'Oceanography Sonar', val: 'Oceanography Sonar Mapping' },
+  { id: 207, short: 'Offshore Wind Turbines', val: 'Offshore Wind Turbine Engineering' },
+  { id: 208, short: 'Deep Sea Drilling Rigs', val: 'Deep Sea Drilling Rig Tech' },
+  { id: 209, short: 'Aeroponics Farming', val: 'Aeroponics Vertical Farming' },
+  { id: 210, short: 'Maglev Engineering', val: 'Maglev Train Engineering' }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[3].items (3. Р¦Р’Р•РўРђ)
+const EXT_CATEGORY_3_COLORS = [
+  { id: 116, short: 'Rust, Olive, Bone', val: 'First Base: Rust Orange, Second Base: Olive Green, Third Base: Bone', hex: ['#B7410E', '#808000', '#E3DAC9'] }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[5].items (5. РЎРўР РЈРљРўРЈР Рђ)
+const EXT_CATEGORY_5_DATAVIZ = [
+  { id: 201, short: 'Treemap Layout', val: 'nested rectangular Treemap data visualization layout' },
+  { id: 202, short: 'Sunburst Radial', val: 'radial Sunburst hierarchical ring layout' },
+  { id: 203, short: 'Dendrogram Tree', val: 'branching tree-like dendrogram structure' },
+  { id: 204, short: 'Sankey Flow', val: 'flowing Sankey diagram energy flow structure' },
+  { id: 205, short: 'Alluvial Waves', val: 'Alluvial diagram with structural wave flows' },
+  { id: 206, short: 'Force-Directed Graph', val: 'Force-Directed graph with repelling text nodes' },
+  { id: 207, short: 'Radar/Spider Chart', val: 'Radar/Spider chart polygon structure' },
+  { id: 208, short: 'Venn Intersections', val: 'overlapping circular Venn diagram text boundaries' },
+  { id: 209, short: 'Nomogram Scales', val: 'complex 2D mathematical Nomogram scale layout' },
+  { id: 210, short: 'Smith Chart', val: 'Smith chart circular radio frequency grid' },
+  { id: 211, short: 'Feynman Diagram', val: 'subatomic Feynman diagram particle trajectory layout' },
+  { id: 212, short: 'Lyapunov Fractal', val: 'Lyapunov fractal chaotic boundary grid' },
+  { id: 213, short: 'Thermal Heatmap Blocks', val: 'grid based on thermal heatmap intensity blocks' }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[6].items (6. Р“Р РђР¤Р�РљРђ Р� РњРђР РљР�Р РћР’РљРђ)
+const EXT_CATEGORY_6_SCANS = [
+  { id: 201, short: 'DNA Electrophoresis', val: 'DNA gel electrophoresis banding patterns' },
+  { id: 202, short: 'Mass Spectrometry', val: 'molecular mass spectrometry data graphs' },
+  { id: 203, short: 'NMR Signal Peaks', val: 'Nuclear Magnetic Resonance (NMR) signal peaks' },
+  { id: 204, short: 'IR Spectroscopy', val: 'Infrared (IR) spectroscopy absorption dips' },
+  { id: 205, short: 'AFM Surface Topology', val: 'Atomic Force Microscopy (AFM) surface topology' },
+  { id: 206, short: 'MRI Brain Slices', val: 'MRI brain scan sagittal slice graphics' },
+  { id: 207, short: 'LiDAR Point-Cloud', val: '3D LiDAR point-cloud architectural scans' },
+  { id: 208, short: 'Photogrammetry Mesh', val: 'photogrammetry wireframe mesh intersection points' },
+  { id: 209, short: 'PET Tomography', val: 'PET scan computed tomography cross-sections' },
+  { id: 210, short: 'EEG Brainwaves', val: 'EEG brainwave alpha/beta rhythm lines' },
+  { id: 211, short: 'Gas Chromatogram', val: 'chemical gas chromatogram peaks' }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[7].items (7. РЎРЈРџР•Р -Р“Р РђР¤Р�РљРђ)
+const EXT_CATEGORY_7_SUPERGRAPHICS = [
+  { id: 41, short: 'MAGMA / Р“РµРѕС‚РµСЂРјР°Р»РєР°', val: "Massive headers 'MAGMA DEEP', 'T-8' with micro-text: 'MAGMA_TEMP, CORE_PRESSURE'" }
+];
+
+// Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[10].items (10. РўР Р�Р“Р“Р•Р -Р¤РћРљРЈРЎ)
+const EXT_CATEGORY_10_DEFECTS = [
+  { id: 201, short: 'РЎРґРІРёРі CMYK (Misregistration)', val: 'a severe CMYK misregistration printing error creating blurred color ghosting', t: { spatial: 'a severe holographic projection misregistration creating blurred color ghosting', product: 'a severe multi-pass CNC misregistration error creating overlapping grooves', aero: 'a severe decal misregistration printing error creating blurred color ghosting', apparel: 'a severe screen-print misregistration error creating blurred color ghosting', digital: 'a severe RGB channel split chromatic aberration misregistration error' } },
+  { id: 202, short: 'Р—Р°РіРЅСѓС‚С‹Р№ РЈРіРѕР» (Dog-ear)', val: 'a harsh, physical dog-ear crease folded heavily through the paper', t: { spatial: 'a harsh, physical bent metal beam folded heavily into the structure', product: 'a harsh, physical bent metal corner folded heavily from impact', aero: 'a harsh, physical bent aero-flap folded heavily from aerodynamic stress', apparel: 'a harsh, physical dog-ear crease folded permanently into the stiff fabric', digital: 'a 3D skeuomorphic dog-ear page curl folding over the UI screen' } },
+  { id: 203, short: 'РЎРєРѕР±Р° РЎС‚РµРїРїР»РµСЂР°', val: 'a heavy industrial steel staple piercing the layout', t: { spatial: 'a massive heavy industrial steel beam acting as a staple in the concrete', product: 'a heavy industrial steel staple brutally piercing the delicate hardware', aero: 'a heavy industrial steel locking staple piercing the composite panel', apparel: 'a heavy industrial steel staple violently piercing the delicate silk', digital: 'a photorealistic heavy industrial steel staple piercing the digital interface' } },
+  { id: 204, short: 'РЎРґРІРёРі Р“РѕР»РѕРіСЂР°РјРјС‹', val: 'a misaligned security hologram foil patch peeling at the corner', t: { spatial: 'a misaligned smart-glass panel peeling at the corner', product: 'a misaligned security hologram sticker peeling off the metal casing', aero: 'a misaligned thermal reflecting foil patch peeling at the corner', apparel: 'a misaligned holographic heat-transfer patch peeling off the fabric', digital: 'a misaligned digital security hologram patch peeling off the screen' } },
+  { id: 205, short: 'РљР°Р»РёР±СЂРѕРІРѕС‡РЅС‹Рµ Р‘Р°СЂС‹ CMYK', val: 'exposed CMYK color calibration printing bars invading the layout', t: { spatial: 'exposed industrial color calibration test swatches painted on the wall', product: 'exposed CNC anodization color calibration test bars on the metal', aero: 'exposed aerospace paint-calibration test stripes invading the layout', apparel: 'exposed fabric dye calibration test swatches left on the garment', digital: 'exposed RGB monitor calibration test bars invading the layout' } },
+  { id: 206, short: 'РњРµС‚РєРё Р РµР·Р°РєР°', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor\'s pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
+  { id: 207, short: 'РњРµС‚Р°Р»Р»РёС‡РµСЃРєР°СЏ РџСЂСѓР¶РёРЅР°', val: 'a metal twin-loop wire binding ring punched through the left margin', t: { spatial: 'a massive metal twin-loop wire binding the architectural volumes', product: 'a metal twin-loop wire binding mechanism punched through the casing', aero: 'a heavy metal twin-loop wire hinge mechanism on the aero-flap', apparel: 'a metal twin-loop wire binding ring punched brutally through the fabric', digital: 'a 3D photorealistic metal wire binding ring punched through the screen' } },
+  { id: 208, short: 'РџРѕС‚РµРє Р’РѕРґС‹ (Water Damage)', val: 'severe water damage with bleeding ink and warped, buckled paper', t: { spatial: 'severe concrete water damage with bleeding rust and warped textures', product: 'severe water damage and oxidation buckling the pristine metal surface', aero: 'severe atmospheric moisture damage with bleeding rust streaks', apparel: 'severe water damage with bleeding fabric dye and warped, buckled material', digital: 'a photorealistic water droplet simulation blurring and warping the UI data' } },
+  { id: 209, short: 'РђСЂС…РёРІРЅР°СЏ РќР°РєР»РµР№РєР°', val: 'a dog-eared, yellowing archival catalog sticker overlapping the grid', t: { spatial: 'a massive, faded industrial zoning sticker overlapping the concrete grid', product: 'a dog-eared, yellowing archival inventory sticker overlapping the hardware', aero: 'a dog-eared, weathered aerospace inspection sticker on the hull', apparel: 'a dog-eared, yellowing dry-cleaning inventory sticker overlapping the seam', digital: 'a photorealistic sticky-note skeuomorph overlapping the digital grid' } }
+];
+
 // --- MERGE LOGIC ---
 if(typeof NEW_CATEGORY_8_MATERIALS !== 'undefined') CATEGORIES[8].items.push(...NEW_CATEGORY_8_MATERIALS);
 if(typeof NEW_CATEGORY_10_TRIGGERS !== 'undefined') CATEGORIES[10].items.push(...NEW_CATEGORY_10_TRIGGERS);
@@ -1952,6 +2044,15 @@ if(typeof MAY_3_COLORS !== 'undefined') CATEGORIES[3].items.push(...MAY_3_COLORS
 if(typeof MAY_3_GRAPHICS !== 'undefined') CATEGORIES[6].items.push(...MAY_3_GRAPHICS);
 if(typeof MAY_3_MATERIALS !== 'undefined') CATEGORIES[8].items.push(...MAY_3_MATERIALS);
 if(typeof MAY_3_TRIGGERS !== 'undefined') CATEGORIES[10].items.push(...MAY_3_TRIGGERS);
+
+// --- EXPANSION PACK 6 (from БАЗА ДАННЫХ -3 мая-new.txt) ---
+if(typeof EXT_CATEGORY_1_MASTERS !== 'undefined') CATEGORIES[1].items.push(...EXT_CATEGORY_1_MASTERS);
+if(typeof EXT_CATEGORY_2_SCIENCE !== 'undefined') CATEGORIES[2].items.push(...EXT_CATEGORY_2_SCIENCE);
+if(typeof EXT_CATEGORY_3_COLORS !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_COLORS);
+if(typeof EXT_CATEGORY_5_DATAVIZ !== 'undefined') CATEGORIES[5].items.push(...EXT_CATEGORY_5_DATAVIZ);
+if(typeof EXT_CATEGORY_6_SCANS !== 'undefined') CATEGORIES[6].items.push(...EXT_CATEGORY_6_SCANS);
+if(typeof EXT_CATEGORY_7_SUPERGRAPHICS !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_SUPERGRAPHICS);
+if(typeof EXT_CATEGORY_10_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...EXT_CATEGORY_10_DEFECTS);
 
 if(typeof LEGACY_COLORS_31_60 !== 'undefined') CATEGORIES[3].items.push(...LEGACY_COLORS_31_60);
 
