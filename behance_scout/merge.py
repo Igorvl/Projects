@@ -90,6 +90,17 @@ if(typeof EXT_CATEGORY_10_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...
 
 if(typeof LEGACY_COLORS_31_60 !== 'undefined') CATEGORIES[3].items.push(...LEGACY_COLORS_31_60);
 
+// --- EXPANSION PACK 7 (V4.1 Legacy Archive from -old.rtf) ---
+if(typeof EXT_CATEGORY_1_LEGACY_SCHOOLS !== 'undefined') CATEGORIES[1].items.push(...EXT_CATEGORY_1_LEGACY_SCHOOLS);
+if(typeof EXT_CATEGORY_2_LEGACY_DNA !== 'undefined') CATEGORIES[2].items.push(...EXT_CATEGORY_2_LEGACY_DNA);
+if(typeof EXT_CATEGORY_3_LEGACY_COLORS !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_LEGACY_COLORS);
+if(typeof EXT_CATEGORY_5_LEGACY_DATAVIZ !== 'undefined') CATEGORIES[5].items.push(...EXT_CATEGORY_5_LEGACY_DATAVIZ);
+if(typeof EXT_CATEGORY_6_LEGACY_SCANS !== 'undefined') CATEGORIES[6].items.push(...EXT_CATEGORY_6_LEGACY_SCANS);
+if(typeof EXT_CATEGORY_7_LEGACY_HEADERS !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_LEGACY_HEADERS);
+if(typeof EXT_CATEGORY_8_LEGACY_FABRICS !== 'undefined') CATEGORIES[8].items.push(...EXT_CATEGORY_8_LEGACY_FABRICS);
+if(typeof EXT_CATEGORY_9_LEGACY_LENSES !== 'undefined') CATEGORIES[9].items.push(...EXT_CATEGORY_9_LEGACY_LENSES);
+if(typeof EXT_CATEGORY_10_LEGACY_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...EXT_CATEGORY_10_LEGACY_DEFECTS);
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
