@@ -568,7 +568,7 @@ const EXT_CATEGORY_2_SCIENCE = [
 ];
 
 // Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[3].items (3. Р¦Р’Р•РўРђ)
-const EXT_CATEGORY_3_COLORS = [
+const EXT_CATEGORY_3_COLORS_B = [
   { id: 116, short: 'Rust, Olive, Bone', val: 'First Base: Rust Orange, Second Base: Olive Green, Third Base: Bone', hex: ['#B7410E', '#808000', '#E3DAC9'] }
 ];
 
@@ -605,7 +605,7 @@ const EXT_CATEGORY_6_SCANS = [
 ];
 
 // Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[7].items (7. РЎРЈРџР•Р -Р“Р РђР¤Р�РљРђ)
-const EXT_CATEGORY_7_SUPERGRAPHICS = [
+const EXT_CATEGORY_7_SUPERGRAPHICS_B = [
   { id: 41, short: 'MAGMA / Р“РµРѕС‚РµСЂРјР°Р»РєР°', val: "Massive headers 'MAGMA DEEP', 'T-8' with micro-text: 'MAGMA_TEMP, CORE_PRESSURE'" }
 ];
 
@@ -924,7 +924,7 @@ const EXT_CATEGORY_10_LEGACY_DEFECTS = [
   { id: 225, short: ' ', val: 'a harsh, intrusive security watermark overlay stamped across the middle', t: { spatial: 'a harsh, intrusive projected security laser-grid overlay across the middle', product: 'a harsh, intrusive holographic security seal stamped across the middle', aero: 'a harsh, intrusive high-visibility test-pattern painted across the middle', apparel: 'a harsh, intrusive anti-theft security dye pack stain across the middle', digital: 'a harsh, intrusive digital DRM watermark overlaying the interface' } },
   { id: 226, short: ' ', val: 'a misaligned security hologram foil patch peeling at the corner', t: { spatial: 'a misaligned smart-glass panel peeling at the corner', product: 'a misaligned security hologram sticker peeling off the metal casing', aero: 'a misaligned thermal reflecting foil patch peeling at the corner', apparel: 'a misaligned holographic heat-transfer patch peeling off the fabric', digital: 'a misaligned digital security hologram patch peeling off the screen' } },
   { id: 227, short: ' CMYK', val: 'exposed CMYK color calibration printing bars invading the layout', t: { spatial: 'exposed industrial color calibration test swatches painted on the wall', product: 'exposed CNC anodization color calibration test bars on the metal', aero: 'exposed aerospace paint-calibration test stripes invading the layout', apparel: 'exposed fabric dye calibration test swatches left on the garment', digital: 'exposed RGB monitor calibration test bars invading the layout' } },
-  { id: 228, short: ' ', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor's pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
+  { id: 228, short: ' ', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor\'s pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
   { id: 229, short: ' ', val: 'a standard metal paperclip physically indenting the top edge', t: { spatial: 'a heavy metal scaffolding clamp physically indenting the edge', product: 'a temporary metal alligator clip physically indenting the wire', aero: 'a red REMOVE BEFORE FLIGHT pin physically clipped to the edge', apparel: 'a standard metal binder clip temporarily holding the fabric fold', digital: 'a photorealistic metal paperclip "attached" to the UI window' } },
   { id: 230, short: '', val: 'a dense block of banking security micro-text intersecting the main title', t: { spatial: 'a dense block of microscopic architectural telemetry intersecting the main title', product: 'a dense block of laser-etched serial micro-text intersecting the main title', aero: 'a dense block of aerospace warning micro-text intersecting the main title', apparel: 'a dense block of woven security micro-text intersecting the main title', digital: 'a dense block of encrypted hex micro-text intersecting the main title' } },
   { id: 231, short: ' ', val: 'a physical, punch-cut micro-perforation line tearing through a paragraph', t: { spatial: 'a physical, drilled micro-perforation line tearing through the concrete', product: 'a physical, laser-cut micro-perforation line across the metal casing', aero: 'a physical line of aerodynamic micro-perforations tearing through a decal', apparel: 'a physical, punch-cut leather micro-perforation line tearing through a seam', digital: 'a simulated micro-perforation tear effect splitting the UI panel' } },

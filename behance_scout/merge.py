@@ -82,10 +82,10 @@ if(typeof MAY_3_TRIGGERS !== 'undefined') CATEGORIES[10].items.push(...MAY_3_TRI
 // --- EXPANSION PACK 6 (from БАЗА ДАННЫХ -3 мая-new.txt) ---
 if(typeof EXT_CATEGORY_1_MASTERS !== 'undefined') CATEGORIES[1].items.push(...EXT_CATEGORY_1_MASTERS);
 if(typeof EXT_CATEGORY_2_SCIENCE !== 'undefined') CATEGORIES[2].items.push(...EXT_CATEGORY_2_SCIENCE);
-if(typeof EXT_CATEGORY_3_COLORS !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_COLORS);
+if(typeof EXT_CATEGORY_3_COLORS_B !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_COLORS_B);
 if(typeof EXT_CATEGORY_5_DATAVIZ !== 'undefined') CATEGORIES[5].items.push(...EXT_CATEGORY_5_DATAVIZ);
 if(typeof EXT_CATEGORY_6_SCANS !== 'undefined') CATEGORIES[6].items.push(...EXT_CATEGORY_6_SCANS);
-if(typeof EXT_CATEGORY_7_SUPERGRAPHICS !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_SUPERGRAPHICS);
+if(typeof EXT_CATEGORY_7_SUPERGRAPHICS_B !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_SUPERGRAPHICS_B);
 if(typeof EXT_CATEGORY_10_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...EXT_CATEGORY_10_DEFECTS);
 
 if(typeof LEGACY_COLORS_31_60 !== 'undefined') CATEGORIES[3].items.push(...LEGACY_COLORS_31_60);
