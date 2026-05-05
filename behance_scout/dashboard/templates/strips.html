@@ -864,9 +864,26 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatePrompt());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const text = generatePrompt();
+    const doFallbackCopy = () => {
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand('copy'); } catch(e) { console.error('Fallback copy failed', e); }
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(doFallbackCopy);
+    } else {
+      doFallbackCopy();
+    }
   };
 
   const statusString = useMemo(() => {
@@ -1117,7 +1134,7 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
                    onClick={handleQuantumMutation}
                    className="w-full py-3 bg-[#c8aa6e] text-[#050608] font-black uppercase text-xs tracking-[0.2em] rounded-sm hover:bg-[#d6b77c] transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                   <span>?</span> QUANTUM MUTATION
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="shrink-0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> QUANTUM MUTATION
                 </button>
 
                 <div className="flex flex-col gap-1.5 mt-2">
@@ -1711,36 +1728,36 @@ const EXT_CATEGORY_11_LIGHT = [
 
 // --- NEW DATA FROM 3 MAY ---
 const MAY_3_STRUCTURE = [
-  {id:71, short:'ђадиаторные ђебра', val:'a structural layout composed of dense, repeating mechanical heat-sink fins'},
-  {id:72, short:'енсегрити росы', val:'a layout suspended in mid-air using complex tensegrity tension cables'},
-  {id:73, short:'Ђкустические ЉлиньЯ', val:'a highly structured grid of sound-absorbing anechoic wedge foam'},
-  {id:74, short:'ђизомнаЯ еть', val:'an organic, generative rhizome root network dictating the flow of data'},
-  {id:75, short:'Ћригами олдинг', val:'a rigorous layout based on complex, mathematical origami folding patterns'},
-  {id:76, short:'ермические азоры', val:'a grid separated by harsh physical thermal expansion gaps'},
-  {id:77, short:'ЉапиллЯрные Љаналы', val:'a dense microscopic layout resembling microfluidic capillary channels'},
-  {id:78, short:'ѓофрированный Џрофиль', val:'a continuous corrugated structural profile running across the composition'},
-  {id:79, short:'Ђэродинамические Ќервюры', val:'an internal layout mimicking the skeletal ribs of an airplane wing'},
-  {id:80, short:'Љаскадные еррасы', val:'a layout stepping down in massive, rigid topographic terraces'},
-  {id:81, short:'Љинетические алюзи', val:'a structured grid of overlapping, angled kinetic architectural louvers'},
-  {id:82, short:'лои тратиграфии', val:'a layout divided into horizontal, compressed stratigraphic sediment layers'},
-  {id:83, short:'Џневматические ђаспорки', val:'a grid physically separated and held by heavy pneumatic industrial struts'},
-  {id:84, short:'Џодвесные Џлатформы', val:'a layout broken into heavy brutalist slabs suspended at different heights'},
-  {id:85, short:'Њагнитные Љатушки', val:'a dense, repeating array of wrapped copper electromagnetic coils'},
-  {id:86, short:'окуснаЯ инза', val:'a composition warped radially as if viewed through a thick optical convex lens'},
-  {id:87, short:'Њатрица исплеЯ', val:'a layout locked strictly to a visible microscopic RGB sub-pixel matrix'},
-  {id:88, short:'опологические инии', val:'a layout governed by flowing, algorithmic topographic contour maps'},
-  {id:89, short:'Ѓазовые инии рифта', val:'a strict editorial layout revealing the typographical baselines and x-heights'},
-  {id:90, short:'ѓеодезический Љаркас', val:'a layout mapped onto a complex, spherical geodesic space-frame'},
-  {id:91, short:'ЊолекулЯрнаЯ етка', val:'a structural grid mimicking rigid covalent molecular bonds'},
-  {id:92, short:'иаграмма ороного', val:'an asymmetrical layout strictly following a generated Voronoi diagram'},
-  {id:93, short:'екторнаЯ зометриЯ', val:'a strict 3D isometric layout drafted on a 30-degree architectural angle'},
-  {id:94, short:'Љонцентрические Љольца', val:'a layout expanding outward in perfect, dense concentric orbital rings'},
-  {id:95, short:'ђЯды Џерфорации', val:'a grid delineated by lines of mechanical tear-away perforation'},
-  {id:96, short:'пунтовое оединение', val:'a layout physically locking together using tongue-and-groove joinery'},
-  {id:97, short:'рактальное еление', val:'a space endlessly dividing into smaller, mathematically perfect fractal zones'},
-  {id:98, short:'Љристаллический ђост', val:'a layout structured like an asymmetrical, chaotic bismuth crystal growth'},
-  {id:99, short:'аминарные Џотоки', val:'a layout mimicking ultra-smooth, parallel laminar fluid dynamic flows'},
-  {id:100, short:'Ђбсолютный Њонолит', val:'a single, unyielding monolithic block with absolutely zero negative space'}
+  {id:71, short: 'Радиаторные Ребра', val:'a structural layout composed of dense, repeating mechanical heat-sink fins'},
+  {id:72, short: 'Тенсегрити Тросы', val:'a layout suspended in mid-air using complex tensegrity tension cables'},
+  {id:73, short: 'Акустические Клинья', val:'a highly structured grid of sound-absorbing anechoic wedge foam'},
+  {id:74, short: 'Ризомная Сеть', val:'an organic, generative rhizome root network dictating the flow of data'},
+  {id:75, short: 'Оригами Фолдинг', val:'a rigorous layout based on complex, mathematical origami folding patterns'},
+  {id:76, short: 'Термические Зазоры', val:'a grid separated by harsh physical thermal expansion gaps'},
+  {id:77, short: 'Капиллярные Каналы', val:'a dense microscopic layout resembling microfluidic capillary channels'},
+  {id:78, short: 'Гофрированный Профиль', val:'a continuous corrugated structural profile running across the composition'},
+  {id:79, short: 'Аэродинамические Нервюры', val:'an internal layout mimicking the skeletal ribs of an airplane wing'},
+  {id:80, short: 'Каскадные Террасы', val:'a layout stepping down in massive, rigid topographic terraces'},
+  {id:81, short: 'Кинетические Жалюзи', val:'a structured grid of overlapping, angled kinetic architectural louvers'},
+  {id:82, short: 'Слои Стратиграфии', val:'a layout divided into horizontal, compressed stratigraphic sediment layers'},
+  {id:83, short: 'Пневматические Распорки', val:'a grid physically separated and held by heavy pneumatic industrial struts'},
+  {id:84, short: 'Подвесные Платформы', val:'a layout broken into heavy brutalist slabs suspended at different heights'},
+  {id:85, short: 'Магнитные Катушки', val:'a dense, repeating array of wrapped copper electromagnetic coils'},
+  {id:86, short: 'Фокусная Линза', val:'a composition warped radially as if viewed through a thick optical convex lens'},
+  {id:87, short: 'Матрица Дисплея', val:'a layout locked strictly to a visible microscopic RGB sub-pixel matrix'},
+  {id:88, short: 'Топологические Линии', val:'a layout governed by flowing, algorithmic topographic contour maps'},
+  {id:89, short: 'Базовые Линии Шрифта', val:'a strict editorial layout revealing the typographical baselines and x-heights'},
+  {id:90, short: 'Геодезический Каркас', val:'a layout mapped onto a complex, spherical geodesic space-frame'},
+  {id:91, short: 'Молекулярная Сетка', val:'a structural grid mimicking rigid covalent molecular bonds'},
+  {id:92, short: 'Диаграмма Вороного', val:'an asymmetrical layout strictly following a generated Voronoi diagram'},
+  {id:93, short: 'Векторная Изометрия', val:'a strict 3D isometric layout drafted on a 30-degree architectural angle'},
+  {id:94, short: 'Концентрические Кольца', val:'a layout expanding outward in perfect, dense concentric orbital rings'},
+  {id:95, short: 'Ряды Перфорации', val:'a grid delineated by lines of mechanical tear-away perforation'},
+  {id:96, short: 'Шпунтовое Соединение', val:'a layout physically locking together using tongue-and-groove joinery'},
+  {id:97, short: 'Фрактальное Деление', val:'a space endlessly dividing into smaller, mathematically perfect fractal zones'},
+  {id:98, short: 'Кристаллический Рост', val:'a layout structured like an asymmetrical, chaotic bismuth crystal growth'},
+  {id:99, short: 'Ламинарные Потоки', val:'a layout mimicking ultra-smooth, parallel laminar fluid dynamic flows'},
+  {id:100, short: 'Абсолютный Монолит', val:'a single, unyielding monolithic block with absolutely zero negative space'}
 ];
 
 const MAY_3_COLORS = [
@@ -1772,123 +1789,123 @@ const MAY_3_COLORS = [
 ];
 
 const MAY_3_GRAPHICS = [
-  {id:71, short:'Њетки ђеза (Crop Marks)', val:'visible printing crop marks, registration targets, and color bleed bars'},
-  {id:72, short:'Љольца ЂстролЯбии', val:'intricate, overlapping navigational astrolabe rings and degree markers'},
-  {id:73, short:'резеровочные Џути (CNC)', val:'visible overlapping CNC machining toolpath vectors'},
-  {id:74, short:'злы ЌатЯжениЯ (Nodes)', val:'technical wireframe nodes calculating structural tension points'},
-  {id:75, short:'леды клейки', val:'schematic dashed lines indicating where adhesive or folds should be applied'},
-  {id:76, short:'UI кроллбары', val:'functional, brutalist digital UI scrollbars and progress sliders'},
-  {id:77, short:'етка Љалибровки (Grid)', val:'a dense camera lens optical calibration grid pattern'},
-  {id:78, short:'екторы етра', val:'curved aerodynamic flow lines simulating wind-tunnel particle tests'},
-  {id:79, short:'атчики ровнЯ (Level)', val:'architectural spirit-level liquid indicators and degree scales'},
-  {id:80, short:'ЉассетнаЯ Љатушка', val:'graphic representations of vintage audio cassette tape reels and hubs'},
-  {id:81, short:'иаграмма ѓанта', val:'dense project management Gantt chart timelines overlaid on the design'},
-  {id:82, short:'Њатрица зотопов', val:'scientific tables mapping the decay of radioactive isotopes'},
-  {id:83, short:'ЊагнитнаЯ ента', val:'thick parallel black stripes mimicking magnetic VHS data reading tape'},
-  {id:84, short:'ейсмические двиги', val:'jagged, aggressive tectonic seismic shift line-graphs'},
-  {id:85, short:'нтерфейс Ѓатискафа', val:'deep-sea submersible depth gauges and oxygen level HUDs'},
-  {id:86, short:'очки варки', val:'schematic crosses indicating heavy industrial welding points'},
-  {id:87, short:'Ћфтальмологический ест', val:'optometric eye-test charts and visual acuity graphics'},
-  {id:88, short:'ромосомы ЌЉ', val:'clinical diagrams mapping chromosomal DNA sequencing pairs'},
-  {id:89, short:'Ћсь Љоординат (XYZ)', val:'strict 3D spatial XYZ coordinate axis markers'},
-  {id:90, short:'азы уны', val:'astronomical diagrams depicting precise lunar phases and eclipses'},
-  {id:91, short:'емпературный ѓрадиент', val:'harsh thermal imaging gradient color bars used for heat calibration'},
-  {id:92, short:'Џредупреждение азера', val:'industrial Class 4 Laser radiation warning graphics and geometry'},
-  {id:93, short:'инии гиба (Origami)', val:'complex valley and mountain fold lines derived from origami schematics'},
-  {id:94, short:'екторы скорениЯ', val:'kinetic G-force acceleration vectors mapped mathematically'},
-  {id:95, short:'етка 3D-Џринтера', val:'the supportive raft and scaffolding matrix of a 3D printing software'},
-  {id:96, short:'ѓенеалогическое рево', val:'complex branching nodal diagrams resembling a data-driven family tree'},
-  {id:97, short:'ѓрафик ЋхлаждениЯ', val:'thermodynamic cooling curve graphs for forged metallurgy'},
-  {id:98, short:'иафрагма Ћбъектива', val:'overlapping hexagonal blades mimicking a camera aperture mechanism'},
-  {id:99, short:'кала авлениЯ (Bar)', val:'heavy typographic dials reading extreme hyperbaric pressure levels'},
-  {id:100, short:'Ѓрайль-Њатрица', val:'tactile grid of raised Braille dots spelling out encrypted data'}
+  {id:71, short: 'Метки Реза (Crop Marks)', val:'visible printing crop marks, registration targets, and color bleed bars'},
+  {id:72, short: 'Кольца Астролябии', val:'intricate, overlapping navigational astrolabe rings and degree markers'},
+  {id:73, short: 'Фрезеровочные Пути (CNC)', val:'visible overlapping CNC machining toolpath vectors'},
+  {id:74, short: 'Узлы Натяжения (Nodes)', val:'technical wireframe nodes calculating structural tension points'},
+  {id:75, short: 'Следы Склейки', val:'schematic dashed lines indicating where adhesive or folds should be applied'},
+  {id:76, short: 'UI Скроллбары', val:'functional, brutalist digital UI scrollbars and progress sliders'},
+  {id:77, short: 'Сетка Калибровки (Grid)', val:'a dense camera lens optical calibration grid pattern'},
+  {id:78, short: 'Векторы Ветра', val:'curved aerodynamic flow lines simulating wind-tunnel particle tests'},
+  {id:79, short: 'Датчики Уровня (Level)', val:'architectural spirit-level liquid indicators and degree scales'},
+  {id:80, short: 'Кассетная Катушка', val:'graphic representations of vintage audio cassette tape reels and hubs'},
+  {id:81, short: 'Диаграмма Ганта', val:'dense project management Gantt chart timelines overlaid on the design'},
+  {id:82, short: 'Матрица Изотопов', val:'scientific tables mapping the decay of radioactive isotopes'},
+  {id:83, short: 'Магнитная Лента', val:'thick parallel black stripes mimicking magnetic VHS data reading tape'},
+  {id:84, short: 'Сейсмические Сдвиги', val:'jagged, aggressive tectonic seismic shift line-graphs'},
+  {id:85, short: 'Интерфейс Батискафа', val:'deep-sea submersible depth gauges and oxygen level HUDs'},
+  {id:86, short: 'Точки Сварки', val:'schematic crosses indicating heavy industrial welding points'},
+  {id:87, short: 'Офтальмологический Тест', val:'optometric eye-test charts and visual acuity graphics'},
+  {id:88, short: 'Хромосомы ДНК', val:'clinical diagrams mapping chromosomal DNA sequencing pairs'},
+  {id:89, short: 'Ось Координат (XYZ)', val:'strict 3D spatial XYZ coordinate axis markers'},
+  {id:90, short: 'Фазы Луны', val:'astronomical diagrams depicting precise lunar phases and eclipses'},
+  {id:91, short: 'Температурный Градиент', val:'harsh thermal imaging gradient color bars used for heat calibration'},
+  {id:92, short: 'Предупреждение Лазера', val:'industrial Class 4 Laser radiation warning graphics and geometry'},
+  {id:93, short: 'Линии Сгиба (Origami)', val:'complex valley and mountain fold lines derived from origami schematics'},
+  {id:94, short: 'Векторы Ускорения', val:'kinetic G-force acceleration vectors mapped mathematically'},
+  {id:95, short: 'Сетка 3D-Принтера', val:'the supportive raft and scaffolding matrix of a 3D printing software'},
+  {id:96, short: 'Генеалогическое Древо', val:'complex branching nodal diagrams resembling a data-driven family tree'},
+  {id:97, short: 'График Охлаждения', val:'thermodynamic cooling curve graphs for forged metallurgy'},
+  {id:98, short: 'Диафрагма Объектива', val:'overlapping hexagonal blades mimicking a camera aperture mechanism'},
+  {id:99, short: 'Шкала Давления (Bar)', val:'heavy typographic dials reading extreme hyperbaric pressure levels'},
+  {id:100, short: 'Брайль-Матрица', val:'tactile grid of raised Braille dots spelling out encrypted data'}
 ];
 
 const MAY_3_MATERIALS = [
-  {id:41, short:'инковое Џокрытие', val:'cold, raw galvanized zinc coating with visible crystalline spangles'},
-  {id:42, short:'Љалька (Vellum)', val:'cloudy, semi-translucent architectural vellum paper'},
-  {id:43, short:'улканизированнаЯ ђезина', val:'heavy, light-absorbing vulcanized black rubber'},
-  {id:44, short:'усальное еребро', val:'flaking, hand-applied genuine silver leaf gilding'},
-  {id:45, short:'ершавый Ѓетон', val:'highly porous, unpolished brutalist architectural concrete'},
-  {id:46, short:'ерраццо', val:'polished terrazzo stone with sharp, geometric marble aggregates'},
-  {id:47, short:'атуннаЯ етка', val:'woven industrial brass wire mesh screen'},
-  {id:48, short:'Ќеопрен', val:'thick, spongy, matte technical neoprene fabric'},
-  {id:49, short:'вукоизолЯциЯ (MDF)', val:'perforated MDF wood acoustic dampening panels'},
-  {id:50, short:'винец', val:'heavy, toxic, dull matte lead shielding metal'},
-  {id:51, short:'Џереплетный Љартон', val:'thick, exposed grey bookbinding chipboard with rough edges'},
-  {id:52, short:'ЊЯтаЯ ольга', val:'heavily crumpled and distressed aluminum foil'},
-  {id:53, short:'Љаучук', val:'raw, sticky, amber-colored natural gum rubber'},
-  {id:54, short:'еркальный Ђкрил', val:'flawless, highly reflective mirrored acrylic plastic'},
-  {id:55, short:'ђжавый угун', val:'heavy cast iron suffering from aggressive, blooming rust oxidation'},
-  {id:56, short:'люда', val:'flakey, translucent, layered mica mineral sheets'},
-  {id:57, short:'Љрафт-Ѓумага', val:'unbleached, fibrous brown industrial Kraft packaging paper'},
-  {id:58, short:'луоресцентнаЯ Љраска', val:'blindingly bright daylight-fluorescent screen-printing ink'},
-  {id:59, short:'Џарашютный елк', val:'ultra-thin, crinkled ripstop parachute silk textile'},
-  {id:60, short:'ќпоксиднаЯ мола', val:'a thick, glossy poured coating of clear epoxy resin'},
-  {id:61, short:'ЏерфорированнаЯ таль', val:'heavy-gauge steel plate punched with a tight grid of holes'},
-  {id:62, short:'ЊЯтый айвек', val:'heavily distressed and crinkled synthetic Tyvek paper'},
-  {id:63, short:'Љварцевое текло', val:'flawlessly clear, heavy laboratory-grade quartz glass'},
-  {id:64, short:'ѓрубый ен', val:'highly textured, unbleached, raw woven linen canvas'},
-  {id:65, short:'Џолированный Њрамор', val:'cold, flawless, high-gloss Carrara marble stone'},
-  {id:66, short:'ЂэрозольнаЯ ќмаль', val:'a thick, drippy layer of high-gloss aerosol enamel spray paint'},
-  {id:67, short:'ЉерамическаЯ ѓлазурь', val:'a thick, pooled, cracked raku ceramic glaze'},
-  {id:68, short:'печеннаЯ Ѓронза', val:'porous, rough, sintered bronze filter metal'},
-  {id:69, short:'ѓолографический Џолимер', val:'an iridescent, color-shifting dichroic polymer film'},
-  {id:70, short:'Ѓумага ђучного итьЯ', val:'thick, uneven, deckle-edged handmade cotton rag paper'},
-  {id:71, short:'ЊагнитнаЯ ента', val:'glossy, dark brown magnetic iron-oxide audio recording tape'},
-  {id:72, short:'ђифленое текло', val:'industrial ribbed / fluted privacy glass distorting the view'},
-  {id:73, short:'глероднаЯ кань', val:'raw, dry woven carbon fiber cloth before resin application'},
-  {id:74, short:'интажный Џергамент', val:'heavily aged, yellowed, and brittle animal-skin parchment'},
-  {id:75, short:'Џенополистирол', val:'compressed, lightweight white expanded polystyrene foam (EPS)'},
-  {id:76, short:'Џолиуретан', val:'translucent, amber-tinted cast polyurethane rubber'},
-  {id:77, short:'тертое олото', val:'antique brass with the gold plating heavily rubbed off'},
-  {id:78, short:'ЉопировальнаЯ Ѓумага', val:'thin, fragile, dark purple analog carbon copy paper'},
-  {id:79, short:'ермобумага', val:'smooth, glossy thermal receipt paper reacting to heat'},
-  {id:80, short:'акрон (ЏаруснаЯ кань)', val:'stiff, crinkly, waterproof Dacron sailcloth'},
-  {id:81, short:'ромоваЯ Џленка', val:'a highly reflective, mirror-finish chrome vinyl car wrap'},
-  {id:82, short:'Љортен-таль', val:'weathering Corten steel with a rich, velvety orange rust patina'},
-  {id:83, short:'Њастика / ургуч', val:'hardened, brittle, dark red sealing wax'},
-  {id:84, short:'теклоблоки', val:'thick, heavy, architectural glass bricks'},
-  {id:85, short:'ќлектрокартон', val:'dense, red-brown industrial insulating pressboard'},
-  {id:86, short:'Ѓитум / ѓудрон', val:'thick, sticky, light-absorbing black tar roofing asphalt'},
-  {id:87, short:'амша (Suede)', val:'premium, highly tactile, brushed calfskin suede leather'},
-  {id:88, short:'теклоткань (ефлон)', val:'PTFE Teflon-coated fiberglass architectural membrane'},
-  {id:89, short:'ианотипиЯ', val:'deep Prussian blue cyanotype sun-print paper texture'},
-  {id:90, short:'Љарболит', val:'vintage, dark brown, brittle Bakelite/Carbolite thermoset plastic'},
-  {id:91, short:'резерованный елрин', val:'dense, smooth, white CNC-milled Delrin acetal resin'},
-  {id:92, short:'Џробковое ерево', val:'compressed, textured natural cork agglomerate'},
-  {id:93, short:'Ђнодированный итан', val:'titanium metal anodized to a vibrant, iridescent spectrum'},
-  {id:94, short:'людЯнаЯ Ѓумага', val:'sparkling, highly textured paper infused with mica flakes'},
-  {id:95, short:'ветопоглощающий Ѓархат', val:'ultra-black Vantablack-coated velvet fabric'},
-  {id:96, short:'ольфрам', val:'incredibly heavy, dark grey, dense raw tungsten metal'},
-  {id:97, short:'итографический Љамень', val:'smooth, heavy, porous Bavarian limestone used for lithography'},
-  {id:98, short:'итановый амаск', val:'Timascus (titanium damascus) with flowing, forged multicolored layers'},
-  {id:99, short:'ЊатеринскаЯ Џлата', val:'raw fiberglass FR4 printed circuit board material without traces'},
-  {id:100, short:'Љриогенное текло', val:'ultra-thick, multi-layered tempered cryogenic observation glass'}
+  {id:41, short: 'Цинковое Покрытие', val:'cold, raw galvanized zinc coating with visible crystalline spangles'},
+  {id:42, short: 'Калька (Vellum)', val:'cloudy, semi-translucent architectural vellum paper'},
+  {id:43, short: 'Вулканизированная Резина', val:'heavy, light-absorbing vulcanized black rubber'},
+  {id:44, short: 'Сусальное Серебро', val:'flaking, hand-applied genuine silver leaf gilding'},
+  {id:45, short: 'Шершавый Бетон', val:'highly porous, unpolished brutalist architectural concrete'},
+  {id:46, short: 'Терраццо', val:'polished terrazzo stone with sharp, geometric marble aggregates'},
+  {id:47, short: 'Латунная Сетка', val:'woven industrial brass wire mesh screen'},
+  {id:48, short: 'Неопрен', val:'thick, spongy, matte technical neoprene fabric'},
+  {id:49, short: 'Звукоизоляция (MDF)', val:'perforated MDF wood acoustic dampening panels'},
+  {id:50, short: 'Свинец', val:'heavy, toxic, dull matte lead shielding metal'},
+  {id:51, short: 'Переплетный Картон', val:'thick, exposed grey bookbinding chipboard with rough edges'},
+  {id:52, short: 'Мятая Фольга', val:'heavily crumpled and distressed aluminum foil'},
+  {id:53, short: 'Каучук', val:'raw, sticky, amber-colored natural gum rubber'},
+  {id:54, short: 'Зеркальный Акрил', val:'flawless, highly reflective mirrored acrylic plastic'},
+  {id:55, short: 'Ржавый Чугун', val:'heavy cast iron suffering from aggressive, blooming rust oxidation'},
+  {id:56, short: 'Слюда', val:'flakey, translucent, layered mica mineral sheets'},
+  {id:57, short: 'Крафт-Бумага', val:'unbleached, fibrous brown industrial Kraft packaging paper'},
+  {id:58, short: 'Флуоресцентная Краска', val:'blindingly bright daylight-fluorescent screen-printing ink'},
+  {id:59, short: 'Парашютный Шелк', val:'ultra-thin, crinkled ripstop parachute silk textile'},
+  {id:60, short: 'Эпоксидная Смола', val:'a thick, glossy poured coating of clear epoxy resin'},
+  {id:61, short: 'Перфорированная Сталь', val:'heavy-gauge steel plate punched with a tight grid of holes'},
+  {id:62, short: 'Мятый Тайвек', val:'heavily distressed and crinkled synthetic Tyvek paper'},
+  {id:63, short: 'Кварцевое Стекло', val:'flawlessly clear, heavy laboratory-grade quartz glass'},
+  {id:64, short: 'Грубый Лен', val:'highly textured, unbleached, raw woven linen canvas'},
+  {id:65, short: 'Полированный Мрамор', val:'cold, flawless, high-gloss Carrara marble stone'},
+  {id:66, short: 'Аэрозольная Эмаль', val:'a thick, drippy layer of high-gloss aerosol enamel spray paint'},
+  {id:67, short: 'Керамическая Глазурь', val:'a thick, pooled, cracked raku ceramic glaze'},
+  {id:68, short: 'Спеченная Бронза', val:'porous, rough, sintered bronze filter metal'},
+  {id:69, short: 'Голографический Полимер', val:'an iridescent, color-shifting dichroic polymer film'},
+  {id:70, short: 'Бумага Ручного Литья', val:'thick, uneven, deckle-edged handmade cotton rag paper'},
+  {id:71, short: 'Магнитная Лента', val:'glossy, dark brown magnetic iron-oxide audio recording tape'},
+  {id:72, short: 'Рифленое Стекло', val:'industrial ribbed / fluted privacy glass distorting the view'},
+  {id:73, short: 'Углеродная Ткань', val:'raw, dry woven carbon fiber cloth before resin application'},
+  {id:74, short: 'Винтажный Пергамент', val:'heavily aged, yellowed, and brittle animal-skin parchment'},
+  {id:75, short: 'Пенополистирол', val:'compressed, lightweight white expanded polystyrene foam (EPS)'},
+  {id:76, short: 'Полиуретан', val:'translucent, amber-tinted cast polyurethane rubber'},
+  {id:77, short: 'Стертое Золото', val:'antique brass with the gold plating heavily rubbed off'},
+  {id:78, short: 'Копировальная Бумага', val:'thin, fragile, dark purple analog carbon copy paper'},
+  {id:79, short: 'Термобумага', val:'smooth, glossy thermal receipt paper reacting to heat'},
+  {id:80, short: 'Дакрон (Парусная Ткань)', val:'stiff, crinkly, waterproof Dacron sailcloth'},
+  {id:81, short: 'Хромовая Пленка', val:'a highly reflective, mirror-finish chrome vinyl car wrap'},
+  {id:82, short: 'Кортен-Сталь', val:'weathering Corten steel with a rich, velvety orange rust patina'},
+  {id:83, short: 'Мастика / Сургуч', val:'hardened, brittle, dark red sealing wax'},
+  {id:84, short: 'Стеклоблоки', val:'thick, heavy, architectural glass bricks'},
+  {id:85, short: 'Электрокартон', val:'dense, red-brown industrial insulating pressboard'},
+  {id:86, short: 'Битум / Гудрон', val:'thick, sticky, light-absorbing black tar roofing asphalt'},
+  {id:87, short: 'Замша (Suede)', val:'premium, highly tactile, brushed calfskin suede leather'},
+  {id:88, short: 'Стеклоткань (Тефлон)', val:'PTFE Teflon-coated fiberglass architectural membrane'},
+  {id:89, short: 'Цианотипия', val:'deep Prussian blue cyanotype sun-print paper texture'},
+  {id:90, short: 'Карболит', val:'vintage, dark brown, brittle Bakelite/Carbolite thermoset plastic'},
+  {id:91, short: 'Фрезерованный Делрин', val:'dense, smooth, white CNC-milled Delrin acetal resin'},
+  {id:92, short: 'Пробковое Дерево', val:'compressed, textured natural cork agglomerate'},
+  {id:93, short: 'Анодированный Титан', val:'titanium metal anodized to a vibrant, iridescent spectrum'},
+  {id:94, short: 'Слюдяная Бумага', val:'sparkling, highly textured paper infused with mica flakes'},
+  {id:95, short: 'Светопоглощающий Бархат', val:'ultra-black Vantablack-coated velvet fabric'},
+  {id:96, short: 'Вольфрам', val:'incredibly heavy, dark grey, dense raw tungsten metal'},
+  {id:97, short: 'Литографический Камень', val:'smooth, heavy, porous Bavarian limestone used for lithography'},
+  {id:98, short: 'Титановый Дамаск', val:'Timascus (titanium damascus) with flowing, forged multicolored layers'},
+  {id:99, short: 'Материнская Плата', val:'raw fiberglass FR4 printed circuit board material without traces'},
+  {id:100, short: 'Криогенное Стекло', val:'ultra-thick, multi-layered tempered cryogenic observation glass'}
 ];
 
 const MAY_3_TRIGGERS = [
-  {id:80, short:'деальный алом кани', val:"a sharp, perfectly pressed tailor's chalk mark on dark fabric"},
-  {id:81, short:'ђазбитаЯ инза', val:'a heavily cracked, spiderwebbed optical glass camera lens'},
-  {id:82, short:'леющий голек', val:'a single, glowing red-hot ember burning a hole through the surface'},
-  {id:83, short:'ђазмазанный Њел', val:"a tactile smudge of white tailor's chalk powder on dark suiting fabric"},
-  {id:84, short:'ЉаплЯ оска', val:'a congealed, opaque drop of melted white candle wax'},
-  {id:85, short:'ирургическаЯ гла', val:'a hyper-realistic, curved surgical steel suture needle piercing the layout'},
-  {id:86, short:'Ћголенный Њедь', val:'a cluster of frayed, exposed copper wiring bursting from a clean seam'},
-  {id:87, short:'лед от Њаркера', val:'a bleeding, saturated stroke of permanent black Sharpie marker redacting a word'},
-  {id:88, short:'Љусок золенты', val:'a piece of stretched, stretched black PVC electrical tape holding elements together'},
-  {id:89, short:'ЏЯтно Њасла', val:'a dark, translucent stain of industrial machine oil soaking into the paper'},
-  {id:90, short:'ЋкислившийсЯ Ѓолт', val:'a heavy, rusted iron bolt driven brutally through the delicate design'},
-  {id:91, short:'ЉаплЯ ЏрипоЯ', val:'a shiny, frozen droplet of melted lead/tin solder metal'},
-  {id:92, short:'ЉанцелЯрскаЯ Љнопка', val:'a simple, realistic brass thumbtack pinning the layout to the void'},
-  {id:93, short:'лед от Ћбуви', val:'a faint, dusty industrial boot-print stamped over the clean typography'},
-  {id:94, short:'ЏрожженнаЯ ыра', val:'a charred, brown-edged hole where a cigarette or hot metal burned through'},
-  {id:95, short:'ЋсыпающаЯсЯ Љраска', val:'a section of typography physically peeling and flaking off the surface'},
-  {id:96, short:'ЉаплЯ ЉлеЯ (Cyanacrylate)', val:'a clear, hardened smear of superglue reacting and frosting the surrounding area'},
-  {id:97, short:'ажим длЯ Ѓумаг (Binder)', val:'a heavy black steel binder clip brutally pinching the side of the layout'},
-  {id:98, short:'лед от астика', val:'a rough, abraded patch where paper was violently rubbed with an eraser'},
-  {id:99, short:'ащитнаЯ Џленка', val:'a partially peeled-off transparent protective shipping film with air bubbles'},
-  {id:100, short:'ЉаплЯ Љонденсата', val:'a single, perfectly formed droplet of clear water magnifying the micro-text beneath it'}
+  {id:80, short: 'Идеальный Залом Ткани', val:"a sharp, perfectly pressed tailor's chalk mark on dark fabric"},
+  {id:81, short: 'Разбитая Линза', val:'a heavily cracked, spiderwebbed optical glass camera lens'},
+  {id:82, short: 'Тлеющий Уголек', val:'a single, glowing red-hot ember burning a hole through the surface'},
+  {id:83, short: 'Размазанный Мел', val:"a tactile smudge of white tailor's chalk powder on dark suiting fabric"},
+  {id:84, short: 'Капля Воска', val:'a congealed, opaque drop of melted white candle wax'},
+  {id:85, short: 'Хирургическая Игла', val:'a hyper-realistic, curved surgical steel suture needle piercing the layout'},
+  {id:86, short: 'Оголенный Медь', val:'a cluster of frayed, exposed copper wiring bursting from a clean seam'},
+  {id:87, short: 'След от Маркера', val:'a bleeding, saturated stroke of permanent black Sharpie marker redacting a word'},
+  {id:88, short: 'Кусок Изоленты', val:'a piece of stretched, stretched black PVC electrical tape holding elements together'},
+  {id:89, short: 'Пятно Масла', val:'a dark, translucent stain of industrial machine oil soaking into the paper'},
+  {id:90, short: 'Окислившийся Болт', val:'a heavy, rusted iron bolt driven brutally through the delicate design'},
+  {id:91, short: 'Капля Припоя', val:'a shiny, frozen droplet of melted lead/tin solder metal'},
+  {id:92, short: 'Канцелярская Кнопка', val:'a simple, realistic brass thumbtack pinning the layout to the void'},
+  {id:93, short: 'След от Обуви', val:'a faint, dusty industrial boot-print stamped over the clean typography'},
+  {id:94, short: 'Прожженная Дыра', val:'a charred, brown-edged hole where a cigarette or hot metal burned through'},
+  {id:95, short: 'Осыпающаяся Краска', val:'a section of typography physically peeling and flaking off the surface'},
+  {id:96, short: 'Капля Клея (Cyanacrylate)', val:'a clear, hardened smear of superglue reacting and frosting the surrounding area'},
+  {id:97, short: 'Зажим для Бумаг (Binder)', val:'a heavy black steel binder clip brutally pinching the side of the layout'},
+  {id:98, short: 'След от Ластика', val:'a rough, abraded patch where paper was violently rubbed with an eraser'},
+  {id:99, short: 'Защитная Пленка', val:'a partially peeled-off transparent protective shipping film with air bubbles'},
+  {id:100, short: 'Капля Конденсата', val:'a single, perfectly formed droplet of clear water magnifying the micro-text beneath it'}
 ];
 
 
@@ -1939,7 +1956,7 @@ const LEGACY_COLORS_31_60 = [
 // Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[1].items (1. РЁРљРћР›Рђ Р”Р�Р—РђР™РќРђ)
 const EXT_CATEGORY_1_MASTERS = [
   { id: 201, short: 'Vignelli Systems', val: 'Massimo Vignelli Systems Transit Grid' },
-  { id: 202, short: 'MГјller-Brockmann', val: 'Josef MГјller-Brockmann Strict Grid' },
+  { id: 202, short: 'Müller-Brockmann', val: 'Josef MГјller-Brockmann Strict Grid' },
   { id: 203, short: 'Paula Scher', val: 'Paula Scher Super-Graphics' },
   { id: 204, short: 'Herb Lubalin', val: 'Herb Lubalin Tight Ligatures' },
   { id: 205, short: 'Wim Crouwel', val: 'Wim Crouwel Mathematical Objectivity' },
@@ -2003,20 +2020,20 @@ const EXT_CATEGORY_6_SCANS = [
 
 // Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[7].items (7. РЎРЈРџР•Р -Р“Р РђР¤Р�РљРђ)
 const EXT_CATEGORY_7_SUPERGRAPHICS_B = [
-  { id: 41, short: 'MAGMA / Р“РµРѕС‚РµСЂРјР°Р»РєР°', val: "Massive headers 'MAGMA DEEP', 'T-8' with micro-text: 'MAGMA_TEMP, CORE_PRESSURE'" }
+  { id: 41, short: 'MAGMA / Геотермалка', val: "Massive headers 'MAGMA DEEP', 'T-8' with micro-text: 'MAGMA_TEMP, CORE_PRESSURE'" }
 ];
 
 // Р”РѕР±Р°РІРёС‚СЊ РІ CATEGORIES[10].items (10. РўР Р�Р“Р“Р•Р -Р¤РћРљРЈРЎ)
 const EXT_CATEGORY_10_DEFECTS = [
-  { id: 201, short: 'РЎРґРІРёРі CMYK (Misregistration)', val: 'a severe CMYK misregistration printing error creating blurred color ghosting', t: { spatial: 'a severe holographic projection misregistration creating blurred color ghosting', product: 'a severe multi-pass CNC misregistration error creating overlapping grooves', aero: 'a severe decal misregistration printing error creating blurred color ghosting', apparel: 'a severe screen-print misregistration error creating blurred color ghosting', digital: 'a severe RGB channel split chromatic aberration misregistration error' } },
-  { id: 202, short: 'Р—Р°РіРЅСѓС‚С‹Р№ РЈРіРѕР» (Dog-ear)', val: 'a harsh, physical dog-ear crease folded heavily through the paper', t: { spatial: 'a harsh, physical bent metal beam folded heavily into the structure', product: 'a harsh, physical bent metal corner folded heavily from impact', aero: 'a harsh, physical bent aero-flap folded heavily from aerodynamic stress', apparel: 'a harsh, physical dog-ear crease folded permanently into the stiff fabric', digital: 'a 3D skeuomorphic dog-ear page curl folding over the UI screen' } },
-  { id: 203, short: 'РЎРєРѕР±Р° РЎС‚РµРїРїР»РµСЂР°', val: 'a heavy industrial steel staple piercing the layout', t: { spatial: 'a massive heavy industrial steel beam acting as a staple in the concrete', product: 'a heavy industrial steel staple brutally piercing the delicate hardware', aero: 'a heavy industrial steel locking staple piercing the composite panel', apparel: 'a heavy industrial steel staple violently piercing the delicate silk', digital: 'a photorealistic heavy industrial steel staple piercing the digital interface' } },
-  { id: 204, short: 'РЎРґРІРёРі Р“РѕР»РѕРіСЂР°РјРјС‹', val: 'a misaligned security hologram foil patch peeling at the corner', t: { spatial: 'a misaligned smart-glass panel peeling at the corner', product: 'a misaligned security hologram sticker peeling off the metal casing', aero: 'a misaligned thermal reflecting foil patch peeling at the corner', apparel: 'a misaligned holographic heat-transfer patch peeling off the fabric', digital: 'a misaligned digital security hologram patch peeling off the screen' } },
-  { id: 205, short: 'РљР°Р»РёР±СЂРѕРІРѕС‡РЅС‹Рµ Р‘Р°СЂС‹ CMYK', val: 'exposed CMYK color calibration printing bars invading the layout', t: { spatial: 'exposed industrial color calibration test swatches painted on the wall', product: 'exposed CNC anodization color calibration test bars on the metal', aero: 'exposed aerospace paint-calibration test stripes invading the layout', apparel: 'exposed fabric dye calibration test swatches left on the garment', digital: 'exposed RGB monitor calibration test bars invading the layout' } },
-  { id: 206, short: 'РњРµС‚РєРё Р РµР·Р°РєР°', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor\'s pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
-  { id: 207, short: 'РњРµС‚Р°Р»Р»РёС‡РµСЃРєР°СЏ РџСЂСѓР¶РёРЅР°', val: 'a metal twin-loop wire binding ring punched through the left margin', t: { spatial: 'a massive metal twin-loop wire binding the architectural volumes', product: 'a metal twin-loop wire binding mechanism punched through the casing', aero: 'a heavy metal twin-loop wire hinge mechanism on the aero-flap', apparel: 'a metal twin-loop wire binding ring punched brutally through the fabric', digital: 'a 3D photorealistic metal wire binding ring punched through the screen' } },
-  { id: 208, short: 'РџРѕС‚РµРє Р’РѕРґС‹ (Water Damage)', val: 'severe water damage with bleeding ink and warped, buckled paper', t: { spatial: 'severe concrete water damage with bleeding rust and warped textures', product: 'severe water damage and oxidation buckling the pristine metal surface', aero: 'severe atmospheric moisture damage with bleeding rust streaks', apparel: 'severe water damage with bleeding fabric dye and warped, buckled material', digital: 'a photorealistic water droplet simulation blurring and warping the UI data' } },
-  { id: 209, short: 'РђСЂС…РёРІРЅР°СЏ РќР°РєР»РµР№РєР°', val: 'a dog-eared, yellowing archival catalog sticker overlapping the grid', t: { spatial: 'a massive, faded industrial zoning sticker overlapping the concrete grid', product: 'a dog-eared, yellowing archival inventory sticker overlapping the hardware', aero: 'a dog-eared, weathered aerospace inspection sticker on the hull', apparel: 'a dog-eared, yellowing dry-cleaning inventory sticker overlapping the seam', digital: 'a photorealistic sticky-note skeuomorph overlapping the digital grid' } }
+  { id: 201, short: 'Сдвиг CMYK (Misregistration)', val: 'a severe CMYK misregistration printing error creating blurred color ghosting', t: { spatial: 'a severe holographic projection misregistration creating blurred color ghosting', product: 'a severe multi-pass CNC misregistration error creating overlapping grooves', aero: 'a severe decal misregistration printing error creating blurred color ghosting', apparel: 'a severe screen-print misregistration error creating blurred color ghosting', digital: 'a severe RGB channel split chromatic aberration misregistration error' } },
+  { id: 202, short: 'Загнутый Угол (Dog-ear)', val: 'a harsh, physical dog-ear crease folded heavily through the paper', t: { spatial: 'a harsh, physical bent metal beam folded heavily into the structure', product: 'a harsh, physical bent metal corner folded heavily from impact', aero: 'a harsh, physical bent aero-flap folded heavily from aerodynamic stress', apparel: 'a harsh, physical dog-ear crease folded permanently into the stiff fabric', digital: 'a 3D skeuomorphic dog-ear page curl folding over the UI screen' } },
+  { id: 203, short: 'Скоба Степплера', val: 'a heavy industrial steel staple piercing the layout', t: { spatial: 'a massive heavy industrial steel beam acting as a staple in the concrete', product: 'a heavy industrial steel staple brutally piercing the delicate hardware', aero: 'a heavy industrial steel locking staple piercing the composite panel', apparel: 'a heavy industrial steel staple violently piercing the delicate silk', digital: 'a photorealistic heavy industrial steel staple piercing the digital interface' } },
+  { id: 204, short: 'Сдвиг Голограммы', val: 'a misaligned security hologram foil patch peeling at the corner', t: { spatial: 'a misaligned smart-glass panel peeling at the corner', product: 'a misaligned security hologram sticker peeling off the metal casing', aero: 'a misaligned thermal reflecting foil patch peeling at the corner', apparel: 'a misaligned holographic heat-transfer patch peeling off the fabric', digital: 'a misaligned digital security hologram patch peeling off the screen' } },
+  { id: 205, short: 'Калибровочные Бары CMYK', val: 'exposed CMYK color calibration printing bars invading the layout', t: { spatial: 'exposed industrial color calibration test swatches painted on the wall', product: 'exposed CNC anodization color calibration test bars on the metal', aero: 'exposed aerospace paint-calibration test stripes invading the layout', apparel: 'exposed fabric dye calibration test swatches left on the garment', digital: 'exposed RGB monitor calibration test bars invading the layout' } },
+  { id: 206, short: 'Метки Резака', val: 'intrusive crosshair registration and guillotine trim marks left visible', t: { spatial: 'intrusive architectural laser-level crosshair marks left visible', product: 'intrusive CNC zero-point registration crosshair marks left visible', aero: 'intrusive targeting sensor registration crosshair marks left visible', apparel: 'intrusive tailor\'s pattern registration crosshair marks left visible', digital: 'intrusive UI artboard registration and trim marks left visible' } },
+  { id: 207, short: 'Металлическая Пружина', val: 'a metal twin-loop wire binding ring punched through the left margin', t: { spatial: 'a massive metal twin-loop wire binding the architectural volumes', product: 'a metal twin-loop wire binding mechanism punched through the casing', aero: 'a heavy metal twin-loop wire hinge mechanism on the aero-flap', apparel: 'a metal twin-loop wire binding ring punched brutally through the fabric', digital: 'a 3D photorealistic metal wire binding ring punched through the screen' } },
+  { id: 208, short: 'Потек Воды (Water Damage)', val: 'severe water damage with bleeding ink and warped, buckled paper', t: { spatial: 'severe concrete water damage with bleeding rust and warped textures', product: 'severe water damage and oxidation buckling the pristine metal surface', aero: 'severe atmospheric moisture damage with bleeding rust streaks', apparel: 'severe water damage with bleeding fabric dye and warped, buckled material', digital: 'a photorealistic water droplet simulation blurring and warping the UI data' } },
+  { id: 209, short: 'Архивная Наклейка', val: 'a dog-eared, yellowing archival catalog sticker overlapping the grid', t: { spatial: 'a massive, faded industrial zoning sticker overlapping the concrete grid', product: 'a dog-eared, yellowing archival inventory sticker overlapping the hardware', aero: 'a dog-eared, weathered aerospace inspection sticker on the hull', apparel: 'a dog-eared, yellowing dry-cleaning inventory sticker overlapping the seam', digital: 'a photorealistic sticky-note skeuomorph overlapping the digital grid' } }
 ];
 
 // ============================================================================
@@ -2357,6 +2374,219 @@ const EXT_CATEGORY_10_LEGACY_DEFECTS = [
 ];
 
 
+// --- K EXPANSION PACK ---
+// ============================================================================
+// БАЗА ДАННЫХ ДЛЯ РАСШИРЕНИЯ K.S.A.R. / P.S.D.N. ГЕНЕРАТОРА (PART 6)
+// Заполнение пустого пула [76-100] в категории 2. ЭСТЕТИКА ДНК
+// Заполнение пустого пула [42-100] в категории 7. СУПЕР-ГРАФИКА
+// Заполнение пустого пула [118-147] в категории 3. 3 ЦВЕТА
+// Заполнение пустого пула [212-240] в категории 6. ГРАФИКА И МАРКИРОВКА
+// Кластеры: Архитектура, Мода, Аэро, Кибер, Индастриал, Наука, Аудио, Люкс.
+// ============================================================================
+
+const EXT_CATEGORY_2_DNA_76_100 = [
+  // --- ADVANCED PHYSICS & OPTICS (Сложная физика и Оптика) ---
+  { id: 76, short: 'Оптическая Литография', val: 'Extreme Ultraviolet Lithography (EUV) Cleanrooms' },
+  { id: 77, short: 'Фотонные Метаматериалы', val: 'Photonic Crystal Metamaterial Optics' },
+  { id: 78, short: 'Лазерная Абляция', val: 'Femtosecond Laser Ablation Diagnostics' },
+  { id: 79, short: 'Акустическая Голография', val: 'Acoustic Holographic Imaging Arrays' },
+  { id: 80, short: 'Спектроскопия ЯМР', val: 'NMR Spectroscopy Magnetic Fields' },
+
+  // --- DEEP ENGINEERING & MANUFACTURING (Суровое производство) ---
+  { id: 81, short: 'Вакуумная Металлургия', val: 'Vacuum Arc Remelting Crucibles' },
+  { id: 82, short: 'Аэрокосмические Сплавы', val: 'Aerospace Superalloy Forging' },
+  { id: 83, short: 'Электронная Сварка', val: 'Electron-Beam Welding Chambers' },
+  { id: 84, short: 'Полимерная Экструзия', val: 'High-Density Polymer Extrusion Lines' },
+  { id: 85, short: 'Молекулярная Эпитаксия', val: 'Molecular Beam Epitaxy Deposition' },
+
+  // --- KINETICS & STRUCTURAL TENSION (Динамика и Структуры) ---
+  { id: 86, short: 'Сейсмическая Изоляция', val: 'Architectural Seismic Base Isolation' },
+  { id: 87, short: 'Трибология (Трение)', val: 'Tribology and Mechanical Friction Testing' },
+  { id: 88, short: 'Термобарические Тесты', val: 'Thermobaric Blast Containment Bunkers' },
+  { id: 89, short: 'Сверхпроводники', val: 'Superconducting Maglev Physics' },
+  { id: 90, short: 'Магнитная Гидродинамика', val: 'Magnetohydrodynamic Fluid Flow' },
+
+  // --- BIO-ENGINEERING & CYBERNETICS (Биоинженерия и Вычисления) ---
+  { id: 91, short: 'Генеративная Бионика', val: 'Generative Bionic Exoskeleton Structures' },
+  { id: 92, short: 'Нейроморфные Чипы', val: 'Neuromorphic Silicon Chip Architecture' },
+  { id: 93, short: 'Квантовая Криптография', val: 'Quantum Key Distribution Servers' },
+  { id: 94, short: 'Био-Реакторы', val: 'Industrial Bioreactor Fermentation Tanks' },
+  { id: 95, short: 'Магнитный Резонанс', val: 'Functional Magnetic Resonance Imaging (fMRI)' },
+
+  // --- EXTREME ENVIRONMENTS (Экстремальные среды) ---
+  { id: 96, short: 'Плазменное Удержание', val: 'Tokamak Plasma Confinement Reactors' },
+  { id: 97, short: 'Криогенная Дистилляция', val: 'Cryogenic Air Separation Units' },
+  { id: 98, short: 'Палеоклиматология', val: 'Paleoclimatology Ice Core Vaults' },
+  { id: 99, short: 'Радиоастрономия', val: 'Deep Space Radio Telescope Interferometry' },
+  { id: 100, short: 'Абсолютный Вакуум', val: 'Ultra-High Vacuum Environmental Chambers' }
+];
+
+const EXT_CATEGORY_7_SUPERGRAPHICS_42_100 = [
+  // --- ARCHITECTURE & SPATIAL (Архитектура и Пространство) ---
+  { id: 42, short: 'MONOLITH / Архитектура', val: "Massive headers 'MONOLITH', 'M-0' with micro-text: 'VOID_SPACE, BRUTALIST_ARCH, LOAD_BEARING'" },
+  { id: 43, short: 'TENSEGRITY / Инженерия', val: "Massive headers 'TENSEGRITY', 'T-1' with micro-text: 'TENSION_CABLE, SUSPENDED_MASS, KINETIC'" },
+  { id: 44, short: 'FOUNDATION / Бетон', val: "Massive headers 'FOUNDATION', 'F-1' with micro-text: 'REBAR_MATRIX, SOIL_DENSITY, PORTLAND'" },
+  { id: 45, short: 'ACOUSTIC / Звукоизоляция', val: "Massive headers 'ACOUSTIC', 'A-C' with micro-text: 'ANECHOIC_CHAMBER, DB_REDUCTION, BAFFLE'" },
+  { id: 46, short: 'HVAC / Вентиляция', val: "Massive headers 'HVAC SYSTEM', 'AIR-9' with micro-text: 'VENTILATION_DUCT, CFM_FLOW, THERMAL'" },
+  { id: 47, short: 'FORMWORK / Опалубка', val: "Massive headers 'FORMWORK', 'CAST' with micro-text: 'POURED_CONCRETE, TIMBER_GRAIN, CURE_TIME'" },
+  { id: 48, short: 'CANTILEVER / Консоль', val: "Massive headers 'CANTILEVER', 'OVER-H' with micro-text: 'COUNTER_WEIGHT, SHEAR_STRESS, BEAM'" },
+
+  // --- FASHION, APPAREL & GEAR (Мода, Экипировка, Ткани) ---
+  { id: 49, short: 'BESPOKE / Савил-Роу', val: "Massive headers 'BESPOKE', 'B-1' with micro-text: 'SAVILE_ROW, SARTORIAL_DRAPE, HAND_STITCHED'" },
+  { id: 50, short: 'GORPCORE / Аутдор', val: "Massive headers 'GORPCORE', 'G-X' with micro-text: 'GORE-TEX, HYDROPHOBIC_MEMBRANE, SEAM_TAPE'" },
+  { id: 51, short: 'SELVEDGE / Деним', val: "Massive headers 'SELVEDGE', 'S-D' with micro-text: 'RAW_DENIM, WEAVE_TENSION, INDIGO_DYE'" },
+  { id: 52, short: 'ATELIER / Высокая Мода', val: "Massive headers 'ATELIER', 'H-C' with micro-text: 'HAUTE_COUTURE, SILK_CHIFFON, PATTERN_DRAFT'" },
+  { id: 53, short: 'TECH-WEAR / Тактика', val: "Massive headers 'TECH-WEAR', 'T-W' with micro-text: 'BALLISTIC_NYLON, TACTICAL_RIG, MOLLE'" },
+  { id: 54, short: 'FOOTWEAR / Сникерсы', val: "Massive headers 'FOOTWEAR', 'F-W' with micro-text: 'VIBRAM_SOLE, CARBON_PLATE, EVA_FOAM'" },
+  { id: 55, short: 'KNITWEAR / Трикотаж', val: "Massive headers 'KNITWEAR', 'K-W' with micro-text: 'MERINO_WOOL, GAUGE_12, TENSION_STITCH'" },
+
+  // --- AUTOMOTIVE, AERO & TRANSPORT (Транспорт и Аэродинамика) ---
+  { id: 56, short: 'HYPERCAR / Автомотив', val: "Massive headers 'HYPERCAR', 'H-C' with micro-text: 'DOWNFORCE, WIND_TUNNEL, DRAG_COEFFICIENT'" },
+  { id: 57, short: 'MAGLEV / Поезда', val: "Massive headers 'MAGLEV', 'M-L' with micro-text: 'MAGNETIC_LEVITATION, ZERO_FRICTION, SUPERCONDUCTOR'" },
+  { id: 58, short: 'AVIONICS / Авиация', val: "Massive headers 'AVIONICS', 'A-V' with micro-text: 'GLASS_COCKPIT, MACH_1_SUPERSONIC, PITCH_YAW'" },
+  { id: 59, short: 'ROCKETRY / Космос', val: "Massive headers 'ROCKETRY', 'R-X' with micro-text: 'SOLID_BOOSTER, ORBITAL_INSERTION, APOGEE'" },
+  { id: 60, short: 'TELEMETRY / Датчики', val: "Massive headers 'TELEMETRY', 'T-M' with micro-text: 'SENSOR_DATA, G_FORCE, THERMAL_LOAD'" },
+  { id: 61, short: 'CHASSIS / Каркас', val: "Massive headers 'CHASSIS', 'C-S' with micro-text: 'MONOCOQUE, CARBON_FIBER_TUB, RIGIDITY'" },
+  { id: 62, short: 'DRIVETRAIN / Двигатель', val: "Massive headers 'DRIVETRAIN', 'V-12' with micro-text: 'COMBUSTION, HORSEPOWER, TORQUE_CURVE'" },
+
+  // --- CYBER, UI & DIGITAL DATA (Кибернетика и Интерфейсы) ---
+  { id: 63, short: 'ZERO-DAY / Хакинг', val: "Massive headers 'ZERO-DAY', 'Z-D' with micro-text: 'KERNEL_PANIC, ENCRYPTION_KEY, EXPLOIT'" },
+  { id: 64, short: 'MAINFRAME / Серверы', val: "Massive headers 'MAINFRAME', 'M-F' with micro-text: 'SERVER_RACK, UPTIME_99, COOLING_SYSTEM'" },
+  { id: 65, short: 'HAPTIC / Интерфейсы', val: "Massive headers 'HAPTIC', 'H-P' with micro-text: 'TACTILE_FEEDBACK, LATENCY_MS, ACTUATOR'" },
+  { id: 66, short: 'ALGORITHM / ИИ', val: "Massive headers 'ALGORITHM', 'A-G' with micro-text: 'MACHINE_LEARNING, DATA_SET, NEURAL_NET'" },
+  { id: 67, short: 'WIREFRAME / UI Сетки', val: "Massive headers 'WIREFRAME', 'U-I' with micro-text: 'GRID_SYSTEM, PIXEL_PERFECT, CSS_VECTORS'" },
+  { id: 68, short: 'CYBER-NOIR / Неон', val: "Massive headers 'CYBER-NOIR', 'C-N' with micro-text: 'NEON_GRID, RAIN_REFLECTION, SYNTH_WAVE'" },
+  { id: 69, short: 'BLOCKCHAIN / Крипто', val: "Massive headers 'BLOCKCHAIN', 'B-C' with micro-text: 'LEDGER_HASH, DECENTRALIZED, NODE_PEER'" },
+
+  // --- HEAVY INDUSTRY & LOGISTICS (Тяжелая индустрия и Склады) ---
+  { id: 70, short: 'FREIGHT / Контейнеры', val: "Massive headers 'FREIGHT', 'F-R' with micro-text: 'SHIPPING_CONTAINER, TEU_CAPACITY, LOGISTICS'" },
+  { id: 71, short: 'WAREHOUSE / Склады', val: "Massive headers 'WAREHOUSE', 'W-H' with micro-text: 'LOGISTICS_HUB, PALLET_JACK, INVENTORY_DB'" },
+  { id: 72, short: 'SMELTING / Металлургия', val: "Massive headers 'SMELTING', 'S-M' with micro-text: 'BLAST_FURNACE, MOLTEN_SLAG, FORGED_STEEL'" },
+  { id: 73, short: 'ASSEMBLY / Линия сборки', val: "Massive headers 'ASSEMBLY_LINE', 'A-L' with micro-text: 'ROBOTIC_ARM, CNC_MILLING, TOLERANCE'" },
+  { id: 74, short: 'EXTRUSION / Пластик', val: "Massive headers 'EXTRUSION', 'E-X' with micro-text: 'POLYMER_INJECTION, DIE_CAST, THERMOPLASTIC'" },
+  { id: 75, short: 'HEAVY-LIFT / Краны', val: "Massive headers 'HEAVY-LIFT', 'H-L' with micro-text: 'CRANE_RIGGING, PAYLOAD_TONS, COUNTERWEIGHT'" },
+  { id: 76, short: 'MINING / Шахты', val: "Massive headers 'EXCAVATION', 'E-C' with micro-text: 'BORE_HOLE, MINERAL_VEIN, SEISMIC_CHARGE'" },
+
+  // --- SCIENCE, LAB & BIO (Наука, Лаборатории, Медицина) ---
+  { id: 77, short: 'SYNTHESIS / Химия', val: "Massive headers 'SYNTHESIS', 'S-Y' with micro-text: 'PEPTIDE_BOND, MOLECULAR_WEIGHT, REAGENT'" },
+  { id: 78, short: 'FORENSIC / Криминалистика', val: "Massive headers 'FORENSIC', 'F-R' with micro-text: 'LUMINOL_TEST, DNA_MATCH, EVIDENCE_LOG'" },
+  { id: 79, short: 'CRYOGENICS / Заморозка', val: "Massive headers 'CRYOGENICS', 'C-R' with micro-text: 'LIQUID_NITROGEN, KELVIN_SCALE, ABSOLUTE_ZERO'" },
+  { id: 80, short: 'TOXICOLOGY / Токсины', val: "Massive headers 'TOXICOLOGY', 'T-X' with micro-text: 'LETHAL_DOSE, HALF_LIFE, BIO_HAZARD'" },
+  { id: 81, short: 'CENTRIFUGE / Изотопы', val: "Massive headers 'CENTRIFUGE', 'C-F' with micro-text: 'RPM_MAX, ISOTOPE_SEPARATION, G_FORCE'" },
+  { id: 82, short: 'INCUBATOR / Бактерии', val: "Massive headers 'INCUBATOR', 'I-N' with micro-text: 'BACTERIAL_CULTURE, PETRI_DISH, AGAR_GEL'" },
+  { id: 83, short: 'VIROLOGY / Вирусы', val: "Massive headers 'VIROLOGY', 'V-R' with micro-text: 'PATHOGEN_STRAIN, MUTATION_RATE, QUARANTINE'" },
+
+  // --- AUDIO, ANALOG & OPTICS (Оптика, Аналог, Звук) ---
+  { id: 84, short: 'HIGH-FIDELITY / Hi-Fi', val: "Massive headers 'HIGH-FIDELITY', 'HI-FI' with micro-text: 'VACUUM_TUBE, HARMONIC_DISTORTION, ANALOG'" },
+  { id: 85, short: 'SYNTHESIZER / Синтезаторы', val: "Massive headers 'ANALOG_SYNTH', 'A-S' with micro-text: 'OSCILLATOR, FREQUENCY_MODULATION, LFO'" },
+  { id: 86, short: 'TAPE DECK / Магнитофоны', val: "Massive headers 'TAPE_DECK', 'T-D' with micro-text: 'MAGNETIC_STRIPE, WOW_AND_FLUTTER, TENSION'" },
+  { id: 87, short: 'APERTURE / Объективы', val: "Massive headers 'APERTURE', 'A-P' with micro-text: 'F-STOP, DEPTH_OF_FIELD, FOCAL_LENGTH'" },
+  { id: 88, short: 'LENS FLARE / Кино-оптика', val: "Massive headers 'LENS_FLARE', 'L-F' with micro-text: 'ANAMORPHIC, LIGHT_LEAK, CHROMATIC_ABERRATION'" },
+  { id: 89, short: 'FILM STOCK / Пленка', val: "Massive headers 'FILM_STOCK', 'F-S' with micro-text: 'SILVER_HALIDE, ISO_400, GRAIN_STRUCTURE'" },
+  { id: 90, short: 'DARKROOM / Проявка', val: "Massive headers 'DARKROOM', 'D-R' with micro-text: 'DEVELOPER_FLUID, STOP_BATH, FIXER_CHEMISTRY'" },
+
+  // --- CULINARY, HOSPITALITY & LUXURY (Рестораны, Бутики, Люкс) ---
+  { id: 91, short: 'MICHELIN / Гастрономия', val: "Massive headers 'MICHELIN', 'M-S' with micro-text: 'HAUTE_CUISINE, TASTING_MENU, EMULSION'" },
+  { id: 92, short: 'SOMMELIER / Виноделие', val: "Massive headers 'SOMMELIER', 'S-M' with micro-text: 'GRAND_CRU, TERROIR_DATA, TANNIN_STRUCTURE'" },
+  { id: 93, short: 'BOUTIQUE / Скрытый Люкс', val: "Massive headers 'BOUTIQUE', 'B-Q' with micro-text: 'STEALTH_WEALTH, BESPOKE_SERVICE, MONOLITH'" },
+  { id: 94, short: 'CONCIERGE / Клубный сервис', val: "Massive headers 'CONCIERGE', 'C-C' with micro-text: 'VIP_ACCESS, WHITE_GLOVE, EXCLUSIVE'" },
+  { id: 95, short: 'ESPRESSO / Кофемашины', val: "Massive headers 'ESPRESSO', 'E-S' with micro-text: '9_BAR_PRESSURE, CREMA_YIELD, EXTRACTION'" },
+
+  // --- NATURE, ECOLOGY & EARTH (Геология, Природа, Слои) ---
+  { id: 96, short: 'TECTONIC / Сейсмология', val: "Massive headers 'TECTONIC', 'T-C' with micro-text: 'FAULT_LINE, SEISMIC_WAVE, RICHTER_SCALE'" },
+  { id: 97, short: 'MYCOLOGY / Мицелий', val: "Massive headers 'MYCOLOGY', 'M-Y' with micro-text: 'MYCELIUM_NETWORK, SPORE_PRINT, HYPHAE'" },
+  { id: 98, short: 'BOTANICA / Растения', val: "Massive headers 'BOTANICA', 'B-A' with micro-text: 'CHLOROPHYLL, PHOTOSYNTHESIS, XYLEM_TUBES'" },
+  { id: 99, short: 'HYDROLOGY / Вода', val: "Massive headers 'HYDROLOGY', 'H-Y' with micro-text: 'WATER_TABLE, AQUIFER_DEPTH, FLUID_DYNAMICS'" },
+  { id: 100, short: 'STRATIGRAPHY / Слои Земли', val: "Massive headers 'STRATIGRAPHY', 'S-R' with micro-text: 'SEDIMENT_LAYER, FOSSIL_RECORD, LITHIFICATION'" }
+];
+
+const EXT_CATEGORY_3_COLORS_118_147 = [
+  // --- LUXURY, INTERIORS & SARTORIAL (Люкс, Интерьеры, Одежда) ---
+  { id: 118, short: 'Cashmere, OxBronze, Obsidian', val: 'First Base: warm Cashmere Beige, Second Base: Oxidized Bronze, Third Base: glossy Obsidian', hex: ['#D1BFAE', '#4C514A', '#0B0B0B'] },
+  { id: 119, short: 'Chalk, Ebonized Oak, Nickel', val: 'First Base: matte Chalk White, Second Base: Ebonized Oak Black, Third Base: Brushed Nickel', hex: ['#F5F5F0', '#1A1819', '#8C8C89'] },
+  { id: 120, short: 'Porcelain, Vermilion, Pitch', val: 'First Base: cold Porcelain White, Second Base: vivid Vermilion Red, Third Base: Pitch Black', hex: ['#F3F4F6', '#E34234', '#000000'] },
+  { id: 121, short: 'Raw Silk, Tungsten, SigOrg', val: 'First Base: organic Raw Silk, Second Base: matte Tungsten, Third Base: Signal Orange', hex: ['#F0E6D2', '#5F6267', '#FF5500'] },
+  { id: 122, short: 'Alabaster, Corten, Navy', val: 'First Base: pure Alabaster, Second Base: rusted Corten Steel, Third Base: Deep Navy Blue', hex: ['#F2F0E6', '#8B4513', '#000080'] },
+  
+  // --- AUTOMOTIVE, HEAVY INDUSTRY & LOGISTICS (Транспорт, Индустрия, Логистика) ---
+  { id: 123, short: 'Matte Olive, Sand, AnodBlk', val: 'First Base: Matte Olive, Second Base: desert Sandstone, Third Base: Anodized Black', hex: ['#556B2F', '#D2B48C', '#121212'] },
+  { id: 124, short: 'GalvZinc, AcidGrn, Void', val: 'First Base: Galvanized Zinc, Second Base: bright Acid Green, Third Base: absolute Void Black', hex: ['#A9A9A9', '#8FFE09', '#050505'] },
+  { id: 125, short: 'Travertine, AgedCop, Char', val: 'First Base: porous Travertine, Second Base: turquoise Aged Copper, Third Base: crushed Charcoal', hex: ['#E0D5C1', '#43B3AE', '#36454F'] },
+  { id: 126, short: 'Nardo Grey, FluorYlw, Carbon', val: 'First Base: automotive Nardo Grey, Second Base: Fluorescent Yellow, Third Base: Carbon Fiber weave', hex: ['#686A6C', '#CCFF00', '#2B2C2D'] },
+  { id: 127, short: 'BlBone, Indigo Ink, SlvLeaf', val: 'First Base: Bleached Bone, Second Base: thick Indigo Ink, Third Base: Silver Leaf', hex: ['#E3DAC9', '#1A2421', '#D4D4D4'] },
+
+  // --- BIO, CYBER & LABORATORY (Биохакинг, Кибер-данные, Лаборатории) ---
+  { id: 128, short: 'Abyssal, CaustCyan, Basalt', val: 'First Base: Abyssal Deep Blue, Second Base: Caustic Cyan, Third Base: black Basalt', hex: ['#001021', '#00FFFF', '#2F4F4F'] },
+  { id: 129, short: 'BurntSienna, RawCem, Titan', val: 'First Base: Burnt Sienna, Second Base: Raw Cement, Third Base: Aerospace Titanium', hex: ['#E97451', '#808080', '#878681'] },
+  { id: 130, short: 'FrostGl, Chrome, LasMagen', val: 'First Base: Frosted Glass, Second Base: liquid Chrome, Third Base: optical Laser Magenta', hex: ['#E2E8F0', '#C0C0C0', '#FF00FF'] },
+  { id: 131, short: 'Parchment, Oxblood, Gunmet', val: 'First Base: vintage Parchment, Second Base: visceral Oxblood Red, Third Base: matte Gunmetal', hex: ['#F1E9D2', '#4A0404', '#2A3439'] },
+  { id: 132, short: 'SurgGrn, Iodine, PureWht', val: 'First Base: sterile Surgical Green, Second Base: medical Iodine, Third Base: Pure White', hex: ['#00A86B', '#E25822', '#FFFFFF'] },
+
+  // --- DATA-VIZ, THERMODYNAMICS & EXPERIMENTAL (Данные, Физика, Авангард) ---
+  { id: 133, short: 'MicroGrn, GldCont, MatBlk', val: 'First Base: Microchip Green, Second Base: Gold Contact, Third Base: Matte Black plastic', hex: ['#006600', '#FFD700', '#1A1A1A'] },
+  { id: 134, short: 'Blueprint, GridWht, NeonRed', val: 'First Base: Cyanotype Blueprint Blue, Second Base: Grid White, Third Base: Neon Red marker', hex: ['#003366', '#FFFFFF', '#FF003F'] },
+  { id: 135, short: 'ThermBlu, HeatOrg, DpBlk', val: 'First Base: Thermal Imaging Blue, Second Base: glowing Heatmap Orange, Third Base: Deep Black', hex: ['#00008B', '#FF4500', '#0A0A0A'] },
+  { id: 136, short: 'Vanta, IridBismuth, Bone', val: 'First Base: Vantablack, Second Base: Iridescent Bismuth, Third Base: porous Bone white', hex: ['#000000', '#987284', '#E3DAC9'] },
+  { id: 137, short: 'Plaster, DarkWalnut, Brass', val: 'First Base: Gypsum Plaster, Second Base: Dark Walnut wood, Third Base: machined Brass', hex: ['#F2F0E6', '#3B2F2F', '#B5A642'] },
+
+  // --- BIOHAZARD, BALLISTICS & TACTICAL (Угроза, Баллистика, Тактика) ---
+  { id: 138, short: 'LeadGry, ToxFluor, BlchWht', val: 'First Base: heavy Lead Grey, Second Base: Toxic Fluorite Green, Third Base: Bleached White', hex: ['#424242', '#7FFF00', '#FAFAFA'] },
+  { id: 139, short: 'KevlarYlw, MatGun, CrimTr', val: 'First Base: woven Kevlar Yellow, Second Base: Matte Gunmetal, Third Base: Crimson Tracer red', hex: ['#D6A928', '#2A3439', '#DC143C'] },
+  { id: 140, short: 'NVPhosphor, Asphalt, Infrar', val: 'First Base: Night Vision Phosphor green, Second Base: rough Asphalt, Third Base: invisible Infrared red', hex: ['#39FF14', '#1B1B1B', '#8B0000'] },
+  { id: 141, short: 'ClearResin, MachAlum, NePnk', val: 'First Base: clear Epoxy Resin, Second Base: Machined Aluminum, Third Base: Neon Pink', hex: ['#E0FFFF', '#A9A9A9', '#FF007F'] },
+  { id: 142, short: 'CarMarble, Obsidian, RosGld', val: 'First Base: Carrara Marble, Second Base: Glossy Obsidian, Third Base: Rose Gold', hex: ['#F5F5F5', '#0B0B0B', '#B76E79'] },
+
+  // --- CULINARY, ARCHITECTURE & QUANTUM (Гастрономия, Архитектура, Кванты) ---
+  { id: 143, short: 'DpCobalt, Alabast, PolCop', val: 'First Base: Deep Cobalt Blue, Second Base: Alabaster White, Third Base: Polished Copper', hex: ['#0047AB', '#F2F0E6', '#B87333'] },
+  { id: 144, short: 'WetAsphalt, SafOrg, 3MRefl', val: 'First Base: Wet Asphalt, Second Base: Safety Orange, Third Base: 3M Reflective silver', hex: ['#1B1B1B', '#FF5F1F', '#D8D8D8'] },
+  { id: 145, short: 'CyanoBlue, ArchVel, LdPenc', val: 'First Base: Cyanotype Blue, Second Base: Architectural Vellum, Third Base: Lead Pencil grey', hex: ['#003366', '#E8E5DF', '#2E2E2E'] },
+  { id: 146, short: 'TruffleBrn, Cream, ChampGld', val: 'First Base: earthy Truffle Brown, Second Base: rich Cream, Third Base: Champagne Gold', hex: ['#45322E', '#FFFDD0', '#F7E7CE'] },
+  { id: 147, short: 'BerylGry, SterWht, AzureBlu', val: 'First Base: pale Beryllium Grey, Second Base: Sterile White, Third Base: sharp Azure Blue', hex: ['#D6D9DE', '#FFFFFF', '#007FFF'] }
+];
+
+const EXT_CATEGORY_6_GRAPHICS_212_240 = [
+  // --- DIGITAL, HALFTONE & ASCII (Цифровой растр и текст) ---
+  { id: 212, short: 'Растровый Халфтон', val: 'high-contrast halftone dot-matrix photo reproduction', t: { spatial: 'massive halftone dot-matrix photo murals mapped on concrete', product: 'laser-etched halftone dot-matrix photo reproduction on metal', aero: 'aerodynamic livery featuring halftone dot-matrix patterns', apparel: 'screen-printed high-contrast halftone dot-matrix photo', digital: 'digital halftone dot-matrix photo rendering' } },
+  { id: 213, short: 'ASCII Портрет', val: 'portrait rendered entirely in dense ASCII data characters', t: { spatial: 'architectural mural rendered entirely in dense ASCII data characters', product: 'engraved texture mapped as dense ASCII data characters', aero: 'stealth coating rendered as dense ASCII data characters', apparel: 'woven fabric pattern rendered entirely in dense ASCII data characters', digital: 'digital interface rendering images as dense ASCII data characters' } },
+  { id: 214, short: 'Гекс-Дамп (Hex)', val: 'monolithic block of raw hexadecimal system memory dump', t: { spatial: 'monolithic architectural block of raw hexadecimal system memory dump', product: 'surface covered in a monolithic block of raw hexadecimal system memory dump', aero: 'avionics panel displaying a monolithic block of raw hexadecimal system memory dump', apparel: 'fabric printed with a monolithic block of raw hexadecimal system memory dump', digital: 'UI terminal displaying a monolithic block of raw hexadecimal system memory dump' } },
+  { id: 215, short: 'Перфокарта', val: 'vintage mainframe punched card rectangular hole patterns', t: { spatial: 'architectural sun-shades mimicking vintage mainframe punched card holes', product: 'metal ventilation grille mimicking vintage mainframe punched card holes', aero: 'aerodynamic baffling mimicking vintage mainframe punched card holes', apparel: 'fabric cutouts mimicking vintage mainframe punched card holes', digital: 'digital grid mimicking vintage mainframe punched card rectangular hole patterns' } },
+  { id: 216, short: 'Data Matrix Сетка', val: 'dense, interlocking grid of industrial Data Matrix 2D barcodes', t: { spatial: 'architectural tiling forming a dense grid of industrial Data Matrix 2D barcodes', product: 'surface covered in a dense grid of industrial Data Matrix 2D barcodes', aero: 'aerospace tracking decals forming a dense grid of industrial Data Matrix 2D barcodes', apparel: 'garment pattern forming a dense grid of industrial Data Matrix 2D barcodes', digital: 'UI background composed of a dense grid of industrial Data Matrix 2D barcodes' } },
+  { id: 217, short: 'Алго Стипплинг', val: 'generative stippling dot pattern forming a structural shape', t: { spatial: 'architectural relief formed by a generative stippling dot pattern', product: 'CNC drilled surface forming a generative stippling dot pattern', aero: 'radar-absorbent coating forming a generative stippling dot pattern', apparel: 'fabric perforated with a generative stippling dot pattern', digital: 'digital rendering formed by a generative stippling dot pattern' } },
+
+  // --- OPTICS, WAVES & INTERFERENCE (Оптика и Волновые паттерны) ---
+  { id: 218, short: 'Фигуры Хладни', val: 'geometric Chladni plate acoustic resonance sand patterns', t: { spatial: 'architectural acoustic panels shaped like geometric Chladni plate resonance patterns', product: 'speaker grille milled into geometric Chladni plate acoustic resonance patterns', aero: 'sonic dampeners shaped like geometric Chladni plate resonance patterns', apparel: 'fabric pleats mimicking geometric Chladni plate acoustic resonance patterns', digital: 'audio visualization mapping geometric Chladni plate resonance patterns' } },
+  { id: 219, short: 'Муар Топография', val: 'optical illusion moir? contour lines mapping a 3D surface', t: { spatial: 'architectural fins creating optical illusion moir? contour lines', product: 'surface grooves creating optical illusion moir? contour lines', aero: 'aerodynamic ridges creating optical illusion moir? contour lines', apparel: 'layered sheer fabrics creating optical illusion moir? contour lines', digital: 'UI background generating optical illusion moir? contour lines' } },
+  { id: 220, short: 'Сетка Искажений', val: 'optical barrel distortion calibration grid lines', t: { spatial: 'optical barrel distortion calibration grid lines projected on the walls', product: 'optical barrel distortion calibration grid lines etched onto the lens', aero: 'optical barrel distortion calibration grid lines on the sensor pod', apparel: 'optical barrel distortion calibration grid lines printed on the garment', digital: 'optical barrel distortion calibration grid lines overlaying the interface' } },
+  { id: 221, short: 'Мишени Калибровки', val: 'precision optical lens calibration target crosshairs', t: { spatial: 'precision optical lens calibration target crosshairs painted in the space', product: 'precision optical lens calibration target crosshairs etched on the device', aero: 'precision optical lens calibration target crosshairs on the drone hull', apparel: 'precision optical lens calibration target crosshairs printed as graphics', digital: 'precision optical lens calibration target crosshairs tracking in the UI' } },
+  { id: 222, short: 'Интерферометрия', val: 'optical interferometry fringe pattern contour lines', t: { spatial: 'optical interferometry fringe pattern contour lines projected in the room', product: 'optical interferometry fringe pattern contour lines etched on the glass', aero: 'optical interferometry fringe pattern contour lines on the stealth coating', apparel: 'optical interferometry fringe pattern contour lines printed on the fabric', digital: 'optical interferometry fringe pattern contour lines rendering in the UI' } },
+
+  // --- BIOLOGY, BIOMETRICS & FORENSICS (Биометрия и Форензика) ---
+  { id: 223, short: 'Радужная Оболочка', val: 'biometric iris recognition radial scanning patterns', t: { spatial: 'biometric iris recognition radial scanning patterns projected on the security door', product: 'biometric iris recognition radial scanning patterns etched around the sensor', aero: 'biometric iris recognition radial scanning patterns in the pilot HUD', apparel: 'biometric iris recognition radial scanning patterns printed on the tag', digital: 'biometric iris recognition radial scanning patterns authenticating in the UI' } },
+  { id: 224, short: 'Сосуды Сетчатки', val: 'retinal vascular network scanning vectors', t: { spatial: 'retinal vascular network scanning vectors displayed on medical monitors', product: 'retinal vascular network scanning vectors etched onto the medical device', aero: 'retinal vascular network scanning vectors monitoring pilot health', apparel: 'retinal vascular network scanning vectors printed on the smart fabric', digital: 'retinal vascular network scanning vectors analyzing data in the UI' } },
+  { id: 225, short: 'Дактилоскопия', val: 'macro biometric fingerprint ridge topographical maps', t: { spatial: 'macro biometric fingerprint ridge topographical maps carved into the wall', product: 'macro biometric fingerprint ridge topographical maps milled into the grip', aero: 'macro biometric fingerprint ridge topographical maps on the control stick', apparel: 'macro biometric fingerprint ridge topographical maps embossed on the leather', digital: 'macro biometric fingerprint ridge topographical maps rendering in the UI' } },
+  { id: 226, short: 'Хим Кристаллизация', val: 'microscopic chemical crystallization polarized light patterns', t: { spatial: 'microscopic chemical crystallization polarized light patterns in the glass partitions', product: 'microscopic chemical crystallization polarized light patterns on the lens filter', aero: 'microscopic chemical crystallization polarized light patterns on the visor', apparel: 'microscopic chemical crystallization polarized light patterns printed on the silk', digital: 'microscopic chemical crystallization polarized light patterns generated in the UI' } },
+  { id: 227, short: 'Паттерны Тьюринга', val: 'organic Turing reaction-diffusion morphogenesis patterns', t: { spatial: 'organic Turing reaction-diffusion morphogenesis patterns forming the architectural facade', product: 'organic Turing reaction-diffusion morphogenesis patterns milled into the casing', aero: 'organic Turing reaction-diffusion morphogenesis patterns for weight reduction', apparel: 'organic Turing reaction-diffusion morphogenesis patterns woven into the fabric', digital: 'organic Turing reaction-diffusion morphogenesis patterns generating the UI background' } },
+
+  // --- PHYSICS, SPACE & EARTH (Физика, Космос и Гео-данные) ---
+  { id: 228, short: 'Орбитал Механика', val: 'complex intersecting orbital mechanics trajectory ellipses', t: { spatial: 'complex intersecting orbital mechanics trajectory ellipses mapping the ceiling', product: 'complex intersecting orbital mechanics trajectory ellipses engraved on the dial', aero: 'complex intersecting orbital mechanics trajectory ellipses calculating the flight path', apparel: 'complex intersecting orbital mechanics trajectory ellipses embroidered on the back', digital: 'complex intersecting orbital mechanics trajectory ellipses rendering in the UI' } },
+  { id: 229, short: 'Магнитные Домены', val: 'microscopic magnetic domain wall polarization patterns', t: { spatial: 'microscopic magnetic domain wall polarization patterns embedded in the concrete', product: 'microscopic magnetic domain wall polarization patterns etched into the metal', aero: 'microscopic magnetic domain wall polarization patterns on the sensor array', apparel: 'microscopic magnetic domain wall polarization patterns printed on the tech-wear', digital: 'microscopic magnetic domain wall polarization patterns visualizing data in the UI' } },
+  { id: 230, short: 'Векторы Потока', val: 'dense vector flow field mapping aerodynamic turbulence', t: { spatial: 'dense vector flow field mapping aerodynamic turbulence in the HVAC system', product: 'dense vector flow field mapping aerodynamic turbulence across the cooling fins', aero: 'dense vector flow field mapping aerodynamic turbulence across the wing', apparel: 'dense vector flow field mapping aerodynamic turbulence printed on the windbreaker', digital: 'dense vector flow field mapping aerodynamic turbulence animating in the UI' } },
+  { id: 231, short: 'Топография Океана', val: 'deep-sea bathymetric sonar contour mapping', t: { spatial: 'deep-sea bathymetric sonar contour mapping carved into the stone floor', product: 'deep-sea bathymetric sonar contour mapping etched onto the dive watch', aero: 'deep-sea bathymetric sonar contour mapping on the submarine hull', apparel: 'deep-sea bathymetric sonar contour mapping printed on the wetsuit', digital: 'deep-sea bathymetric sonar contour mapping rendering in the UI' } },
+  { id: 232, short: 'Дифракция Рентгена', val: 'crystallographic X-ray diffraction Laue dot patterns', t: { spatial: 'crystallographic X-ray diffraction Laue dot patterns projected on the walls', product: 'crystallographic X-ray diffraction Laue dot patterns etched on the instrument', aero: 'crystallographic X-ray diffraction Laue dot patterns on the scientific payload', apparel: 'crystallographic X-ray diffraction Laue dot patterns printed on the lab coat', digital: 'crystallographic X-ray diffraction Laue dot patterns analyzing in the UI' } },
+
+  // --- DATA-VIZ & PROCEDURAL GENERATION (Визуализация и Процедурная генерация) ---
+  { id: 233, short: 'Делоне Каркас', val: 'complex Delaunay triangulation wireframe mesh', t: { spatial: 'complex Delaunay triangulation wireframe mesh forming the architectural canopy', product: 'complex Delaunay triangulation wireframe mesh structuring the chassis', aero: 'complex Delaunay triangulation wireframe mesh reinforcing the hull', apparel: 'complex Delaunay triangulation wireframe mesh woven into the technical fabric', digital: 'complex Delaunay triangulation wireframe mesh generating the 3D UI' } },
+  { id: 234, short: 'Карта Глубины', val: 'color-coded photogrammetry depth map vectors', t: { spatial: 'color-coded photogrammetry depth map vectors projected onto the room geometry', product: 'color-coded photogrammetry depth map vectors overlaying the hardware scan', aero: 'color-coded photogrammetry depth map vectors mapping the terrain below', apparel: 'color-coded photogrammetry depth map vectors printed as a graphic pattern', digital: 'color-coded photogrammetry depth map vectors rendering the 3D interface' } },
+  { id: 235, short: 'Шум Перлина', val: 'procedural Perlin noise vector flow fields', t: { spatial: 'procedural Perlin noise vector flow fields shaping the landscape architecture', product: 'procedural Perlin noise vector flow fields milled into the textured surface', aero: 'procedural Perlin noise vector flow fields mapping atmospheric drag', apparel: 'procedural Perlin noise vector flow fields generating the fabric dye pattern', digital: 'procedural Perlin noise vector flow fields animating the UI background' } },
+  { id: 236, short: 'Аттрактор Лоренца', val: 'chaotic Lorenz attractor mathematical trajectory lines', t: { spatial: 'chaotic Lorenz attractor mathematical trajectory lines suspended as wire sculptures', product: 'chaotic Lorenz attractor mathematical trajectory lines etched into the casing', aero: 'chaotic Lorenz attractor mathematical trajectory lines calculating flight dynamics', apparel: 'chaotic Lorenz attractor mathematical trajectory lines embroidered on the garment', digital: 'chaotic Lorenz attractor mathematical trajectory lines rendering in the data-viz' } },
+  { id: 237, short: 'Векторы Разлома', val: 'generative glass fracture spiderweb vector lines', t: { spatial: 'generative glass fracture spiderweb vector lines etched into the glass partitions', product: 'generative glass fracture spiderweb vector lines milled into the armor plating', aero: 'generative glass fracture spiderweb vector lines mapping structural stress', apparel: 'generative glass fracture spiderweb vector lines printed as a geometric pattern', digital: 'generative glass fracture spiderweb vector lines shattering the UI grid' } },
+  { id: 238, short: 'Пиксель-Сортинг', val: 'algorithmic pixel-sorting data corruption glitches', t: { spatial: 'architectural elements staggered to resemble algorithmic pixel-sorting data corruption glitches', product: 'surface finish mimicking algorithmic pixel-sorting data corruption glitches', aero: 'camouflage pattern mimicking algorithmic pixel-sorting data corruption glitches', apparel: 'fabric weave degrading into algorithmic pixel-sorting data corruption glitches', digital: 'UI elements tearing with algorithmic pixel-sorting data corruption glitches' } },
+  { id: 239, short: 'Граттаж / Штриховка', val: 'procedural cross-hatching algorithmic shading lines', t: { spatial: 'architectural louvers creating procedural cross-hatching algorithmic shading lines', product: 'surface texture milled with procedural cross-hatching algorithmic shading lines', aero: 'stealth coating applied with procedural cross-hatching algorithmic shading lines', apparel: 'fabric woven with procedural cross-hatching algorithmic shading lines', digital: 'UI graphics rendered with procedural cross-hatching algorithmic shading lines' } },
+  { id: 240, short: 'Матрица Маркова', val: 'stochastic Markov chain probability matrix diagrams', t: { spatial: 'stochastic Markov chain probability matrix diagrams mapped across the exhibition space', product: 'stochastic Markov chain probability matrix diagrams etched onto the device backplate', aero: 'stochastic Markov chain probability matrix diagrams analyzing flight contingencies', apparel: 'stochastic Markov chain probability matrix diagrams printed as a technical graphic', digital: 'stochastic Markov chain probability matrix diagrams calculating in the UI dashboard' } }
+];
+
+
+
 // --- MERGE LOGIC ---
 if(typeof NEW_CATEGORY_8_MATERIALS !== 'undefined') CATEGORIES[8].items.push(...NEW_CATEGORY_8_MATERIALS);
 if(typeof NEW_CATEGORY_10_TRIGGERS !== 'undefined') CATEGORIES[10].items.push(...NEW_CATEGORY_10_TRIGGERS);
@@ -2404,6 +2634,17 @@ if(typeof EXT_CATEGORY_7_LEGACY_HEADERS !== 'undefined') CATEGORIES[7].items.pus
 if(typeof EXT_CATEGORY_8_LEGACY_FABRICS !== 'undefined') CATEGORIES[8].items.push(...EXT_CATEGORY_8_LEGACY_FABRICS);
 if(typeof EXT_CATEGORY_9_LEGACY_LENSES !== 'undefined') CATEGORIES[9].items.push(...EXT_CATEGORY_9_LEGACY_LENSES);
 if(typeof EXT_CATEGORY_10_LEGACY_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...EXT_CATEGORY_10_LEGACY_DEFECTS);
+// --- EXPANSION PACK K ---
+if(typeof EXT_CATEGORY_2_DNA_76_100 !== 'undefined') CATEGORIES[2].items.push(...EXT_CATEGORY_2_DNA_76_100);
+if(typeof EXT_CATEGORY_7_SUPERGRAPHICS_42_100 !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_SUPERGRAPHICS_42_100);
+if(typeof EXT_CATEGORY_3_COLORS_118_147 !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_COLORS_118_147);
+if(typeof EXT_CATEGORY_6_GRAPHICS_212_240 !== 'undefined') CATEGORIES[6].items.push(...EXT_CATEGORY_6_GRAPHICS_212_240);
+// --- SORT CATEGORY ITEMS BY ID ASCENDING ---
+Object.values(CATEGORIES).forEach(cat => {
+  if(cat && cat.items) {
+    cat.items.sort((a, b) => a.id - b.id);
+  }
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>

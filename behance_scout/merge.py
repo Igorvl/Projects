@@ -100,6 +100,17 @@ if(typeof EXT_CATEGORY_7_LEGACY_HEADERS !== 'undefined') CATEGORIES[7].items.pus
 if(typeof EXT_CATEGORY_8_LEGACY_FABRICS !== 'undefined') CATEGORIES[8].items.push(...EXT_CATEGORY_8_LEGACY_FABRICS);
 if(typeof EXT_CATEGORY_9_LEGACY_LENSES !== 'undefined') CATEGORIES[9].items.push(...EXT_CATEGORY_9_LEGACY_LENSES);
 if(typeof EXT_CATEGORY_10_LEGACY_DEFECTS !== 'undefined') CATEGORIES[10].items.push(...EXT_CATEGORY_10_LEGACY_DEFECTS);
+// --- EXPANSION PACK K ---
+if(typeof EXT_CATEGORY_2_DNA_76_100 !== 'undefined') CATEGORIES[2].items.push(...EXT_CATEGORY_2_DNA_76_100);
+if(typeof EXT_CATEGORY_7_SUPERGRAPHICS_42_100 !== 'undefined') CATEGORIES[7].items.push(...EXT_CATEGORY_7_SUPERGRAPHICS_42_100);
+if(typeof EXT_CATEGORY_3_COLORS_118_147 !== 'undefined') CATEGORIES[3].items.push(...EXT_CATEGORY_3_COLORS_118_147);
+if(typeof EXT_CATEGORY_6_GRAPHICS_212_240 !== 'undefined') CATEGORIES[6].items.push(...EXT_CATEGORY_6_GRAPHICS_212_240);
+// --- SORT CATEGORY ITEMS BY ID ASCENDING ---
+Object.values(CATEGORIES).forEach(cat => {{
+  if(cat && cat.items) {{
+    cat.items.sort((a, b) => a.id - b.id);
+  }}
+}});
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>

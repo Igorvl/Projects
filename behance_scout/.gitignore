@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+scratch/
+legacy_archive/
+data/
+
+*.txt
+!requirements.txt
+*.js
+dashboard/templates/test_*.html
+old_strips.html
