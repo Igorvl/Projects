@@ -39,7 +39,10 @@ const PROTOCOLS = {
   abyssal: { name: 'ABYSSAL ARCHIVE', desc: 'Глубоководный ресерч, каустика.', s: { 1:[13, 25], 2:[17, 56], 4:[5], 5:[22], 6:[8, 48], 7:[13], 8:[12], 9:[15], 10:[51], 11:[14] }, p: { subsurface: 100, tension: 40, clinical: 0 }, mj: { ar: '9:16', stylize: 300, chaos: 5, weird: 0, sref: '' }, fp: 'portra', mx: false, rr: true, lx: 0, dy: 60, cmp: 'none' },
   clinical: { name: 'CLINICAL SYNTHESIS', desc: 'Стерильная мед-инженерия.', s: { 1:[6, 19], 2:[3, 25], 4:[10], 5:[48], 6:[8, 43], 7:[29], 8:[5], 9:[10], 10:[58], 11:[4] }, p: { subsurface: 10, tension: 0, clinical: 100 }, mj: { ar: '9:16', stylize: 200, chaos: 0, weird: 0, sref: '' }, fp: 'sem', mx: false, rr: true, lx: 0, dy: 0, cmp: 'symmetry' },
   tectonic: { name: 'TECTONIC BRUTALISM', desc: 'Бетон, ржавчина, разрушение.', s: { 1:[11, 32], 2:[11, 19], 4:[9], 5:[38], 6:[10, 52], 7:[23], 8:[4], 9:[3], 10:[31], 11:[13] }, p: { subsurface: 0, tension: 100, clinical: 0 }, mj: { ar: '9:16', stylize: 400, chaos: 15, weird: 50, sref: '' }, fp: 'ilford', mx: false, rr: true, lx: 0, dy: 100, cmp: 'none' },
-  stealth_wealth: { name: 'STEALTH WEALTH', desc: 'Тихая роскошь, идеальная сборка.', s: { 1:[42, 50], 2:[1, 10], 4:[1], 5:[11], 6:[4, 22], 7:[12], 8:[11], 9:[5], 10:[59], 11:[8] }, p: { subsurface: 30, tension: 0, clinical: 20 }, mj: { ar: '9:16', stylize: 500, chaos: 0, weird: 0, sref: '' }, fp: 'medium_format', mx: false, rr: false, lx: 100, dy: 0, cmp: 'none' }
+  stealth_wealth: { name: 'STEALTH WEALTH', desc: 'Тихая роскошь, идеальная сборка.', s: { 1:[42, 50], 2:[1, 10], 4:[1], 5:[11], 6:[4, 22], 7:[12], 8:[11], 9:[5], 10:[59], 11:[8] }, p: { subsurface: 30, tension: 0, clinical: 20 }, mj: { ar: '9:16', stylize: 500, chaos: 0, weird: 0, sref: '' }, fp: 'medium_format', mx: false, rr: false, lx: 100, dy: 0, cmp: 'none' },
+  // --- NEW from Ksenia ---
+  swiss_strips: { name: 'SWISS NARRATIVE STRIPS', desc: '4 уникальных полоски (Классический Swiss Grid).', s: { 1:[41], 2:[32], 3:[16], 4:[20], 5:[28], 6:[1], 7:[21], 8:[1], 9:[16], 10:[4] }, p: { subsurface: 0, tension: 70, clinical: 50 }, mj: { ar: '9:16', stylize: 250, chaos: 0, weird: 0, sref: '' }, fp: 'medium_format', mx: false, rr: true, lx: 100, dy: 0, cmp: 'none', tf: 'strips_narrative', ns: 'swiss' },
+  haute_hospitality: { name: 'HAUTE HOSPITALITY', desc: 'Сарториальный минимализм, тихая роскошь.', s: { 1:[164], 2:[122], 3:[118], 4:[10], 5:[28], 6:[4], 7:[41], 8:[118], 9:[1], 10:[115], 11:[8] }, p: { subsurface: 20, tension: 10, clinical: 40 }, mj: { ar: '9:16', stylize: 400, chaos: 0, weird: 0, sref: '' }, fp: 'medium_format', mx: false, rr: true, lx: 100, dy: 0, cmp: 'none', tf: 'strips_narrative', ns: 'hospitality' }
 };
 
 const FILM_STOCKS = {
@@ -47,18 +50,52 @@ const FILM_STOCKS = {
   ilford: { id: 'ilford', label: 'Ilford HP5 (B&W)', val: 'Ilford HP5 Plus 400 film stock, harsh grain, high contrast black and white' },
   portra: { id: 'portra', label: 'Kodak Portra 160', val: 'Kodak Portra 160 film stock, warm archival tones, soft halation' },
   cinestill: { id: 'cinestill', label: 'Cinestill 800T', val: 'Fujifilm Cinestill 800T film stock, tungsten light, halation' },
-  octane: { id: 'octane', label: 'Octane Render', val: 'Octane Render, path tracing, physically based rendering (PBR)' },
-  sem: { id: 'sem', label: 'SEM Scanner', val: 'Scanning Electron Microscope (SEM), false color, infinite depth of field' },
-  medium_format: { id: 'medium_format', label: 'Medium Format', val: 'Medium format photography, architectural digest editorial' }
+  aerochrome: { id: 'aerochrome', label: 'Kodak Aerochrome (IR)', val: 'Kodak Aerochrome infrared film, turning foliage and organic materials bright magenta and crimson' },
+  polaroid: { id: 'polaroid', label: 'Polaroid SX-70', val: 'Polaroid SX-70 instant film aesthetics, slight chemical color shifts and soft edges' },
+  cyanotype: { id: 'cyanotype', label: 'Cyanotype Blueprint', val: 'traditional chemical cyanotype blueprint process, deep Prussian blue monochromatic tones' },
+  imax: { id: 'imax', label: 'IMAX 70mm', val: 'ultra-high resolution 70mm IMAX cinematic film stock, pristine clarity, subtle cinematic grain' },
+  octane: { id: 'octane', label: 'Octane Render', val: 'Octane Render, path tracing, physically based rendering (PBR), hyper-realistic CGI' },
+  ue5: { id: 'ue5', label: 'Unreal Engine 5', val: 'Unreal Engine 5 render, Lumen global illumination, nanite geometry, cinematic lighting' },
+  sem: { id: 'sem', label: 'SEM Scanner', val: 'Scanning Electron Microscope (SEM), false color, infinite depth of field, extreme macro' },
+  flir: { id: 'flir', label: 'FLIR Thermal', val: 'FLIR thermal imaging camera, chromatic heat signatures instead of visible light' },
+  xray: { id: 'xray', label: 'Industrial X-Ray', val: 'high-contrast industrial X-Ray radiographic plate, revealing internal structural densities' },
+  lidar: { id: 'lidar', label: 'LiDAR Point Cloud', val: '3D LiDAR point-cloud laser scanning visualization, neon points on black void' },
+  medium_format: { id: 'medium_format', label: 'Medium Format', val: 'Medium format photography, architectural digest editorial, flawless sharpness' }
 };
 
 const COMPOSITIONS = {
   none: { label: 'Default Framing', val: '' },
-  knolling: { label: 'Knolling / Grid', val: 'Knolling layout. Organized, flat-lay grid arrangement with military precision and 90-degree angles.' },
-  symmetry: { label: 'Dead-Center Symmetry', val: 'Dead-center perfect symmetry. Absolute symmetrical balance with an imposing front-on perspective.' },
-  golden: { label: 'Golden Spiral', val: 'Golden Spiral composition. Asymmetrical but mathematically flawless framing guiding the eye.' },
-  dutch: { label: 'Dutch Angle', val: 'Severe Dutch angle (canted framing) creating kinetic tension and dynamic unease.' },
-  forced: { label: 'Forced Perspective', val: 'Extreme forced perspective, making the foreground objects appear impossibly massive.' }
+  knolling: { label: 'Knolling / Grid', val: 'Knolling layout. Organized, flat-lay grid arrangement with military precision and strict 90-degree angles.' },
+  symmetry: { label: 'Dead-Center Symmetry', val: 'Dead-center perfect symmetry. Absolute symmetrical balance with an imposing, confrontational front-on perspective.' },
+  golden: { label: 'Golden Spiral', val: 'Golden Spiral composition. Asymmetrical but mathematically flawless framing guiding the eye through the Fibonacci curve.' },
+  dutch: { label: 'Dutch Angle', val: 'Severe Dutch angle (canted framing) creating kinetic structural tension and dynamic unease.' },
+  forced: { label: 'Forced Perspective', val: 'Extreme forced perspective, distorting scale and making the foreground objects appear impossibly massive.' },
+  orthographic: { label: 'Orthographic Flat', val: 'Strict orthographic projection camera. Zero perspective distortion, completely flat mathematical rendering of depth.' },
+  macro_topo: { label: 'Macro Topography', val: 'Extreme macro framing, treating the surface texture and material depth as a vast geographic topography.' },
+  low_angle: { label: 'Low Angle Monolith', val: 'Imposing low-angle shot looking up at the subject, emphasizing brutalist scale, dominance, and monolithic weight.' },
+  gods_eye: { label: "God's Eye (Top-Down)", val: "Perfect 90-degree top-down God's eye view. Absolute flat lay with harsh, directional cast shadows." },
+  negative_space: { label: 'Heavy Negative Space', val: 'Aggressive use of negative space. The subject occupies only 20% of the frame, pushed to the extreme edge.' },
+  rule_of_thirds: { label: 'Rule of Thirds', val: 'Strict adherence to the rule of thirds, creating a classic, highly balanced editorial layout.' },
+  split_diptych: { label: 'Split Diptych', val: 'Framed as a visual diptych. The composition is sharply split down the middle into two contrasting halves.' },
+  kinetic_track: { label: 'Kinetic Tracking', val: 'Action-oriented tracking shot framing. The subject is in sharp focus while the background streaks with high-velocity motion blur.' },
+  claustrophobic: { label: 'Claustrophobic Crop', val: 'Aggressively tight, claustrophobic cropping. The subject bursts beyond the edges of the frame, creating visual tension.' }
+};
+
+// Narrative Scenarios for strips_narrative format (from Ksenia)
+const DEFAULT_SCENARIOS = {
+  swiss: { name: 'Swiss Grid Classic', rules: 'CRITICAL NARRATIVE COMPOSITION: You MUST design four distinct strips exactly as follows. 1. Strip One (Typography): Features massive, cropped lowercase sans-serif typography running vertically. 2. Strip Two (Photo-Integration): Dominant high-contrast photography of [TARGET_SUBJECT] cropped strictly within the strip, overlaid with a bold geometric shape. 3. Strip Three (Grid System): Visualizes the layout grid with thin hairlines and text blocks. 4. Strip Four (Data): Large bold numbering at the bottom, top features a dense block of justified editorial text and a barcode.' },
+  swiss_red: { name: 'Swiss Red Classic', rules: 'CRITICAL NARRATIVE COMPOSITION: You MUST design four distinct strips exactly as follows. 1. Strip One (Typography): Features massive, cropped lowercase sans-serif typography running vertically in bright red. Includes small Japanese subtitles and a clean cream background. 2. Strip Two (Photo-Integration): Dominant black-and-white high-contrast photography of [TARGET_SUBJECT], cropped strictly within the strip. Overlaid with a large transparent red geometric circle and small editorial text. 3. Strip Three (Grid System): Visualizes the layout grid with thin red hairlines and text blocks explaining margins. 4. Strip Four (Data): Large bold numbering "04" at the bottom. The top features a dense block of justified editorial text and a small barcode.' },
+  brutalist: { name: 'Brutalist Collage', rules: 'CRITICAL NARRATIVE COMPOSITION: You MUST design four distinct strips exactly as follows. COMMON THREAD: A visible mathematical dot-grid (points at intersections) overlays all four strips to unify the composition. 1. Strip One (The Manifesto): Solid background dominating. Massive, tight-kerning typography reading vertically. 2. Strip Two (The Artifact): High-contrast photography of [TARGET_SUBJECT], sliced into horizontal segments. 3. Strip Three (The Portrait): A moody photographic collage partially obscured by abstract geometric shapes. 4. Strip Four (The Deconstruction): An abstract composition focusing on negative space.' },
+  cassette: { name: 'Retro Cassette 80s', rules: 'CRITICAL NARRATIVE COMPOSITION: You MUST design four distinct strips inspired by classic 80s/90s audio cassette packaging. 1. Strip One (Cassette Insert): Bold diagonal color bands. Large neo-grotesque typography. 2. Strip Two (Reel Hub): Stark color-blocked background. Prominent large white geometric circle mimicking a tape reel hub. 3. Strip Three (Grid & Dots): Stark white top section transitioning into a dark grey structural grid pattern at the bottom. 4. Strip Four (Right - VHS): Deep matte black background dominated by bold diagonal rainbow stripes.' },
+  hospitality: { name: 'Haute Hospitality', rules: 'CRITICAL NARRATIVE COMPOSITION: You MUST design four distinct strips focusing on High-End Culinary Arts and Stealth Wealth apparel. 1. Strip One (The Menu): Extreme macro photography of ultra-thick, textured cotton paper. 2. Strip Two (The Uniform): A cropped, editorial fashion shot of [TARGET_SUBJECT] with hidden magnetic closures. 3. Strip Three (The Plating/Liquid): A macro shot of a culinary fluid highlighting surface tension. 4. Strip Four (The Space): A cropped architectural detail of the interior.' },
+  // P.S.D.N. Advanced Scenarios
+  quantum_cleanroom: { name: 'Quantum Cleanroom (Servers & Biotech)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips fusing sterile biotech and quantum servers. 1. Strip One (The Code): Pure black background, glowing hexadecimal green code and IP routing tables. 2. Strip Two (The Specimen): Macro shot of [TARGET_SUBJECT] inside a sterile ISO-1 cleanroom, bathed in UV light. 3. Strip Three (The Anomaly): A glowing, mutated bioluminescent organism suspended in a glass Petri dish. 4. Strip Four (The Hardware): High-density server racks showing fiber-optic cables and a red biohazard warning label.' },
+  abyssal_blackbox: { name: 'Abyssal Blackbox (Deep Sea & Sonar)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips based on deep-sea pressure and flight recorders. 1. Strip One (The Depth): Abyssal blue background with topographical sonar contour lines mapping the ocean floor. 2. Strip Two (The Wreckage): [TARGET_SUBJECT] heavily crushed by extreme deep-sea pressure, rusting in the dark. 3. Strip Three (The Data): A stark orange aviation "Black Box" surface with white technical stencils and warning chevrons. 4. Strip Four (The Caustics): Pitch black void illuminated only by extreme, rippling sub-aquatic light caustics.' },
+  aero_windtunnel: { name: 'Hypercar Wind-Tunnel (Aero & Fluids)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips focusing on aerodynamic testing. 1. Strip One (The Blueprint): Cyanotype blueprint showing wind-tunnel vector arrows over an aerodynamic shape. 2. Strip Two (The Prototype): [TARGET_SUBJECT] rendered in forged carbon fiber, covered in neon tracking dots. 3. Strip Three (The Leak): Extreme macro of a highly reflective, neon toxic fluid leaking from a pristine titanium joint. 4. Strip Four (The Telemetry): A complex F1-style telemetry dashboard showing heatmaps and G-force data.' },
+  sartorial_forensics: { name: 'Sartorial Forensics (Fashion & Crime)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips fusing haute couture with a sterile crime lab. 1. Strip One (The Evidence): A translucent plastic police evidence bag containing a torn fabric label. 2. Strip Two (The Garment): High-fashion editorial shot of [TARGET_SUBJECT], brutally sliced by a surgical scalpel. 3. Strip Three (The Stain): Pristine white heavy cotton fabric stained with a hyper-realistic drop of dark crimson blood. 4. Strip Four (The Analysis): DNA sequencing gel electrophoresis graphs printed over a dark, moody background.' },
+  nuclear_vault: { name: 'Nuclear Vault (Lead & Radiation)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips based on nuclear containment. 1. Strip One (The Shield): Monolithic, scratched lead-grey surface with massive, deeply embossed warning typography. 2. Strip Two (The Core): [TARGET_SUBJECT] glowing with unstable, ethereal Cherenkov radiation (blue glow). 3. Strip Three (The Dosimeter): Analog radiation dosimeter dials and half-life decay graphs on yellowed paper. 4. Strip Four (The Architecture): Brutalist concrete architectural layout heavily warped by simulated topological gravity.' },
+  cyber_surgery: { name: 'Cybernetic Surgery (Steel & Code)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips blending sterile surgery with UI overlays. 1. Strip One (The Instrument): Macro photography of sterile, bead-blasted surgical stainless steel tools. 2. Strip Two (The Patient): [TARGET_SUBJECT] undergoing mechanical repair, held open by heavy surgical clamps. 3. Strip Three (The Overlay): A flat, complex UI wireframe showing biometric data and retinal vascular scans. 4. Strip Four (The Suture): Brutal, mismatched Frankenstein-like stitching using thick Kevlar thread on a clean surface.' },
+  kintsugi_typography: { name: 'Kintsugi Typography (Swiss Grid Decay)', rules: 'CRITICAL NARRATIVE COMPOSITION: Design four strips where classic design is destroyed and repaired. 1. Strip One (The Grid): A strict Swiss Bauhaus typographic grid printed on off-white paper. 2. Strip Two (The Ruin): [TARGET_SUBJECT] violently torn in half, with jagged edges exposing the layer beneath. 3. Strip Three (The Repair): The torn paper is meticulously stitched back together using a flawless pure gold vein (Kintsugi). 4. Strip Four (The Detail): A translucent layer of vellum paper pinned over the design with a metallic paperclip.' }
 };
 
 const CATEGORIES = {
@@ -127,6 +164,7 @@ const App = () => {
   const [refs, setRefs] = useState({ img: '', cref: '', p: '' });
 
   const [behanceMode, setBehanceMode] = useState(false);
+  const [narrativeScenario, setNarrativeScenario] = useState('swiss');
   const [searchQuery, setSearchQuery] = useState('');
   const [customProtocols, setCustomProtocols] = useState({});
 
@@ -140,6 +178,7 @@ const App = () => {
 
   const TARGET_FORMATS = {
     strips: 'Полоски',
+    strips_narrative: 'Полоски (Нарратив ✦)',
     poster: 'Постер (Монолит)',
     identity: 'Айдентика',
     packaging: 'Упаковка',
@@ -296,6 +335,7 @@ const App = () => {
         if (state.cmp !== undefined) setComposition(state.cmp);
         if (state.rf) setRefs(state.rf);
         if (state.bh !== undefined) setBehanceMode(state.bh);
+        if (state.ns !== undefined) setNarrativeScenario(state.ns);
       } catch (e) {
         console.error("URL Parsing error", e);
       }
@@ -315,7 +355,7 @@ const App = () => {
 
   useEffect(() => {
     if (!isReady) return;
-    const state = { s: selectedItems, e: excludedItems, w: itemWeights, p: mjParams, ps: psdnParams, mx: matrixMode, bh: behanceMode, rr: rawReality, fp: filmProfile, lx: luxuryLevel, tf: targetFormat, cs: customSubject, pt: projectTitle, ct: customText, dy: decayLevel, cmp: composition, rf: refs };
+    const state = { s: selectedItems, e: excludedItems, w: itemWeights, p: mjParams, ps: psdnParams, mx: matrixMode, bh: behanceMode, rr: rawReality, fp: filmProfile, lx: luxuryLevel, tf: targetFormat, cs: customSubject, pt: projectTitle, ct: customText, dy: decayLevel, cmp: composition, rf: refs, ns: narrativeScenario };
     window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify(state)));
     
     const parserParts = [];
@@ -333,7 +373,7 @@ const App = () => {
     });
     
     setParserInput(parserParts.join(' - '));
-  }, [selectedItems, excludedItems, itemWeights, mjParams, psdnParams, matrixMode, behanceMode, rawReality, filmProfile, luxuryLevel, targetFormat, customSubject, projectTitle, customText, decayLevel, composition, refs, isReady]);
+  }, [selectedItems, excludedItems, itemWeights, mjParams, psdnParams, matrixMode, behanceMode, rawReality, filmProfile, luxuryLevel, targetFormat, customSubject, projectTitle, customText, decayLevel, composition, refs, narrativeScenario, isReady]);
 
   const handleMatrixToggle = () => {
      setMatrixMode(!matrixMode);
@@ -515,6 +555,7 @@ const App = () => {
     if(proto.e !== undefined) setExcludedItems(proto.e);
     if(proto.tf !== undefined) setTargetFormat(proto.tf);
     if(proto.bh !== undefined) setBehanceMode(proto.bh);
+    if(proto.ns !== undefined) setNarrativeScenario(proto.ns);
   };
 
   const handleQuantumMutation = () => {
@@ -838,6 +879,39 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
     };
 
     const buildPrompt = (angleKey, extraContext = "") => {
+        if (targetFormat === 'strips_narrative') {
+            const scenario = DEFAULT_SCENARIOS[narrativeScenario] || DEFAULT_SCENARIOS.swiss;
+            const targetSubj = customSubject || 'the subject';
+            const scenarioRules = scenario.rules.replace(/\[TARGET_SUBJECT\]/g, targetSubj);
+            const paletteText = getVal(3);
+            const baseC7 = getVal(7);
+            let finalC7 = baseC7;
+            if (projectTitle || customText) {
+                finalC7 = `Massive typography reading exactly '${projectTitle || 'DESIGN'}'${customText ? ` with dense micro-text reading '${customText}'` : ''}`;
+            }
+            const compString = composition !== 'none' ? ` Framing strategy: ${COMPOSITIONS[composition].val}` : '';
+            return `${imgRefStr}Role: World-renowned graphic designer and editorial art director. You are capturing a narrative four-strip composition for a high-end K.S.A.R. brand defined by "${getVal(1)}" and "${getVal(2)}".
+
+${scenarioRules}
+
+[Color Palette]
+The unified 3-color palette is strictly: ${paletteText}. Apply these colors consistently across all 4 strips.
+
+[Conceptual DNA]
+Aesthetic school: ${getVal(1)}. Design DNA fuses: ${getVal(2)}.
+
+[Graphics & Typography]
+Graphic markings include: ${getVal(6)}. Super-graphics and typography: ${finalC7}.
+
+[Materiality & Optics]
+Printed on ${getVal(8)}. Captured using ${getVal(9)}, illuminated by ${getVal(11)}.${psdnOptics}${compString}
+
+[Focal Anomaly]
+The focal trigger across the strip set: ${getVal(10)}.
+
+[Technical Specs]
+Ultra-crisp photorealistic strips. Anti-slicing rule: NO element crosses the gaps between strips. Maximalist typographic logic. ${extraContext} ${decayString}${luxuryString}${filmSpec} ${mjEngine}`;
+        }
         if (targetFormat === 'strips' || targetFormat === 'poster') {
             return renderBlockFormat(angleKey, extraContext);
         }
@@ -1170,6 +1244,21 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
                     </button>
                   ))}
                </div>
+
+               {targetFormat === 'strips_narrative' && (
+                 <div className="flex items-center gap-2 mb-3 p-2.5 bg-[#0f1115] border border-[#c8aa6e]/30 rounded-sm">
+                   <span className="text-[9px] text-[#c8aa6e] font-mono uppercase tracking-wider shrink-0">СЦЕНАРИЙ ✦</span>
+                   <select
+                     value={narrativeScenario}
+                     onChange={(e) => setNarrativeScenario(e.target.value)}
+                     className="flex-1 bg-[#12141a] text-[#d4d4d4] border border-[#23262e] text-[10px] font-mono px-2 py-1.5 rounded-sm outline-none cursor-pointer focus:border-[#c8aa6e]/50"
+                   >
+                     {Object.entries(DEFAULT_SCENARIOS).map(([key, scn]) => (
+                       <option key={key} value={key}>{scn.name}</option>
+                     ))}
+                   </select>
+                 </div>
+               )}
 
                <textarea 
                 readOnly 
