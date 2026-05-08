@@ -49,6 +49,7 @@ jsxCode = jsxCode.replace(/^\s*import\s+React[^\n]+\n?/m, '');
 jsxCode = jsxCode.replace(/^\s*export\s+default\s+App;\s*$/m, '');
 console.log(`  ${(jsxCode.length/1024).toFixed(0)} KB, ${jsxCode.split('\n').length} lines`);
 
+
 // ── Step 2b: Targeted syntax fixes from GEN_v59.txt ──────────────────────────
 console.log('\n[2b] Fixing known source syntax issues...');
 // Fix #1: line 779 — id:100 object missing trailing comma before id:116
@@ -145,7 +146,10 @@ ${reactDomJS}
   </script>
   <script>
 /* Strips Pro Gen V59 — pre-compiled from GEN_v59.txt */
+/* React hooks — destructured from global React UMD */
+var useState=React.useState,useEffect=React.useEffect,useMemo=React.useMemo,useCallback=React.useCallback,useRef=React.useRef,useReducer=React.useReducer,useContext=React.useContext,createContext=React.createContext;
 ${compiledJS}
+
 
 /* Mount */
 (function(){
