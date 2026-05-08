@@ -54,6 +54,7 @@
 <body>
   <div id="root"></div>
 
+  {% verbatim %}
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
@@ -3245,5 +3246,6 @@
     const rootEl = document.getElementById('root');
     ReactDOM.createRoot(rootEl).render(<App />);
   </script>
+  {% endverbatim %}
 </body>
 </html>
