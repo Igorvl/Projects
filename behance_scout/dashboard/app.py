@@ -199,6 +199,147 @@ async def strips_page():
     return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
 
+# ─────────────────────────────────────────────────────────
+#  STRIPS DB EDITOR — API и страница редактора базы кнопок
+# ─────────────────────────────────────────────────────────
+
+_CATS_DB   = Path(__file__).parent / "data" / "categories_db.json"
+_STRIPS_HTML = Path(__file__).parent / "templates" / "strips.html"
+_CAT_START = "// [[CATEGORIES_START]]"
+_CAT_END   = "// [[CATEGORIES_END]]"
+
+
+@app.get("/strips-db/editor", response_class=HTMLResponse)
+async def strips_db_editor():
+    """Страница редактора базы кнопок."""
+    html_path = Path(__file__).parent / "templates" / "strips_admin.html"
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
+
+@app.get("/strips-db/categories")
+async def categories_get():
+    """Возвращает текущую базу категорий из JSON-файла на сервере."""
+    if not _CATS_DB.exists():
+        return JSONResponse({"error": "categories_db.json not found"}, status_code=404)
+    return JSONResponse(json.loads(_CATS_DB.read_text(encoding="utf-8")))
+
+
+@app.post("/strips-db/update")
+async def categories_update(request: Request):
+    """
+    Сохраняет отредактированную базу категорий на диск.
+    Тело запроса: полный JSON объект CATEGORIES.
+    """
+    try:
+        data = await request.json()
+    except Exception as e:
+        return JSONResponse({"error": f"Invalid JSON: {e}"}, status_code=400)
+
+    # Базовая валидация структуры
+    if not isinstance(data, dict):
+        return JSONResponse({"error": "Root must be an object"}, status_code=400)
+    for key, cat in data.items():
+        if not isinstance(cat, dict) or "items" not in cat:
+            return JSONResponse(
+                {"error": f"Category '{key}' must have 'items' array"}, status_code=400
+            )
+        if not isinstance(cat["items"], list):
+            return JSONResponse(
+                {"error": f"Category '{key}'.items must be an array"}, status_code=400
+            )
+
+    # Atomic write: сначала во temp, потом rename
+    _CATS_DB.parent.mkdir(exist_ok=True)
+    tmp = _CATS_DB.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(_CATS_DB)
+
+    total = sum(len(c.get("items", [])) for c in data.values())
+    logging.info(f"[DB Editor] Saved categories_db.json: {len(data)} cats, {total} items")
+    return JSONResponse({"status": "ok", "categories": len(data), "total_items": total})
+
+
+@app.post("/strips-db/bake")
+async def categories_bake():
+    """
+    Запекает текущую categories_db.json обратно в strips.html.
+    Заменяет блок между маркерами [[CATEGORIES_START]] и [[CATEGORIES_END]].
+    Создаёт бэкап strips.html.bak перед записью.
+    """
+    if not _CATS_DB.exists():
+        return JSONResponse({"error": "categories_db.json not found"}, status_code=404)
+
+    cats = json.loads(_CATS_DB.read_text(encoding="utf-8"))
+    html = _STRIPS_HTML.read_text(encoding="utf-8")
+
+    # Проверяем маркеры
+    if _CAT_START not in html or _CAT_END not in html:
+        return JSONResponse(
+            {"error": "Markers [[CATEGORIES_START]] / [[CATEGORIES_END]] not found in strips.html"},
+            status_code=500
+        )
+
+    # Генерируем JS-блок из Python dict
+    js_lines = ["const CATEGORIES = {"]
+    cat_keys = list(cats.keys())
+    for i, cid in enumerate(cat_keys):
+        cat = cats[cid]
+        comma = "," if i < len(cat_keys) - 1 else ""
+        title = json.dumps(cat.get("title", ""), ensure_ascii=False)
+        items_js = _items_to_js(cat.get("items", []))
+        js_lines.append(f"  {cid}: {{")
+        js_lines.append(f"    title: {title},")
+        js_lines.append(f"    items: [{items_js}]")
+        js_lines.append(f"  }}{comma}")
+    js_lines.append("};")
+    js_block = "\n".join(js_lines)
+
+    # Бэкап
+    bak = _STRIPS_HTML.with_suffix(".html.bak")
+    bak.write_text(html, encoding="utf-8")
+
+    # Замена блока между маркерами
+    s_idx = html.index(_CAT_START)
+    e_idx = html.index(_CAT_END) + len(_CAT_END)
+    new_html = html[:s_idx] + _CAT_START + "\n" + js_block + "\n" + _CAT_END + html[e_idx:]
+
+    # Atomic write
+    tmp = _STRIPS_HTML.with_suffix(".html.tmp")
+    tmp.write_text(new_html, encoding="utf-8")
+    tmp.replace(_STRIPS_HTML)
+
+    logging.info(f"[DB Editor] Baked categories_db.json into strips.html")
+    return JSONResponse({"status": "ok", "backup": str(bak.name)})
+
+
+def _items_to_js(items: list) -> str:
+    """Конвертирует список items Python -> JS-строку для вставки в strips.html."""
+    parts = []
+    for item in items:
+        fields = []
+        for k, v in item.items():
+            if isinstance(v, str):
+                # Экранируем одиночные кавычки для JS
+                escaped = v.replace("\\", "\\\\").replace("'", "\\'")
+                fields.append(f"      {k}: '{escaped}'")
+            elif isinstance(v, (int, float, bool)):
+                fields.append(f"      {k}: {json.dumps(v)}")
+            elif isinstance(v, list):
+                inner = ", ".join(json.dumps(x, ensure_ascii=False) for x in v)
+                fields.append(f"      {k}: [{inner}]")
+            elif isinstance(v, dict):
+                inner_parts = []
+                for dk, dv in v.items():
+                    if isinstance(dv, str):
+                        escaped = dv.replace("\\", "\\\\").replace("'", "\\'")
+                        inner_parts.append(f"        {dk}: '{escaped}'")
+                    else:
+                        inner_parts.append(f"        {dk}: {json.dumps(dv, ensure_ascii=False)}")
+                fields.append(f"      {k}: {{\n" + ",\n".join(inner_parts) + "\n      }")
+        parts.append("    {\n" + ",\n".join(fields) + "\n    }")
+    return "\n" + ",\n".join(parts) + "\n  "
+
+
 @app.post("/api/strips/ai")
 async def strips_ai(request: Request):
     """

@@ -1292,6 +1292,7 @@ const COMPOSITIONS = {
 };
 
 // FULLY RESTORED CATEGORY DATABASE
+// [[CATEGORIES_START]]
 const CATEGORIES = {
   1: {
     title: '1. ШКОЛА ДИЗАЙНА',
@@ -11632,6 +11633,7 @@ const CATEGORIES = {
     }]
   }
 };
+// [[CATEGORIES_END]]
 const TARGET_FORMATS = {
   strips: 'ПОЛОСКИ',
   strips_narrative: 'СЦЕНАРИИ ПОЛОСОК',
@@ -13301,10 +13303,25 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
 };
 
 
-/* Mount */
+/* Mount — with DB server fetch */
 (function(){
   var rootEl = document.getElementById('root');
-  ReactDOM.createRoot(rootEl).render(React.createElement(App, null));
+  (async function() {
+    try {
+      var resp = await fetch('/strips-db/categories');
+      if (resp.ok) {
+        var serverCats = await resp.json();
+        // Override the hardcoded CATEGORIES with the server version
+        Object.keys(serverCats).forEach(function(k) {
+          CATEGORIES[k] = serverCats[k];
+        });
+        console.log('[STRIPS] Categories loaded from server DB');
+      }
+    } catch(e) {
+      console.warn('[STRIPS] Server DB unavailable, using hardcoded fallback:', e.message);
+    }
+    ReactDOM.createRoot(rootEl).render(React.createElement(App, null));
+  })();
 })();
   </script>
 </body>

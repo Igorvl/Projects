@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRIPS DB EDITOR</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #050608; --bg2: #0a0c0f; --bg3: #0f1115; --bg4: #151820;
+    --border: #23262e; --gold: #c8aa6e; --gold2: #a08040;
+    --text: #d4d4d4; --muted: #7a8294; --white: #fff;
+    --red: #e05c5c; --green: #5cb85c; --blue: #5c9be0;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  /* HEADER */
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .header-title { font-size: 16px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: var(--white); }
+  .header-sub { font-size: 9px; color: var(--gold); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .status-bar { font-size: 11px; color: var(--muted); padding: 4px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; }
+  .status-bar.ok { color: var(--green); border-color: var(--green); }
+  .status-bar.err { color: var(--red); border-color: var(--red); }
+
+  /* BUTTONS */
+  .btn { padding: 7px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all .15s; }
+  .btn:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-save { border-color: var(--blue); color: var(--blue); }
+  .btn-save:hover { background: var(--blue); color: var(--bg); }
+  .btn-bake { border-color: var(--gold); color: var(--gold); }
+  .btn-bake:hover { background: var(--gold); color: var(--bg); }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: var(--white); }
+  .btn-sm { padding: 4px 8px; font-size: 10px; }
+  .btn-add { border-color: var(--green); color: var(--green); }
+  .btn-add:hover { background: var(--green); color: var(--bg); }
+
+  /* LAYOUT */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR — category tabs */
+  .sidebar { width: 220px; flex-shrink: 0; background: var(--bg3); border-right: 1px solid var(--border); overflow-y: auto; }
+  .cat-tab { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; transition: all .15s; }
+  .cat-tab:hover { background: var(--bg4); border-left-color: var(--muted); }
+  .cat-tab.active { background: var(--bg4); border-left-color: var(--gold); color: var(--gold); }
+  .cat-tab-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .cat-tab-count { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ITEMS LIST */
+  .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .content-header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg2); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .content-title { font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; }
+  .items-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+  .item-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 3px; margin-bottom: 4px; background: var(--bg3); cursor: grab; transition: all .15s; user-select: none; }
+  .item-row:hover { border-color: var(--muted); background: var(--bg4); }
+  .item-row.dragging { opacity: .4; }
+  .item-row.drag-over { border-color: var(--gold); background: rgba(200,170,110,.08); }
+  .drag-handle { color: var(--muted); font-size: 14px; cursor: grab; flex-shrink: 0; }
+  .item-id { font-size: 10px; color: var(--muted); min-width: 28px; font-family: monospace; }
+  .item-short { flex: 1; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hex-dots { display: flex; gap: 4px; flex-shrink: 0; }
+  .hex-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15); flex-shrink: 0; }
+  .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* EDIT PANEL */
+  .edit-panel { width: 380px; flex-shrink: 0; background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .edit-panel.hidden { display: none; }
+  .edit-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .edit-body { flex: 1; overflow-y: auto; padding: 16px; }
+  .edit-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* FORM */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; font-size: 12px; border-radius: 2px; font-family: inherit; resize: vertical; transition: border-color .15s; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--gold); }
+  .hex-row { display: flex; gap: 8px; align-items: center; }
+  .hex-row input { flex: 1; }
+  .hex-preview { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
+  .t-fields { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 10px; }
+  .t-fields .field { margin-bottom: 8px; }
+  .t-fields .field:last-child { margin-bottom: 0; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 24px; max-width: 420px; width: 90%; }
+  .modal h3 { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: var(--white); margin-bottom: 10px; }
+  .modal p { color: var(--muted); font-size: 12px; line-height: 1.6; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--bg2); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">Strips DB Editor</div>
+    <div class="header-sub">Редактор базы кнопок генератора</div>
+  </div>
+  <div class="header-actions">
+    <span id="statusBar" class="status-bar">Загрузка...</span>
+    <button class="btn btn-save" onclick="saveDB()">💾 Сохранить</button>
+    <button class="btn btn-bake" onclick="openBakeModal()">🔥 Запечь в HTML</button>
+    <a href="/strips" class="btn" target="_blank">→ Генератор</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- ITEMS -->
+  <div class="content">
+    <div class="content-header">
+      <span class="content-title" id="contentTitle">Выберите категорию</span>
+      <span id="itemCount" style="font-size:11px;color:var(--muted)"></span>
+      <div style="margin-left:auto">
+        <button class="btn btn-sm btn-add" onclick="openNewForm()">+ Добавить</button>
+      </div>
+    </div>
+    <div class="items-list" id="itemsList"></div>
+  </div>
+
+  <!-- EDIT PANEL -->
+  <div class="edit-panel hidden" id="editPanel">
+    <div class="edit-header">
+      <span id="editTitle">Редактирование</span>
+      <button class="btn btn-sm" onclick="closeEdit()">✕</button>
+    </div>
+    <div class="edit-body" id="editBody"></div>
+    <div class="edit-footer">
+      <button class="btn btn-save" style="flex:1" onclick="applyEdit()">✅ Применить</button>
+      <button class="btn" onclick="closeEdit()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- BAKE MODAL -->
+<div class="modal-overlay hidden" id="bakeModal">
+  <div class="modal">
+    <h3>🔥 Запечь в HTML</h3>
+    <p>Это перезапишет <strong>strips.html</strong> на сервере, вшив текущую базу навсегда.<br>Бэкап <code>strips.html.bak</code> будет создан автоматически.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeBakeModal()">Отмена</button>
+      <button class="btn btn-bake" onclick="doBake()">🔥 Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let DB = {};           // { "1": { title, items: [...] }, ... }
+let activeCatId = null;
+let editingItem = null; // { catId, itemIdx } or null (new)
+let dragSrcIdx = null;
+
+// ─── INIT ─────────────────────────────────────────────────
+async function loadDB() {
+  setStatus('Загрузка...', '');
+  try {
+    const r = await fetch('/strips-db/categories');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    DB = await r.json();
+    const total = Object.values(DB).reduce((s, c) => s + c.items.length, 0);
+    setStatus(`✓ Загружено: ${Object.keys(DB).length} категорий, ${total} элементов`, 'ok');
+    renderSidebar();
+    if (activeCatId && DB[activeCatId]) renderItems(activeCatId);
+    else selectCat(Object.keys(DB)[0]);
+  } catch(e) {
+    setStatus('Ошибка загрузки: ' + e.message, 'err');
+  }
+}
+
+// ─── STATUS ───────────────────────────────────────────────
+function setStatus(msg, cls) {
+  const el = document.getElementById('statusBar');
+  el.textContent = msg;
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────
+function renderSidebar() {
+  const el = document.getElementById('sidebar');
+  el.innerHTML = Object.entries(DB).map(([cid, cat]) => `
+    <div class="cat-tab ${activeCatId === cid ? 'active' : ''}" onclick="selectCat('${cid}')">
+      <div class="cat-tab-title">${cat.title}</div>
+      <div class="cat-tab-count">${cat.items.length} элементов</div>
+    </div>
+  `).join('');
+}
+
+function selectCat(cid) {
+  activeCatId = cid;
+  closeEdit();
+  renderSidebar();
+  renderItems(cid);
+}
+
+// ─── ITEMS LIST ───────────────────────────────────────────
+function renderItems(cid) {
+  const cat = DB[cid];
+  document.getElementById('contentTitle').textContent = cat.title;
+  document.getElementById('itemCount').textContent = `${cat.items.length} элементов`;
+  const list = document.getElementById('itemsList');
+  list.innerHTML = cat.items.map((item, idx) => `
+    <div class="item-row" draggable="true"
+         data-idx="${idx}"
+         ondragstart="onDragStart(event,${idx})"
+         ondragover="onDragOver(event,${idx})"
+         ondrop="onDrop(event,${idx})"
+         ondragend="onDragEnd(event)">
+      <span class="drag-handle">⠿</span>
+      <span class="item-id">#${item.id}</span>
+      ${item.hex ? `<div class="hex-dots">${item.hex.map(h=>`<div class="hex-dot" style="background:${h}" title="${h}"></div>`).join('')}</div>` : ''}
+      <span class="item-short" title="${escH(item.val||'')}">${escH(item.short||item.val||'')}</span>
+      <div class="item-actions">
+        <button class="btn btn-sm" onclick="openEdit('${cid}',${idx})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteItem('${cid}',${idx})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── DRAG & DROP ──────────────────────────────────────────
+function onDragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e, idx) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.item-row').forEach(r => r.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e, idx) {
+  e.preventDefault();
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  const items = DB[activeCatId].items;
+  const [moved] = items.splice(dragSrcIdx, 1);
+  items.splice(idx, 0, moved);
+  dragSrcIdx = null;
+  renderItems(activeCatId);
+  setStatus('Порядок изменён — не забудьте сохранить', '');
+}
+function onDragEnd(e) {
+  dragSrcIdx = null;
+  document.querySelectorAll('.item-row').forEach(r => r.classList.remove('dragging','drag-over'));
+}
+
+// ─── EDIT FORM ────────────────────────────────────────────
+function getSchema(cid, item) {
+  const sample = DB[cid].items.find(i => i) || item;
+  const fields = ['short','val'];
+  if (sample && sample.hex !== undefined) fields.push('hex');
+  if (sample && sample.t   !== undefined) fields.push('t');
+  if (sample && sample.single !== undefined) fields.push('single');
+  return fields;
+}
+
+function openEdit(cid, idx) {
+  editingItem = { cid, idx, isNew: false };
+  const item = DB[cid].items[idx];
+  document.getElementById('editTitle').textContent = `Элемент #${item.id}`;
+  document.getElementById('editBody').innerHTML = buildForm(cid, item);
+  document.getElementById('editPanel').classList.remove('hidden');
+  bindHexInputs();
+}
+
+function openNewForm() {
+  if (!activeCatId) return;
+  const cid = activeCatId;
+  const maxId = DB[cid].items.reduce((m, i) => Math.max(m, i.id||0), 0);
+  const newItem = { id: maxId + 1, short: '', val: '' };
+  const sample = DB[cid].items[0];
+  if (sample && sample.hex) newItem.hex = ['#000000','#808080','#ffffff'];
+  if (sample && sample.t)   newItem.t = { flat:'', spatial:'', product:'', digital:'', apparel:'' };
+  if (sample && sample.single !== undefined) newItem.single = '';
+  editingItem = { cid, idx: -1, isNew: true };
+  document.getElementById('editTitle').textContent = 'Новый элемент';
+  document.getElementById('editBody').innerHTML = buildForm(cid, newItem);
+  document.getElementById('editPanel').classList.remove('hidden');
+  bindHexInputs();
+}
+
+function buildForm(cid, item) {
+  const fields = getSchema(cid, item);
+  let html = `<input type="hidden" id="f_id" value="${item.id}">`;
+  if (fields.includes('short')) {
+    html += `<div class="field"><label>Short (название кнопки)</label><input type="text" id="f_short" value="${escA(item.short||'')}"></div>`;
+  }
+  if (fields.includes('val')) {
+    html += `<div class="field"><label>Val (полный текст)</label><textarea id="f_val" rows="4">${escH(item.val||'')}</textarea></div>`;
+  }
+  if (fields.includes('single')) {
+    html += `<div class="field"><label>Single (короткий вариант)</label><input type="text" id="f_single" value="${escA(item.single||'')}"></div>`;
+  }
+  if (fields.includes('hex')) {
+    const h = item.hex || ['#000000','#808080','#ffffff'];
+    html += `<div class="field"><label>Цвета hex</label>`;
+    [0,1,2].forEach(i => {
+      html += `<div class="hex-row" style="margin-bottom:6px">
+        <span style="font-size:10px;color:var(--muted);min-width:20px">${i+1}</span>
+        <input type="text" id="f_hex_${i}" value="${escA(h[i]||'')}" maxlength="9" oninput="updateHex(${i})">
+        <div class="hex-preview" id="hp_${i}" style="background:${h[i]||'#000'}"></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  if (fields.includes('t')) {
+    const t = item.t || {};
+    html += `<div class="field"><label>Варианты по формату (t)</label><div class="t-fields">`;
+    ['flat','spatial','product','digital','apparel'].forEach(k => {
+      html += `<div class="field"><label>${k}</label><input type="text" id="f_t_${k}" value="${escA(t[k]||'')}"></div>`;
+    });
+    html += `</div></div>`;
+  }
+  return html;
+}
+
+function bindHexInputs() {
+  [0,1,2].forEach(i => {
+    const el = document.getElementById(`f_hex_${i}`);
+    if (el) el.addEventListener('input', () => updateHex(i));
+  });
+}
+
+function updateHex(i) {
+  const val = document.getElementById(`f_hex_${i}`)?.value || '';
+  const prev = document.getElementById(`hp_${i}`);
+  if (prev) prev.style.background = val || '#000';
+}
+
+function applyEdit() {
+  if (!editingItem) return;
+  const { cid, idx, isNew } = editingItem;
+  const item = {};
+
+  const idEl = document.getElementById('f_id');
+  item.id = parseInt(idEl?.value) || (DB[cid].items.reduce((m,i)=>Math.max(m,i.id),0)+1);
+
+  const short = document.getElementById('f_short');
+  if (short) item.short = short.value;
+
+  const val = document.getElementById('f_val');
+  if (val) item.val = val.value;
+
+  const single = document.getElementById('f_single');
+  if (single) item.single = single.value;
+
+  const h0 = document.getElementById('f_hex_0');
+  if (h0) item.hex = [h0.value, document.getElementById('f_hex_1')?.value||'', document.getElementById('f_hex_2')?.value||''];
+
+  const tFlat = document.getElementById('f_t_flat');
+  if (tFlat) {
+    item.t = {};
+    ['flat','spatial','product','digital','apparel'].forEach(k => {
+      item.t[k] = document.getElementById(`f_t_${k}`)?.value || '';
+    });
+  }
+
+  if (isNew) {
+    DB[cid].items.push(item);
+  } else {
+    DB[cid].items[idx] = item;
+  }
+
+  closeEdit();
+  renderItems(cid);
+  renderSidebar();
+  setStatus('Изменено — не забудьте сохранить', '');
+}
+
+function closeEdit() {
+  editingItem = null;
+  document.getElementById('editPanel').classList.add('hidden');
+}
+
+function deleteItem(cid, idx) {
+  const item = DB[cid].items[idx];
+  if (!confirm(`Удалить "${item.short || item.val || '#'+item.id}"?`)) return;
+  DB[cid].items.splice(idx, 1);
+  renderItems(cid);
+  renderSidebar();
+  setStatus('Удалено — не забудьте сохранить', '');
+}
+
+// ─── SAVE ─────────────────────────────────────────────────
+async function saveDB() {
+  setStatus('Сохранение...', '');
+  try {
+    const r = await fetch('/strips-db/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(DB)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || r.status);
+    const now = new Date().toLocaleTimeString('ru-RU');
+    setStatus(`✓ Сохранено: ${data.categories} кат., ${data.total_items} эл. [${now}]`, 'ok');
+  } catch(e) {
+    setStatus('Ошибка сохранения: ' + e.message, 'err');
+  }
+}
+
+// ─── BAKE ─────────────────────────────────────────────────
+function openBakeModal() { document.getElementById('bakeModal').classList.remove('hidden'); }
+function closeBakeModal() { document.getElementById('bakeModal').classList.add('hidden'); }
+
+async function doBake() {
+  closeBakeModal();
+  setStatus('Запекание в strips.html...', '');
+  try {
+    // Сначала сохраняем
+    const sr = await fetch('/strips-db/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(DB)
+    });
+    if (!sr.ok) throw new Error('Ошибка сохранения перед запеканием');
+    // Запекаем
+    const br = await fetch('/strips-db/bake', { method: 'POST' });
+    const data = await br.json();
+    if (!br.ok) throw new Error(data.error || br.status);
+    const now = new Date().toLocaleTimeString('ru-RU');
+    setStatus(`🔥 Запечено в strips.html [${now}] — бэкап: ${data.backup}`, 'ok');
+  } catch(e) {
+    setStatus('Ошибка запекания: ' + e.message, 'err');
+  }
+}
+
+// ─── UTILS ────────────────────────────────────────────────
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escA(s) { return String(s).replace(/"/g,'&quot;'); }
+
+// ─── START ────────────────────────────────────────────────
+loadDB();
+</script>
+</body>
+</html>
