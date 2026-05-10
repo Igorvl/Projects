@@ -3890,7 +3890,7 @@ const CATEGORIES = {
       short: 'Gallium, Alabaster, Gold',
       val: 'First Base: liquid Gallium silver, Second Base: Alabaster, Third Base: Brushed Gold',
       hex: ['#8A8D8F', '#F2F0E6', '#D4AF37']
-    },, {
+    }, {
       id: 116,
       short: 'Rust, Olive, Bone',
       val: 'First Base: Rust Orange, Second Base: Olive Green, Third Base: Bone',
@@ -11865,7 +11865,14 @@ const App = () => {
       cmp: composition,
       rf: refs
     };
-    window.history.replaceState(null, '', '#' + encodeURIComponent(JSON.stringify(state)));
+    try {
+      const serialized = '#' + encodeURIComponent(JSON.stringify(state));
+      if (serialized.length < 1500000) {
+        window.history.replaceState(null, '', serialized);
+      }
+    } catch (e) {
+      console.warn('[STRIPS] replaceState skipped (state too large or SecurityError):', e.message);
+    }
     const parserParts = [];
     Object.keys(CATEGORIES).forEach(cId => {
       const sel = selectedItems[cId] || [];
@@ -12093,7 +12100,7 @@ const App = () => {
     if (!selections || selections.length === 0) return `[[C${cId}]]`;
     const searchItems = CATEGORIES[cId].items;
     return selections.map(id => {
-      const item = searchItems.find(i => i.id === id);
+      const item = searchItems ? searchItems.find(i => i.id === id) : undefined;
       if (!item) return '';
       let textVal = item.val;
       const singleFormatModes = ['poster', 'poster_narrative', 'identity', 'packaging', 'cosmetics', 'space', 'product', 'ui', 'merch', 'editorial', 'wayfinding', 'aero', 'installation', 'video'];
@@ -12465,10 +12472,37 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
     }
     return buildCorePrompt();
   };
+  const safeGeneratePrompt = () => {
+    try {
+      return generatePrompt();
+    } catch (e) {
+      console.error('[STRIPS] generatePrompt error:', e);
+      return '[ Prompt generation error — select at least one option per category ]';
+    }
+  };
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatePrompt());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      const text = safeGeneratePrompt();
+      const doFallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(doFallback);
+      } else {
+        doFallback();
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error('copyToClipboard error:', e);
+    }
   };
   const statusString = useMemo(() => Object.keys(CATEGORIES).map(cId => `C${cId} [${selectedItems[cId]?.length || 0}]`).join(' '), [selectedItems]);
   const colorSelection = selectedItems[3]?.[0];
@@ -12519,10 +12553,16 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
     className: "m-0 text-lg md:text-xl tracking-widest uppercase font-black text-white"
   }, "STRIPS PRO GEN"), /*#__PURE__*/React.createElement("div", {
     className: "text-[9px] md:text-[10px] text-[#c8aa6e] tracking-widest uppercase mt-1"
-  }, "V58: FULL RESTORATION")), /*#__PURE__*/React.createElement("button", {
+  }, "V58: FULL RESTORATION")), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 items-center"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: resetProtocols,
+    className: "text-[10px] px-3 py-1.5 border border-[#7a8294]/40 text-[#7a8294] hover:border-[#c8aa6e]/50 hover:text-[#c8aa6e] font-bold uppercase transition-colors rounded-sm cursor-pointer",
+    title: "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0431\u0430\u0437\u043e\u0432\u044b\u0435 \u043f\u0440\u0435\u0441\u0435\u0442\u044b"
+  }, "\u21BA Refresh"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowBrief(true),
     className: "text-[10px] px-3 py-1.5 border border-[#c8aa6e]/50 text-[#c8aa6e] hover:bg-[#c8aa6e] hover:text-black font-bold uppercase transition-colors rounded-sm cursor-pointer"
-  }, "PDF Brief")), /*#__PURE__*/React.createElement("div", {
+  }, "PDF Brief"))), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 overflow-y-auto flex flex-col min-h-0 custom-scrollbar"
   }, /*#__PURE__*/React.createElement("div", {
     className: "p-4 border-b border-[#23262e] bg-[#0a0c0f]"
@@ -12993,7 +13033,7 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
     value: key
   }, sc.name)))), /*#__PURE__*/React.createElement("textarea", {
     readOnly: true,
-    value: generatePrompt(),
+    value: safeGeneratePrompt(),
     className: "flex-1 w-full bg-[#0f1115] text-[#d4d4d4] border border-[#23262e] p-3 font-mono text-[11px] leading-relaxed resize-none outline-none focus:border-[#c8aa6e]/50 transition-colors rounded-sm custom-scrollbar"
   }))), /*#__PURE__*/React.createElement("button", {
     onClick: copyToClipboard,
@@ -13239,7 +13279,7 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
     className: "text-[9px] font-mono text-gray-500"
   }, "ENGINE: V6.1 / GEN-3")), /*#__PURE__*/React.createElement("div", {
     className: "font-mono text-[10px] leading-loose break-words whitespace-pre-wrap text-gray-300"
-  }, generatePrompt()))))), /*#__PURE__*/React.createElement("style", {
+  }, safeGeneratePrompt()))))), /*#__PURE__*/React.createElement("style", {
     dangerouslySetInnerHTML: {
       __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
