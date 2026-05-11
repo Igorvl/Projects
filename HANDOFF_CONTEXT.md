@@ -1,4 +1,4 @@
-# Project DNA: ⚡ Antigravity Handoff Context (2026-04-29)
+# Project DNA: ⚡ Antigravity Handoff Context (2026-05-11)
 
 **Критически важно:** Этот файл содержит инъекцию контекста для нового ИИ-ассистента при смене сессии. Внимательно изучи текущее состояние, чтобы не предлагать отвергнутые решения и понимать архитектурные особенности данного окружения. Обязательно прочитай `project_dna_full_context.md` и `PRIVATE_CONTEXT.md` в рабочей директории, прежде чем приступать к коду.
 
@@ -6,14 +6,14 @@
 
 ## 📸 1. Snapshot состояния (State Snapshot)
 
-**Текущая задача:** Завершён релиз **Strips Pro Gen V46** — инструмента генерации Midjourney-промптов для Ксении Артман. Инструмент работает как standalone-страница `/strips` FastAPI-дашборда Behance Scout на сервере `172.25.9.33:7788`.
+**Текущая задача:** Завершён релиз **Strips Pro Gen V59** — инструмента генерации Midjourney-промптов для Ксении Артман. Инструмент работает как standalone-страница `/strips` FastAPI-дашборда Behance Scout на сервере `172.25.9.33:7788`.
 
 **Последние 5 архитектурных изменений:**
-1. **Strips Pro Gen V46 (strips.html):** Обновлён генератор промптов с V45 до V46. Добавлены: формат `Косметика/Парфюм`, Behance Mode, пользовательские сохраняемые протоколы (localStorage), поля `projectTitle` и `customText`, взаимоисключение Matrix/Behance режимов. Файл: `behance_scout/dashboard/templates/strips.html`.
-2. **Custom Protocols (localStorage):** Реализована система пользовательских пресетов — сохранение текущего состояния в `localStorage` с именем, загрузка при старте, удаление по кнопке ✕. Ключ: `ksar_custom_protocols`.
-3. **Cosmetics Format:** Добавлен новый тип формата `cosmetics` (Косметика/Парфюм) с ролью luxury packaging designer, адаптером материалов (heavy glass, metal inlay, ceramic frit), отдельными правилами (минимализм, негативное пространство) и камерой (marble surface / raking light).
+1. **Strips Pro Gen V59 (strips.html):** Обновлён генератор промптов до V59. Добавлено 9 новых форматов, 10 интерьерных протоколов, обновлено 6 существующих форматов.
+2. **Оптимизация размера (strips_db.js):** База данных `CATEGORIES` вынесена из `strips.html` в отдельный файл `dashboard/static/strips_db.js`. Это сократило размер `strips.html` с 881 KB до 374 KB, значительно ускорив разработку. `strips.html` использует маркеры `[[CATEGORIES_START]]` и загружает базу через тег `<script>`.
+3. **PDF Export Patch:** Настроен корректный экспорт в PDF. Формат страниц А4, промпт всегда начинается с отдельной страницы, шрифт промпта уменьшен до 6pt Helvetica, добавлена textarea для заметок клиента.
 4. **URL Hash State Extended:** В URL hash добавлены поля `bh` (behanceMode), `pt` (projectTitle), `ct` (customText) для полного восстановления состояния между сессиями.
-5. **Deploy Flow зафиксирован:** Сервер живёт на Linux Ubuntu (`linux-job`, `172.25.9.33`). Папка: `/home/igorvl/ai-design-workspace/behance_scout/`. Запуск: `venv/bin/python run.py --dashboard`. Деплой: ручной Ctrl+C/Ctrl+V через GUI файловый менеджер (WinSCP или SMB). После замены `strips.html` — перезапуск сервера НЕ нужен (читает с диска при каждом запросе). После замены `app.py` — перезапуск нужен (`sudo pkill -f uvicorn` → `venv/bin/python run.py --dashboard`).
+5. **Deploy Flow зафиксирован:** Сервер живёт на Linux Ubuntu (`linux-job`, `172.25.9.33`). Папка: `/home/igorvl/ai-design-workspace/behance_scout/`. Запуск: `venv/bin/python run.py --dashboard`. Деплой: ручной перенос через `scp` (теперь нужно переносить и `strips.html`, и `static/strips_db.js`). После замены `strips.html` — перезапуск сервера НЕ нужен. После замены `app.py` — перезапуск нужен (`sudo pkill -f uvicorn` → `venv/bin/python run.py --dashboard`).
 
 **Список активных (переходящих) задач и багов:**
 *   [Task] **Strips V47:** Возможные будущие улучшения — поле для Brief (краткое описание проекта), история последних N промптов, экспорт пресетов в JSON.
@@ -34,7 +34,7 @@ behance_scout/
     ├── app.py                      # FastAPI: GET /strips → читает strips.html с диска
     │                               # POST /api/strips/ai → LLM каскад (OpenRouter → SiliconFlow)
     └── templates/
-        └── strips.html             # V46 — standalone React app (Babel CDN)
+        └── strips.html             # V59 — standalone React app (Babel CDN)
 ```
 
 **Маршруты:**
@@ -49,7 +49,7 @@ behance_scout/
 - Состояние в URL hash (`#%7B...%7D`) — полное восстановление по ссылке
 - Custom protocols в `localStorage` (ключ `ksar_custom_protocols`)
 
-**Категории V46 (11 категорий):**
+**Категории V59 (11 категорий, вынесены в `dashboard/static/strips_db.js`):**
 | # | Название | Размер |
 |---|---|---|
 | C1 | Школа Дизайна | 123 элемента |
@@ -64,14 +64,15 @@ behance_scout/
 | C10 | Триггер-Фокус | 60 дисрупторов |
 | C11 | Свет и Атмосфера | 20 схем |
 
-**Форматы (TARGET_FORMATS):**
-`strips` · `poster` · `identity` · `packaging` · `cosmetics` (NEW V46) · `space` · `product` · `merch` · `editorial` · `ui` · `wayfinding` · `aero` · `installation` · `motion`
+**Форматы (TARGET_FORMATS - 23 формата):**
+`strips` · `poster` · `identity` · `packaging` · `cosmetics` · `space` · `product` · `merch` · `editorial` · `ui` · `wayfinding` · `aero` · `installation` · `motion` · `ui2` · `popup` · `furniture` · `hard_luxury` · `exterior` · `robotics` · `typeface` · `scientific_viz` · `procedural_art`
 
-**Протоколы (встроенные пресеты):**
+**Протоколы (встроенные пресеты - 14 штук):**
 - `ABYSSAL` — глубоководный ресёрч, каустика
 - `CLINICAL` — стерильная мед-инженерия
 - `TECTONIC` — тяжёлый бетон, разрушение
 - `STEALTH $` — тихая роскошь, идеальная сборка
+- + 10 элитных интерьерных концептов (interior_subsurface, interior_acoustic, interior_cryogenic и т.д.)
 - + пользовательские (localStorage)
 
 ---
