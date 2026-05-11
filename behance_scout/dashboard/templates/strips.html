@@ -472,7 +472,89 @@ const DEFAULT_PROTOCOLS = {
     cmp: 'none',
     tf: 'strips_narrative',
     ns: 'hospitality'
-  }
+  },
+
+  // --- 10 ELITE INTERIOR CONCEPTS (K.S.A.R. / P.S.D.N.) ---
+  interior_subsurface: {
+    name: '1. THE SUBSURFACE SANCTUARY',
+    desc: 'Подповерхностный рассеянный свет и темный люкс.',
+    s: { 1:[125], 2:[7], 3:[118], 4:[10], 5:[80], 6:[9], 7:[42], 8:[76], 9:[7], 10:[1], 11:[8] },
+    p: { subsurface: 100, tension: 0, clinical: 0 },
+    mj: { ar: '16:9', stylize: 400, chaos: 0, weird: 0, sref: '' },
+    fp: 'medium_format', mx: false, rr: true, lx: 90, dy: 0, cmp: 'none', tf: 'space'
+  },
+  interior_windtunnel: {
+    name: '2. KINETIC WIND-TUNNEL',
+    desc: 'Аэродинамика, кинетика и ламинарные потоки.',
+    s: { 1:[49], 2:[60], 3:[16], 4:[1], 5:[99], 6:[23], 7:[56], 8:[22], 9:[21], 10:[2], 11:[4] },
+    p: { subsurface: 10, tension: 80, clinical: 40 },
+    mj: { ar: '16:9', stylize: 300, chaos: 5, weird: 0, sref: '' },
+    fp: 'none', mx: false, rr: true, lx: 80, dy: 0, cmp: 'none', tf: 'space'
+  },
+  interior_anechoic: {
+    name: '3. THE ANECHOIC VOID',
+    desc: 'Абсолютная тишина, звукопоглощение и пустота.',
+    s: { 1:[153], 2:[37], 3:[1], 4:[10], 5:[73], 6:[61], 7:[45], 8:[95], 9:[2], 10:[4], 11:[21] },
+    p: { subsurface: 0, tension: 0, clinical: 0 },
+    mj: { ar: '16:9', stylize: 250, chaos: 0, weird: 0, sref: '' },
+    fp: 'imax', mx: false, rr: true, lx: 10, dy: 0, cmp: 'symmetry', tf: 'space'
+  },
+  interior_mycelium: {
+    name: '4. MYCELIUM PAVILION',
+    desc: 'Симбиоз бетона и алгоритмической грибницы.',
+    s: { 1:[150], 2:[311], 3:[31], 4:[3], 5:[74], 6:[11], 7:[97], 8:[45], 9:[18], 10:[33], 11:[15] },
+    p: { subsurface: 30, tension: 10, clinical: 0 },
+    mj: { ar: '16:9', stylize: 350, chaos: 10, weird: 0, sref: '' },
+    fp: 'portra', mx: false, rr: true, lx: 50, dy: 40, cmp: 'none', tf: 'space'
+  },
+  interior_deepsea: {
+    name: '5. DEEP-SEA HYDRO SPA',
+    desc: 'Каустика, физика давления и батискафы.',
+    s: { 1:[137], 2:[17], 3:[49], 4:[5], 5:[83], 6:[48], 7:[13], 8:[82], 9:[17], 10:[72], 11:[25] },
+    p: { subsurface: 60, tension: 100, clinical: 0 },
+    mj: { ar: '16:9', stylize: 400, chaos: 5, weird: 0, sref: '' },
+    fp: 'imax', mx: false, rr: true, lx: 80, dy: 50, cmp: 'none', tf: 'space'
+  },
+  interior_cleanroom: {
+    name: '6. ISO-1 CLEANROOM',
+    desc: 'Тотальная стерильность и янтарный свет.',
+    s: { 1:[10], 2:[110], 3:[43], 4:[16], 5:[64], 6:[12], 7:[64], 8:[91], 9:[4], 10:[5], 11:[22] },
+    p: { subsurface: 0, tension: 0, clinical: 100 },
+    mj: { ar: '16:9', stylize: 200, chaos: 0, weird: 0, sref: '' },
+    fp: 'sem', mx: false, rr: true, lx: 70, dy: 0, cmp: 'orthographic', tf: 'space'
+  },
+  interior_tensegrity: {
+    name: '7. TENSEGRITY PENTHOUSE',
+    desc: 'Архитектурное напряжение, парящие плиты.',
+    s: { 1:[124], 2:[45], 3:[2], 4:[8], 5:[72], 6:[74], 7:[43], 8:[36], 9:[22], 10:[71], 11:[6] },
+    p: { subsurface: 0, tension: 100, clinical: 20 },
+    mj: { ar: '16:9', stylize: 350, chaos: 0, weird: 0, sref: '' },
+    fp: 'medium_format', mx: false, rr: true, lx: 70, dy: 0, cmp: 'low_angle', tf: 'space'
+  },
+  interior_holographic: {
+    name: '8. HOLOGRAPHIC LOBBY',
+    desc: 'Оптическая среда, лазеры и кварцевое стекло.',
+    s: { 1:[133], 2:[63], 3:[17], 4:[2], 5:[87], 6:[89], 7:[10], 8:[63], 9:[1], 10:[37], 11:[21] },
+    p: { subsurface: 90, tension: 10, clinical: 80 },
+    mj: { ar: '16:9', stylize: 500, chaos: 0, weird: 0, sref: '' },
+    fp: 'octane', mx: false, rr: true, lx: 90, dy: 0, cmp: 'none', tf: 'space'
+  },
+  interior_kintsugi: {
+    name: '9. KINTSUGI RUIN',
+    desc: 'Брутализм, расколотый временем, и золото.',
+    s: { 1:[118], 2:[166], 3:[22], 4:[9], 5:[3], 6:[70], 7:[42], 8:[46], 9:[7], 10:[111], 11:[8] },
+    p: { subsurface: 0, tension: 60, clinical: 0 },
+    mj: { ar: '16:9', stylize: 400, chaos: 10, weird: 0, sref: '' },
+    fp: 'ilford', mx: false, rr: true, lx: 90, dy: 80, cmp: 'none', tf: 'space'
+  },
+  interior_cryogenic: {
+    name: '10. CRYOGENIC ARCHIVE',
+    desc: 'Термодинамика, абсолютный нуль и иней.',
+    s: { 1:[161], 2:[39], 3:[53], 4:[3], 5:[17], 6:[5], 7:[79], 8:[100], 9:[11], 10:[106], 11:[18] },
+    p: { subsurface: 50, tension: 30, clinical: 70 },
+    mj: { ar: '16:9', stylize: 250, chaos: 0, weird: 0, sref: '' },
+    fp: 'flir', mx: false, rr: true, lx: 80, dy: 10, cmp: 'none', tf: 'space'
+  },
 };
 const DEFAULT_POSTER_SCENARIOS = {
   // --- BASE SCENARIOS ---
@@ -11650,7 +11732,16 @@ const TARGET_FORMATS = {
   wayfinding: 'НАВИГАЦИЯ',
   installation: 'АРТ-ИНСТАЛЛЯЦИЯ',
   ui: 'ИНТЕРФЕЙС',
-  video: 'ВИДЕО (RUNWAY/LUMA)'
+  ui2: 'UI 3D MOCKUP',
+  video: 'ВИДЕО (RUNWAY/LUMA)',
+  popup: 'ПОП-АП СТОР',
+  furniture: 'МЕБЕЛЬ',
+  hard_luxury: 'ХАРД-ЛЮКС',
+  exterior: 'ЭКСТЕРЬЕР',
+  robotics: 'РОБОТИКА',
+  typeface: 'ТИПОГРАФИКА',
+  scientific_viz: 'НАУЧНАЯ ВИЗ.',
+  procedural_art: 'ПРОЦЕДУРНОЕ АРТ'
 };
 const App = () => {
   const [selectedItems, setSelectedItems] = useState({});
@@ -12078,9 +12169,11 @@ const App = () => {
   };
   const getFormatFamily = format => {
     if (['space', 'wayfinding', 'installation'].includes(format)) return 'spatial';
-    if (['product', 'aero', 'cosmetics', 'packaging'].includes(format)) return 'product';
+    if (['product', 'aero', 'cosmetics', 'packaging', 'furniture', 'hard_luxury', 'robotics'].includes(format)) return 'product';
     if (['merch'].includes(format)) return 'apparel';
-    if (['ui', 'video'].includes(format)) return 'digital';
+    if (['ui', 'ui2', 'video', 'scientific_viz', 'procedural_art'].includes(format)) return 'digital';
+    if (['exterior', 'popup'].includes(format)) return 'spatial';
+    if (['typeface'].includes(format)) return 'flat';
     return 'flat';
   };
   const formatAdapterEngine = (text, formatFamily) => {
@@ -12105,7 +12198,7 @@ const App = () => {
       const item = searchItems ? searchItems.find(i => i.id === id) : undefined;
       if (!item) return '';
       let textVal = item.val;
-      const singleFormatModes = ['poster', 'poster_narrative', 'identity', 'packaging', 'cosmetics', 'space', 'product', 'ui', 'merch', 'editorial', 'wayfinding', 'aero', 'installation', 'video'];
+      const singleFormatModes = ['poster', 'poster_narrative', 'identity', 'packaging', 'cosmetics', 'space', 'product', 'ui', 'ui2', 'merch', 'editorial', 'wayfinding', 'aero', 'installation', 'video', 'popup', 'furniture', 'hard_luxury', 'exterior', 'robotics', 'typeface', 'scientific_viz', 'procedural_art'];
       if (String(cId) === '4' && singleFormatModes.includes(targetFormat)) {
         textVal = item.single || item.val;
       } else if (['5', '6', '10'].includes(String(cId)) && item.t && formatFamily !== 'flat') {
@@ -12139,6 +12232,15 @@ const App = () => {
     if (targetFormat === 'ui') formatExcluded.push('soft shadows', 'roundedCorners', '3D elements', 'glassmorphism', 'mobile phone mockup', 'skewed perspective', 'messy overlapping');
     if (targetFormat === 'aero') formatExcluded.push('3D render', 'plastic', 'cheap materials', 'glowing sci-fi orbs', 'toy car', 'miniature');
     if (targetFormat === 'installation') formatExcluded.push('3D render', 'unreal engine', 'concept art', 'sci-fi', 'floating elements', 'impossible physics');
+    if (targetFormat === 'ui2') formatExcluded.push('flat 2D screenshot', 'messy overlapping', 'generic template', 'stock photo device');
+    if (targetFormat === 'furniture') formatExcluded.push('3D render', 'plastic', 'cheap materials', 'floating furniture', 'impossible joinery');
+    if (targetFormat === 'hard_luxury') formatExcluded.push('plastic', 'cheap materials', 'garish decoration', 'generic watch', 'sci-fi glow');
+    if (targetFormat === 'exterior') formatExcluded.push('impossible physics', 'floating structure', 'sci-fi', 'generic CGI', 'cheap render');
+    if (targetFormat === 'robotics') formatExcluded.push('sci-fi fantasy', 'toy robot', 'anime mech', 'neon glow', 'impossible mechanics');
+    if (targetFormat === 'typeface') formatExcluded.push('blurry text', 'distorted letterforms', 'messy layout', 'pixel art', 'rasterized fonts');
+    if (targetFormat === 'scientific_viz') formatExcluded.push('generic chart', 'powerpoint', 'clipart', 'sci-fi fantasy', 'inaccurate data');
+    if (targetFormat === 'procedural_art') formatExcluded.push('generic noise field', 'cliche fractal', 'mandelbrot', 'basic perlin noise', 'stock generative art');
+    if (targetFormat === 'popup') formatExcluded.push('empty space', 'generic retail', 'cheap fixtures', 'floating shelves without logic');
     const psdnParts = [];
     if (psdnParams.subsurface > 0) psdnParts.push(`extreme subsurface scattering and internal illumination (${psdnParams.subsurface}%)`);
     if (psdnParams.tension > 0) psdnParts.push(`high kinetic structural tension and material stress (${psdnParams.tension}%)`);
@@ -12162,7 +12264,7 @@ const App = () => {
       finalC7 = `Massive typography reading exactly '${projectTitle || 'DESIGN'}'${customText ? ` with dense micro-text reading '${customText}'` : ''}`;
     }
     let c4Text = getVal(4);
-    if (['poster', 'poster_narrative', 'identity', 'packaging', 'cosmetics', 'space', 'product', 'ui', 'merch', 'editorial', 'wayfinding', 'aero', 'installation', 'video'].includes(targetFormat)) {
+    if (['poster', 'poster_narrative', 'identity', 'packaging', 'cosmetics', 'space', 'product', 'ui', 'ui2', 'merch', 'editorial', 'wayfinding', 'aero', 'installation', 'video', 'popup', 'furniture', 'hard_luxury', 'exterior', 'robotics', 'typeface', 'scientific_viz', 'procedural_art'].includes(targetFormat)) {
       if (selectedItems[4] && selectedItems[4].length > 0) {
         c4Text = selectedItems[4].map(id => CATEGORIES[4].items.find(i => i.id === id)?.single || CATEGORIES[4].items.find(i => i.id === id)?.val).filter(Boolean).join(' ');
       }
@@ -12290,66 +12392,89 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
 
     // === MERCH FORMAT ===
     if (targetFormat === 'merch') {
-      let targetObj = customSubject || 'an avant-garde utilitarian garment';
-      return `Role: Avant-garde fashion art director and technical apparel designer. Your task is to generate an editorial fashion studio editorial fashion shot photograph of ${targetObj}.
+      let targetObj = customSubject || 'avant-garde utilitarian garment';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary focus and core physical garment being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite avant-garde fashion designer, technical apparel pattern-maker, and high-end editorial fashion photographer. Your task is to generate a hyper-realistic, museum-quality fashion studio photograph of ${targetObj}.
 
-The composition must adhere to a strict rule: CRITICAL APPAREL RULE: Emphasize real fabrics, stitching, woven tags, and heavy silkscreen prints. Shot as high-end editorial fashion photography.${angleInstruction}
+CRITICAL APPAREL STAGING RULE: Emphasize the physical drape, intricate tailoring, heavy hardware, and extreme textile textures. The garment must be presented as a premium sartorial artifact. Use a "ghost mannequin" technique or a faceless editorial model to ensure the focus remains entirely on the structural anatomy, seams, and fabric manipulation of the clothing rather than the person.${angleInstruction}${subjectText}
 
-The silhouette and tailoring of the ${targetObj} are structured around ${getVal(5)}, heavily featuring utilitarian details like ${getVal(6)}. Graphic applications read: ${finalC7}. The overall industrial design language of the ${targetObj} is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The overall fashion identity and silhouette are heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the ${targetObj}—is ${getVal(10)}.
+[Structure & Materiality] The tailoring, pattern-blocking, and garment drape are engineered using ${getVal(5)}. Textile materiality is paramount: the exterior shell relies heavily on ${getVal(8)}. Utilitarian hardware, trims, and graphic markers feature ${getVal(6)}. Prominent apparel typography or woven labels read: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the garment must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText}${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the visibility of fabric weaves, seam tension, and material finish.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or key structural/graphic detail disrupting the garment\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, high-fashion commercial advertising quality. Pristine minimalist studio setting. No cheap 3D cloth simulations, no impossible floating fabrics, strict gravitational drape physics. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
     }
 
     // === WAYFINDING FORMAT ===
     if (targetFormat === 'wayfinding') {
-      let targetObj = customSubject || 'exhibition space';
-      return `Role: Lead environmental graphic designer and architectural photographer. Your task is to generate a photorealistic wide environmental shot photograph of environmental wayfinding and brutalist signage in a dark industrial space for ${targetObj}.
+      let targetObj = customSubject || 'spatial environment';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary physical space and context for this signage system MUST be: ${customSubject}.` : '';
+      return `Role: Elite environmental graphic designer, spatial typographer, and architectural photographer. Your task is to generate a hyper-realistic, museum-quality architectural photograph focusing on a physical wayfinding and signage system.
 
-The composition must adhere to a strict rule: CRITICAL WAYFINDING RULE: The design must function as physical signage. Include concrete pylons, brushed metal plaques, and illuminated lightboxes.${angleInstruction}
+CRITICAL WAYFINDING RULE: The typography and navigation graphics MUST be physically integrated into the architecture. Absolutely no floating digital text or 2D overlays. The signage must exist as real, physical materials (engraved, embossed, illuminated, cast, or painted) interacting organically with the environment's lighting and shadows. Emphasize spatial scale, leading lines, and graphic integration.${angleInstruction}${subjectText}
 
-The architectural volume of the ${targetObj} is governed by ${getVal(5)}, integrating spatial navigation such as ${getVal(6)}. Monumental typography in the environment reads: ${finalC7}. The overall industrial design language of the ${targetObj} is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The overall spatial identity and typography are heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the ${targetObj}—is ${getVal(10)}.
+[Structure & Materiality] The architectural volume and signage layout are engineered using ${getVal(5)}. Materiality is paramount: the physical execution of the signs and the surrounding space relies heavily on ${getVal(8)}. Spatial navigation markers and wayfinding graphics feature ${getVal(6)}. Monumental typography in the environment reads: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the architecture and signage must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText}${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the visibility of material textures, embossing, and environmental atmosphere.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or key structural detail disrupting the wayfinding system\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, architectural digest commercial quality. Pristine spatial staging. No messy clutter, no impossible floating elements, strict physical realism. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
     }
 
     // === AERO FORMAT ===
     if (targetFormat === 'aero') {
-      let targetObj = customSubject || 'advanced aerospace vehicle';
-      return `Role: Lead aerospace engineer and high-end automotive photographer. Your task is to generate a photorealistic dramatic low-angle automotive studio shot photograph of an aerospace ${targetObj}.
+      let targetObj = customSubject || 'advanced vehicle concept';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary transportation or aerospace vehicle being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite transportation designer, aerospace engineer, and high-end automotive photographer. Your task is to generate a hyper-realistic, museum-quality commercial studio or hangar photograph of ${targetObj}.
 
-The composition must adhere to a strict rule: CRITICAL ENGINEERING RULE: Apply the "Rule of 3 Materials" (Primary Hull, Functional Heat-Sinks/Exhausts, Landing/Base Foundation). Emphasize aerodynamics, carbon fiber composite paneling, and flawless heavy engineering.${angleInstruction}
+CRITICAL VEHICLE STAGING RULE: Emphasize aerodynamic surfacing, zero-tolerance panel gaps, mechanical stance, and flawless CMF (Color, Material, Finish) execution. The vehicle must feel heavy, grounded, and fully functional. Present it in a pristine minimalist aerospace hangar, a dark automotive cyclorama studio, or on a seamless tarmac. Avoid generic sci-fi tropes or toy-like miniature scaling; focus on strict industrial engineering realism.${angleInstruction}${subjectText}
 
-The aerodynamic chassis of the ${targetObj} is constructed using ${getVal(5)}. Technical telemetry and structural decals include ${getVal(6)}. Aerospace serialization reads: ${finalC7}. The overall industrial design language of the ${targetObj} is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The overall design language and aerodynamic silhouette are heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the ${targetObj}—is ${getVal(10)}.
+[Structure & Materiality] The vehicle's chassis and aerodynamic volumes are engineered using ${getVal(5)}. Materiality is paramount: the exterior coachwork and components rely heavily on ${getVal(8)}. Technical telemetry, vents, and functional markers feature ${getVal(6)}. Aerospace serialization or automotive branding reads: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the hull must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText} The vehicle is staged in a massive, pristine minimalist aerospace hangar or high-end automotive cyclorama studio. Seamless concrete or dark tarmac floor. No sci-fi fantasy, no messy clutter.${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the caustic reflections on the clearcoat, metallic highlights, and aerodynamic curves.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or key functional/kinetic detail disrupting the vehicle\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, commercial automotive advertising quality. No cheap 3D plastic renders, no messy clutter, no impossible physics. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
     }
 
     // === INSTALLATION FORMAT ===
     if (targetFormat === 'installation') {
-      let targetObj = customSubject || 'exhibition space';
-      return `Role: World-renowned contemporary installation artist and spatial photographer. Your task is to generate a photorealistic wide gallery shot photograph of an avant-garde art installation or architectural monolith representing ${targetObj}.
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The central masterpiece and focal point of the installation MUST be: ${customSubject}.` : '';
+      return `Role: Elite contemporary installation artist, museum curator, and fine-art architectural photographer. Your task is to generate a hyper-realistic, museum-quality wide gallery photograph of a monumental, immersive art installation.
 
-The composition must adhere to a strict rule: CRITICAL INSTALLATION RULE: Maximize optical refractions, subsurface scattering, and sheer scale.${angleInstruction}
+CRITICAL EXHIBITION STAGING RULE: The artwork must be physically grounded in a vast, minimalist museum or gallery space (e.g., polished concrete floors, soaring ceilings). Emphasize sheer architectural scale, physical presence, and the interplay between the object and the negative space around it. Humans can be subtly included purely for massive scale reference, but the art remains the absolute focus.${angleInstruction}${subjectText}
 
-The architectural volume of the ${targetObj} is governed by ${getVal(5)}, integrating spatial navigation such as ${getVal(6)}. Monumental typography in the environment reads: ${finalC7}. The overall industrial design language of the ${targetObj} is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The conceptual foundation of the installation is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the ${targetObj}—is ${getVal(10)}.
+[Structure & Materiality] The physical volume and architectural structure are engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}, emphasizing raw texture and physical weight. Environmental markers and spatial navigation feature ${getVal(6)}. Curatorial typography in the space reads: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText}${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize dramatic gallery shadows, optical refractions, and atmosphere.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or kinetic trigger disrupting the installation\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, contemporary fine-art photography quality. No cheap 3D renders, no impossible floating CGI, strict gravitational physics and realistic gallery curation. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
     }
 
     // === VIDEO FORMAT ===
@@ -12389,17 +12514,24 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
 
     // === PACKAGING FORMAT ===
     if (targetFormat === 'packaging') {
-      return `Role: Lead structural packaging designer and premium print-production art director. Your task is to generate a photorealistic studio shot photograph of premium packaging for a product packaging box.
+      let targetObj = customSubject || 'premium bespoke packaging container';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The core physical object being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite structural packaging designer and premium print-production art director. Your task is to generate a hyper-realistic, museum-quality commercial studio photograph of ${targetObj}.
 
-The composition must adhere to a strict rule: CRITICAL PACKAGING RULE: The image must feature a tangible 3D container, but the aesthetic themes must be applied as sophisticated GRAPHIC DESIGN (print finishes, typography, die-cuts) on its surface. Do not create a literal kitbashed object; reinterpret the concepts as a premium brand identity printed on the packaging.${angleInstruction}
+CRITICAL PACKAGING RULE: Focus on structural paper engineering, tactile print finishes, and high-end graphic design. The image must clearly depict a physical, 3D packaging container (box, sleeve, pouch, or case) sitting in a pristine studio setting. Do not create a messy kitbashed object; translate the concepts into sophisticated brand identity and premium CMF (Color, Material, Finish) applied to the packaging surface.${angleInstruction}${subjectText}
 
-The 3D structural shape of the product packaging box is a high-end physical container, but its exterior surface acts as a graphic canvas. The layout of this canvas is governed by ${getVal(5)}, featuring printed graphics, technical labels, and markers depicting ${getVal(6)}. Prominent packaging typography reads: ${finalC7}. The graphic identity and layout design of the product packaging box is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The overall brand identity is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the product packaging box—is ${getVal(10)} (integrated organically into the packaging surface as a structural die-cut, premium print finish, or label detail).
+[Structure & Materiality] The structural shape and die-cuts of the packaging are engineered using ${getVal(5)}. Materiality and print-production are paramount: the exterior execution relies heavily on ${getVal(8)}. Graphic layouts, labels, and markers feature ${getVal(6)}. Prominent packaging typography reads: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText} The packaging is staged in a pristine minimalist studio setting. Seamless premium backdrop. No sci-fi fantasy, no messy clutter.${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the visibility of paper textures, foil stamps, and embossing.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or key structural/graphic detail disrupting the packaging\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, commercial advertising quality. Pristine minimalist studio setting with a seamless premium backdrop. No cheap 3D plastic renders, no messy clutter. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
     }
 
     // === COSMETICS FORMAT ===
@@ -12435,18 +12567,213 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
 
     // === PRODUCT (ПРЕДМЕТ) FORMAT ===
     if (targetFormat === 'product') {
-      let targetObj = customSubject || 'industrial design artifact';
-      return `Role: Lead industrial designer and high-end product photographer. Your task is to generate a photorealistic standing upright in a pristine minimalist photography studio photograph of a bespoke ${targetObj}.
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary focus and central visual anchor MUST be: ${customSubject}.` : '';
+      return `Role: Elite industrial designer, CMF (Color, Material, Finish) expert, and high-end commercial product photographer. Your task is to generate a hyper-realistic, museum-quality commercial studio photograph (Hero Shot) of a bespoke product.
 
-The composition must adhere to a strict rule: CRITICAL PRODUCT RULE: Apply the "Rule of 3 Materials" (Primary Chassis, Operational Tactile Interfaces with knurling, Base Foundation). Ensure flawless, blind mechanical perfection with zero-tolerance joins.${angleInstruction}
+CRITICAL PRODUCT STAGING RULE: Emphasize physical weight, flawless CMF execution, and macro-level tactile details. The object must be presented as a premium artifact in a seamless, high-end studio environment (or contextual void) that complements its design, rather than a generic grey backdrop. Zero-tolerance manufacturing precision.${angleInstruction}${subjectText}
 
-The morphological form-factor of the ${targetObj} is engineered using ${getVal(5)}. Technical telemetry and functional details feature ${getVal(6)}, while the hardware is designated with ${finalC7}. The overall industrial design language of the ${targetObj} is heavily inspired by ${getVal(1)} and the materiality of ${getVal(2)}.
+[Paradigm & Conceptual DNA] The overall industrial design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
 
-Materiality is key: the execution relies heavily on ${getVal(8)}, captured through ${getVal(9)} and illuminated by ${getVal(11)}. The absolute focal point—the anomaly disrupting the ${targetObj}—is ${getVal(10)}.
+[Structure & CMF] The morphological form-factor is engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}. Apply the "Rule of 3 Materials" (Primary Volume, Tactile Interfaces/Accents, Base/Structural Foundation). Technical details and functional markers feature ${getVal(6)}. Graphic identity reads: ${finalC7}.
 
-The unified three-color palette consists of: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
 
-Technical execution must be flawless: hyper-realistic, cinematic color grading, and unbelievably high detail on textures. ${conditionText} The background is a perfectly smooth, seamless premium matte medium-grey backdrop with zero texture. The object rests on a clean, dark-grey acoustic felt surface. No sci-fi fantasy, no messy clutter.${psdnOptics}${filmSpec} ${mjEngineLocal}`;
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize material texture and depth.${psdnOptics}
+
+[Trigger] The absolute focal point\u2014the anomaly or key functional detail disrupting the product\u2014is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, commercial advertising quality. No cheap 3D plastic renders, no messy clutter, no impossible physics. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    
+    }
+
+
+    // === UI2 FORMAT (3D MOCKUP) ===
+    if (targetFormat === 'ui2') {
+      let targetObj = customSubject || 'digital product interface';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary digital product being visualized MUST be: ${customSubject}.` : '';
+      return `Role: Elite UI/UX art director and 3D product visualization specialist. Your task is to generate a hyper-realistic, award-winning 3D device mockup presentation of ${targetObj}.
+
+CRITICAL 3D MOCKUP RULE: The interface must be displayed on a premium, physically-rendered device (laptop, tablet, phone, or custom screen) with perfect material reflections and ambient occlusion. Absolutely no flat 2D screenshots; the UI must exist in physical 3D space, with caustic light refractions on the screen glass and product CMF details visible.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The overall UI design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Interface Structure] The UI is built upon a ${getVal(5)} grid system. Data-heavy components and interface states feature ${getVal(6)}. Interface headers and primary navigation read: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the UI must be exactly: ${c4Text}.
+
+[Device Materiality & Optics] The device housing and screen are rendered using ${getVal(8)}, captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize glass caustics and material depth.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key UI state disrupting the interface—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, Awwwards-winning digital product visualization quality. Pristine studio setting. No flat 2D mockup templates, no messy overlapping elements. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === POPUP FORMAT (POP-UP STORE) ===
+    if (targetFormat === 'popup') {
+      let targetObj = customSubject || 'avant-garde pop-up retail installation';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary brand or retail concept being visualized MUST be: ${customSubject}.` : '';
+      return `Role: Elite retail experience designer, spatial brand architect, and architectural photographer. Your task is to generate a hyper-realistic, museum-quality wide photograph of ${targetObj}.
+
+CRITICAL RETAIL SPATIAL RULE: The space must feel physically inhabited and commercially alive. Emphasize architectural brand identity, premium display systems, and the interplay of graphic design with spatial volume. The retail environment must communicate a strong, distinct brand world through its architecture, materials, and graphic applications.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The overall retail brand identity is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Spatial Structure & Materiality] The architectural volume and display systems are engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}. In-store graphics, product display, and spatial navigation feature ${getVal(6)}. Brand typography in the environment reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the space must be exactly: ${c4Text}.
+
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the atmosphere, material depth, and commercial energy of the space.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or hero brand moment disrupting the space—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, high-end commercial architectural photography quality. No messy clutter, no impossible physics. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === FURNITURE FORMAT ===
+    if (targetFormat === 'furniture') {
+      let targetObj = customSubject || 'bespoke furniture piece';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary furniture object being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite furniture designer, craftsperson, and high-end product photographer. Your task is to generate a hyper-realistic, museum-quality studio photograph (Hero Shot) of ${targetObj}.
+
+CRITICAL FURNITURE STAGING RULE: Emphasize joinery precision, material grain, structural logic, and tactile surface quality. The furniture piece must feel physically substantial and meticulously crafted. Present it in a contextual interior vignette or a pristine studio setting that reinforces its design language. Absolutely no cheap 3D renders or generic staging.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The overall furniture design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Structure & Materiality] The form-factor and joinery are engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}, emphasizing grain, patina, and surface texture. Hardware, upholstery details, and structural accents feature ${getVal(6)}. Graphic identity or maker's mark reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the visibility of wood grain, joinery precision, and material depth.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key structural/material detail disrupting the piece—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, high-end furniture commercial quality. No impossible structural physics, no cheap CGI textures. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === HARD LUXURY FORMAT ===
+    if (targetFormat === 'hard_luxury') {
+      let targetObj = customSubject || 'haute horlogerie timepiece';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary luxury object being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite luxury object designer, master craftsperson, and high-end still-life photographer. Your task is to generate a hyper-realistic, museum-quality close-up still-life photograph of ${targetObj}.
+
+CRITICAL HARD LUXURY RULE: This is an exercise in extreme restraint and material perfection. Negative space is paramount. Emphasize the interplay of light on precious metals, gem facets, sapphire crystal glass, and flawless mechanical finishing (Cotes de Geneve, perlage, beveled bridges). Every surface must feel impossibly refined and handcrafted. Absolutely no garish over-decoration.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The overall luxury object design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Structure & Materiality] The form-factor and architecture are engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}, showcasing high-horology or luxury goods finishing. Decorative details and technical complications feature ${getVal(6)}. Brand identity reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance must be exactly: ${c4Text}.
+
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize caustic light refractions, metal specular highlights, and material depth.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key complication/detail disrupting the object—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, luxury editorial commercial quality. No cheap CGI, no over-the-top maximalism, strict elegance. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === EXTERIOR FORMAT (ARCHITECTURAL) ===
+    if (targetFormat === 'exterior') {
+      let targetObj = customSubject || 'architectural landmark';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary building or architectural structure MUST be: ${customSubject}.` : '';
+      return `Role: World-renowned architectural photographer and avant-garde spatial designer. Your task is to generate a hyper-realistic, editorial-quality exterior architectural photograph published in Architectural Digest, Dezeen, or ArchDaily.
+
+CRITICAL EXTERIOR RULE: The architecture must feel physically constructed, grounded, and structurally logical. No impossible floating forms or sci-fi CGI. Emphasize the relationship between the building facade, its immediate urban or natural context, and dramatic natural or artificial lighting. Focus on material texture, scale, and the building's relationship to the human figure and surrounding environment.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The architectural language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Structure & Materiality] The architectural volume and facade composition are engineered using ${getVal(5)}. Materiality is paramount: the exterior cladding, structural elements, and fenestration rely heavily on ${getVal(8)}. Facade graphics, environmental signage, and architectural details feature ${getVal(6)}. Architectural identity reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the facade must be exactly: ${c4Text}.
+
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the drama of the facade texture, shadows, and material depth.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key architectural element disrupting the facade—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, award-winning architectural photography quality. No impossible structural physics, no cheap 3D renders. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === ROBOTICS FORMAT ===
+    if (targetFormat === 'robotics') {
+      let targetObj = customSubject || 'advanced robotic system';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary robotic or mechanical system being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite robotics engineer, product designer, and high-end commercial photographer. Your task is to generate a hyper-realistic, museum-quality studio or laboratory photograph of ${targetObj}.
+
+CRITICAL ROBOTICS STAGING RULE: Emphasize mechanical precision, zero-tolerance manufacturing, and functional engineering logic. The machine must feel heavy, purposeful, and operational. Avoid generic sci-fi aesthetics; focus on industrial engineering realism—visible servo motors, cable management, structural weldments, and precision-machined interfaces.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The overall robotics design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Structure & Materiality] The mechanical architecture and kinematic chain are engineered using ${getVal(5)}. Materiality is paramount: the execution relies heavily on ${getVal(8)}, emphasizing machined metal, structural composites, and precision hardware. Functional details, sensors, and actuator systems feature ${getVal(6)}. Technical serialization reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the system must be exactly: ${c4Text}.
+
+[Tactility & Optics] Captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the visibility of machined surfaces, mechanical complexity, and engineering depth.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key kinetic/mechanical detail disrupting the system—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, industrial commercial photography quality. No cheap 3D sci-fi aesthetics, no impossible physics. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === TYPEFACE FORMAT ===
+    if (targetFormat === 'typeface') {
+      let targetObj = customSubject || 'custom typeface specimen';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary typeface or typographic project being presented MUST be: ${customSubject}.` : '';
+      return `Role: Elite type designer, typographer, and editorial art director. Your task is to generate a hyper-realistic, museum-quality specimen sheet or typographic poster for ${targetObj}.
+
+CRITICAL TYPEFACE STAGING RULE: Showcase the full typographic system—alphabet, numerals, punctuation, and specimen text at multiple sizes and weights. The presentation must feel like a premium editorial spread or a Bauhaus-quality type specimen book. Every letterform must be rendered with absolute precision, reflecting the typeface's underlying geometry and optical corrections.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The typeface design language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Specimen Structure] The layout and grid system are built upon ${getVal(5)}. Typographic hierarchy and specimen content feature ${getVal(6)}. Primary display text and specimen alphabet reads: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the specimen must be exactly: ${c4Text}.
+
+[Print & Optics] Printed using ${getVal(8)}, captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize letterform clarity and material texture.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key typographic detail disrupting the specimen—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, premium type specimen quality. Every letterform must be crisp, anti-aliased, and geometrically precise. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === SCIENTIFIC VIZ FORMAT ===
+    if (targetFormat === 'scientific_viz') {
+      let targetObj = customSubject || 'scientific phenomenon';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary scientific subject being visualized MUST be: ${customSubject}.` : '';
+      return `Role: Elite medical illustrator, scientific visualization artist, and data visualization designer. Your task is to generate a hyper-realistic, museum-quality scientific illustration or data visualization of ${targetObj}.
+
+CRITICAL SCIENTIFIC VIZ RULE: The image must occupy the precise intersection of rigorous scientific accuracy and museum-quality aesthetic beauty. It must function as both a peer-reviewed scientific diagram AND a stunning piece of visual art. Think Nature magazine cover meets high-end data art. Annotations, labels, and measurement scales must be physically integrated into the composition.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The scientific visualization language is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[Diagram Structure] The compositional logic and information architecture are built upon ${getVal(5)}. Data layers, annotation systems, and visual hierarchy feature ${getVal(6)}. Primary labels, titles, and scientific nomenclature read: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the visualization must be exactly: ${c4Text}.
+
+[Rendering & Optics] Executed using ${getVal(8)}, captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize data clarity, depth, and visual hierarchy.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key scientific phenomenon disrupting the visualization—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, Nature magazine cover quality. Every annotation must be legible and geometrically precise. ${conditionText}${filmSpec} ${mjEngineLocal}`;
+    }
+
+    // === PROCEDURAL ART FORMAT ===
+    if (targetFormat === 'procedural_art') {
+      let targetObj = customSubject || 'generative system';
+      const subjectText = customSubject ? `\n\n[SUBJECT INTEGRATION] The primary generative or algorithmic concept being visualized MUST be: ${customSubject}.` : '';
+      return `Role: Elite generative artist, creative coder, and computational aesthetics director. Your task is to generate a hyper-realistic, museum-quality visualization of a complex procedural or algorithmic art system based on ${targetObj}.
+
+CRITICAL PROCEDURAL ART RULE: The image must visualize the emergent beauty of a computational or physical simulation system. It must feel like a captured moment from a real-time simulation—a frozen frame of dynamic emergence. The rules, constraints, and iterative logic of the system must be visible in the final aesthetic output. Avoid generic "noise fields" or clichéd fractal patterns; aim for novel emergent complexity.${angleInstruction}${subjectText}
+
+[Paradigm & Conceptual DNA] The generative art system is heavily inspired by the ${getVal(1)} school and the contextual DNA of: ${getVal(2)}.
+
+[System Architecture] The algorithmic rules and compositional logic are governed by ${getVal(5)}. Emergent pattern types, data structures, and visual parameters feature ${getVal(6)}. System labels, parameter readouts, and identity markers read: ${finalC7}.
+
+[Color Palette & Balance] The unified 3-color palette is strictly: ${getVal(3)}. Color dominance across the generated output must be exactly: ${c4Text}.
+
+[Rendering & Optics] Executed using ${getVal(8)}, captured using ${getVal(9)} and illuminated by ${getVal(11)} to maximize the depth, luminosity, and emergent complexity of the system.${psdnOptics}
+
+[Trigger] The absolute focal point—the anomaly or key attractor disrupting the generative system—is ${getVal(10)}.
+
+[Technical Specs] Flawless 8k resolution, gallery-quality generative art print. No generic noise textures, no clichéd fractal patterns. ${conditionText}${filmSpec} ${mjEngineLocal}`;
     }
 
     // === FALLBACK FORMAT ===
@@ -13277,7 +13604,7 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
   }, /*#__PURE__*/React.createElement("strong", null, "Grounding Subject:"), " ", customSubject || 'Default abstract concept'), /*#__PURE__*/React.createElement("p", {
     className: "text-xs font-serif leading-relaxed text-gray-800"
   }, /*#__PURE__*/React.createElement("strong", null, "Trigger Focus:"), " ", getBriefText(10))), /*#__PURE__*/React.createElement("div", {
-    className: "mt-8 bg-[#0a0a0a] text-gray-200 p-8 rounded-sm break-inside-avoid"
+    className: "mt-0 bg-[#0a0a0a] text-gray-200 p-8 rounded-sm print-prompt-page"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between items-center border-b border-gray-800 pb-4 mb-4"
   }, /*#__PURE__*/React.createElement("h3", {
@@ -13285,8 +13612,8 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
   }, "Master AI Prompt"), /*#__PURE__*/React.createElement("span", {
     className: "text-[9px] font-mono text-gray-500"
   }, "ENGINE: V6.1 / GEN-3")), /*#__PURE__*/React.createElement("div", {
-    className: "font-mono text-[10px] leading-loose break-words whitespace-pre-wrap text-gray-300"
-  }, safeGeneratePrompt()))))), /*#__PURE__*/React.createElement("style", {
+    className: "break-words whitespace-pre-wrap text-gray-300", style: {fontSize: '6pt', fontFamily: 'Helvetica, Arial, sans-serif', lineHeight: '1.5'}
+  }, safeGeneratePrompt())), /*#__PURE__*/React.createElement("div", {className: "mt-6 border-t border-gray-700 pt-4 print:block"}, /*#__PURE__*/React.createElement("div", {className: "text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2"}, "Notes / Client Feedback"), /*#__PURE__*/React.createElement("textarea", {className: "w-full min-h-[120px] bg-[#111] border border-gray-700 text-gray-300 font-mono text-[9px] p-3 rounded-sm resize-y outline-none focus:border-[#c8aa6e] transition-colors print:bg-white print:text-black print:border-gray-400 print:min-h-[150px]",placeholder: "Add notes, client feedback, revisions...",rows: 6}))))), /*#__PURE__*/React.createElement("style", {
     dangerouslySetInnerHTML: {
       __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -13295,12 +13622,37 @@ Technical execution must be flawless: hyper-realistic, cinematic color grading, 
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #c8aa6e; }
         
         @media print {
-            @page { margin: 0; size: A4; }
+            @page { margin: 10mm 12mm; size: A4; }
             body {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                background: white;
+                background: white !important;
+                overflow: visible !important;
             }
+            .fixed.inset-0.z-50 {
+                position: static !important;
+                overflow: visible !important;
+                background: white !important;
+                padding: 0 !important;
+            }
+            .w-full.max-w-\[210mm\] {
+                max-width: 100% !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+            .print-prompt-page {
+                page-break-before: always !important;
+                break-before: page !important;
+                margin-top: 0 !important;
+                border-radius: 0 !important;
+            }
+            .print-page-break {
+                page-break-before: always !important;
+                break-before: page !important;
+                display: block;
+                height: 0;
+            }
+            .print\:hidden { display: none !important; }
         }
       `
     }
