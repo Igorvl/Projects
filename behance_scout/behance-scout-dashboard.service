@@ -1,0 +1,17 @@
+[Unit]
+Description=Behance Scout Dashboard
+After=network.target
+
+[Service]
+User=igorvl
+Group=igorvl
+WorkingDirectory=/home/igorvl/ai-design-workspace/behance_scout
+Environment="PATH=/home/igorvl/ai-design-workspace/behance_scout/venv/bin"
+ExecStart=/home/igorvl/ai-design-workspace/behance_scout/venv/bin/python run.py --dashboard
+
+# Автоматический перезапуск в случае падения
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

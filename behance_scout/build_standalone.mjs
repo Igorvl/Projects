@@ -62,7 +62,40 @@ if (jsxCode.includes(bad1)) {
   console.log('  Warn: id:100 pattern not found (may already be fixed)');
 }
 
+// Fix #2: copyToClipboard — HTTP-safe clipboard fallback
+{
+  const badCopy = "const copyToClipboard = () => {\n    navigator.clipboard.writeText(generatePrompt());";
+  const fixCopy = `const fallbackCopy = (text) => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+  };
+  const copyToClipboard = () => {
+    const text = generatePrompt();
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else { fallbackCopy(text); }`;
+  if (jsxCode.includes(badCopy)) {
+    jsxCode = jsxCode.replace(badCopy, fixCopy);
+    console.log('  Fixed: copyToClipboard — HTTP clipboard fallback added');
+  } else {
+    console.log('  Warn: copyToClipboard pattern not found, trying alternate...');
+    // Try to patch just the navigator.clipboard call
+    jsxCode = jsxCode.replace(
+      /navigator\.clipboard\.writeText\(generatePrompt\(\)\)/,
+      `(function(){const text=generatePrompt();if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text)}else{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-9999px;top:-9999px';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta)}})()`
+    );
+    console.log('  Applied alternate clipboard patch');
+  }
+}
 
+// Fix #3: getSelectedText — null guard for Array.find returning undefined
+jsxCode = jsxCode.replace(
+  /const item = searchItems\.find\(i => i\.id === id\);\s*\n\s*if \(!item\) return '';/,
+  `const item = searchItems ? searchItems.find(i => i.id === id) : undefined;\n        if (!item) return '';`
+);
 
 // ── Step 3: Compile JSX → vanilla JS ─────────────────────────────────────────
 console.log('\n[3] Compiling JSX with @babel/core...');
