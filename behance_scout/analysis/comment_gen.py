@@ -206,48 +206,67 @@ async def generate_comment(
             # Stage 1: Generator (VLM) — ПРЯМОЙ вызов с Fallback каскадом
             for v_model in vision_models:
                 print(f"      [Stage 1] Пробуем Vision: {v_model}")
-                try:
-                    r1 = await client.post(
-                        f"{VISION_API_BASE}/chat/completions",
-                        headers={"Authorization": f"Bearer {VISION_API_KEY}"},
-                        json={
-                            "model": v_model,
-                            "messages": [{"role": "user", "content": content_list}],
-                            "max_tokens": 450,
-                            "temperature": 0.5
-                        }
-                    )
-                    r1.raise_for_status()
-                    data = r1.json()
-                    draft_text = data["choices"][0]["message"]["content"].strip()
-                    
-                    # Очистка мусора от Qwen
-                    cleaned_draft_text = draft_text.strip("` \n").replace("json\n", "", 1)
-                    import re
-                    cleaned_draft_text = re.sub(r'[\x00-\x1f\x7f]', '', cleaned_draft_text)
-                    draft_json = json.loads(cleaned_draft_text)
-                    used_vision_model = v_model
-                    
-                    # Структурированный вывод
-                    if "analysis" in draft_json:
-                        analysis = draft_json["analysis"]
-                        print(f"")
-                        print(f"      ┌─ Что VLM ({v_model.split('/')[-1]}) понял о проекте:")
-                        print(f"      │  {analysis.get('project_type_ru') or analysis.get('project_type', '?')}")
-                        print(f"      │")
-                        print(f"      │  Сильные стороны:")
-                        print(f"      │  {analysis.get('strengths_ru') or analysis.get('strengths', '?')}")
-                        print(f"      └────────────────────────────────")
-                    
-                    break # Успех, выходим из каскада
-                    
-                except json.JSONDecodeError:
-                    print(f"      [Vision Warn] Модель {v_model} не вернула JSON, падаем на fallback")
-                    continue
-                except Exception as e:
-                    status = getattr(getattr(e, 'response', None), 'status_code', '?')
-                    print(f"      [Vision Warning] {v_model} — HTTP {status}: {repr(e)[:150]}")
-                    continue
+                retries = 1  # одна повторная попытка при 429
+                for attempt in range(retries + 1):
+                    try:
+                        r1 = await client.post(
+                            f"{VISION_API_BASE}/chat/completions",
+                            headers={"Authorization": f"Bearer {VISION_API_KEY}"},
+                            json={
+                                "model": v_model,
+                                "messages": [{"role": "user", "content": content_list}],
+                                "max_tokens": 450,
+                                "temperature": 0.5
+                            }
+                        )
+                        if r1.status_code == 429:
+                            wait = 60
+                            print(f"      [Vision 429] {v_model.split('/')[-1]} — Rate limit. Жду {wait}с...")
+                            await asyncio.sleep(wait)
+                            if attempt < retries:
+                                continue  # повторить этот же model
+                            else:
+                                raise Exception(f"429 после {retries+1} попыток")
+                        r1.raise_for_status()
+                        data = r1.json()
+
+                        # Защита от None-контента (openrouter/free может вернуть null)
+                        raw_content = data["choices"][0]["message"].get("content")
+                        if not raw_content:
+                            print(f"      [Vision Warn] {v_model.split('/')[-1]} вернул пустой контент")
+                            break  # переход к следующей модели
+                        draft_text = raw_content.strip()
+
+                        # Очистка мусора от Qwen/Gemma
+                        cleaned_draft_text = draft_text.strip("` \n").replace("json\n", "", 1)
+                        import re
+                        cleaned_draft_text = re.sub(r'[\x00-\x1f\x7f]', '', cleaned_draft_text)
+                        draft_json = json.loads(cleaned_draft_text)
+                        used_vision_model = v_model
+
+                        # Структурированный вывод
+                        if "analysis" in draft_json:
+                            analysis = draft_json["analysis"]
+                            print(f"")
+                            print(f"      ┌─ Что VLM ({v_model.split('/')[-1]}) понял о проекте:")
+                            print(f"      │  {analysis.get('project_type_ru') or analysis.get('project_type', '?')}")
+                            print(f"      │")
+                            print(f"      │  Сильные стороны:")
+                            print(f"      │  {analysis.get('strengths_ru') or analysis.get('strengths', '?')}")
+                            print(f"      └────────────────────────────────")
+
+                        break  # Успех
+
+                    except json.JSONDecodeError:
+                        print(f"      [Vision Warn] Модель {v_model} не вернула JSON, падаем на fallback")
+                        break  # переход к следующей модели
+                    except Exception as e:
+                        status = getattr(getattr(e, 'response', None), 'status_code', '?')
+                        print(f"      [Vision Warning] {v_model} — HTTP {status}: {repr(e)[:150]}")
+                        break  # переход к следующей модели
+
+                if draft_json:  # успех — выходим из cascade
+                    break
 
             if not draft_json:
                 print("      [Vision Error] Все бесплатные Vision-модели недоступны или исчерпаны лимиты.")
@@ -302,7 +321,11 @@ async def generate_comment(
                         success = True
                     except Exception as e:
                         status = getattr(getattr(e, 'response', None), 'status_code', '?')
-                        print(f"      [Critic Warning] {c_model} — HTTP {status}: {repr(e)[:150]}")
+                        if status == 429:
+                            print(f"      [Critic 429] {c_model.split('/')[-1]} — Rate limit. Жду 30с...")
+                            await asyncio.sleep(30)
+                        else:
+                            print(f"      [Critic Warning] {c_model} — HTTP {status}: {repr(e)[:150]}")
                         continue
             else:
                 final_json = draft_json
@@ -352,10 +375,10 @@ async def generate_all_missing():
             else:
                 print(f"    ❌ Не удалось")
             
-            # Anti-Spam пауза, чтобы не душить бесплатный OpenRouter в семантическом роутере (RATE LIMIT 429)
+            # Пауза между проектами: 12 сек = ~5 req/min, укладываемся в лимит 20 req/min
             if i < len(rows):
-                print("      ⏳ Пауза 4 сек для обхода Rate Limit роутера...")
-                await asyncio.sleep(4.0)
+                print("      ⏳ Пауза 12 сек (Rate Limit guard)...")
+                await asyncio.sleep(12.0)
 
         await browser.close()
     print(f"\n[Comment] ✅ Готово! Сгенерировано: {len(rows)}")

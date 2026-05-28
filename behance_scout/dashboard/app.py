@@ -2,16 +2,18 @@
 FastAPI Dashboard для дизайнера
 """
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent))         # dashboard/ — для api_quota
+sys.path.insert(0, str(Path(__file__).parent.parent))  # behance_scout/ — для database, config
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-import sys
 import httpx
 import json
 import re
 import logging
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
+import api_quota
 import database as db
 from config import PAGE_SIZE, SCREENSHOTS_DIR
 
@@ -63,6 +65,12 @@ async def get_projects(bucket: int = -1, page: int = 1):
 async def mark_done(behance_id: str):
     db.mark_done(behance_id)
     return {"ok": True}
+
+
+@app.get("/api/stats/quota")
+async def quota_stats():
+    """Статистика использования API за сегодня (для индикатора в дашборде)."""
+    return JSONResponse(api_quota.get_today_stats())
 
 
 # ─────────────────────────────────────────────────────────
@@ -346,15 +354,19 @@ async def strips_ai(request: Request):
     AI-генерация параметров Strips Pro Gen V45.
     Каскад: OpenRouter free models → DNA router fallback.
     """
-    from config import CRITIC_API_KEY, LLM_API_BASE, LLM_API_KEY
+    from config import CRITIC_API_KEY, LLM_API_BASE, LLM_API_KEY, OPENROUTER_API_BASE, OPENROUTER_API_KEY
 
-    OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+    OR_KEY = OPENROUTER_API_KEY or CRITIC_API_KEY  # Используем первый доступный ключ
     PROVIDERS = [
-        (OPENROUTER_BASE, CRITIC_API_KEY, "deepseek/deepseek-r1:free"),
-        (OPENROUTER_BASE, CRITIC_API_KEY, "deepseek/deepseek-r1-zero:free"),
-        (OPENROUTER_BASE, CRITIC_API_KEY, "google/gemma-3-27b-it:free"),
-        (OPENROUTER_BASE, CRITIC_API_KEY, "meta-llama/llama-3.1-8b-instruct:free"),
-        (OPENROUTER_BASE, CRITIC_API_KEY, "mistralai/mistral-7b-instruct:free"),
+        # Новые бесплатные модели 2025-2026 (приоритет)
+        (OPENROUTER_API_BASE, OR_KEY, "openai/gpt-oss-20b:free"),
+        (OPENROUTER_API_BASE, OR_KEY, "z-ai/glm-4.5-air:free"),
+        (OPENROUTER_API_BASE, OR_KEY, "qwen/qwen3-coder-480b-a35b:free"),
+        # Старые free-модели как fallback
+        (OPENROUTER_API_BASE, OR_KEY, "google/gemma-3-27b-it:free"),
+        (OPENROUTER_API_BASE, OR_KEY, "meta-llama/llama-3.1-8b-instruct:free"),
+        (OPENROUTER_API_BASE, OR_KEY, "mistralai/mistral-7b-instruct:free"),
+        # DNA-роутер как последний резерв
         (LLM_API_BASE, LLM_API_KEY, "deepseek-ai/DeepSeek-V3.2"),
         (LLM_API_BASE, LLM_API_KEY, "Qwen/Qwen2.5-72B-Instruct"),
     ]
@@ -405,12 +417,14 @@ async def strips_ai(request: Request):
                 raw = resp.text[:300] or "[empty body]"
                 last_error = ValueError(f"Non-JSON body from {model}: {raw}")
                 logging.warning(f"[Strips AI] {model} non-JSON: {raw}")
+                api_quota.log_call("strips_ai", model, success=False)
                 continue
 
             text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             if not text:
                 last_error = ValueError(f"{model} empty content. data={data}")
                 logging.warning(f"[Strips AI] {model} empty content")
+                api_quota.log_call("strips_ai", model, success=False)
                 continue
 
             clean = re.sub(r"```[a-z]*\n?", "", text).strip()
@@ -418,6 +432,7 @@ async def strips_ai(request: Request):
             if match:
                 result = json.loads(match.group())
                 logging.info(f"[Strips AI] OK via {model}")
+                api_quota.log_call("strips_ai", model, success=True)
                 return JSONResponse(result)
 
             last_error = ValueError(f"No JSON in {model} response: {text[:150]}")

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Phase 2: Discovery — поиск новых проектов в стиле Ксении.
 
@@ -8,6 +9,7 @@ Phase 2: Discovery — поиск новых проектов в стиле Кс
 4. Сохраняем новые проекты + делаем скрин обложки
 """
 import asyncio
+import base64
 import json
 import re
 import sqlite3
@@ -15,6 +17,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import httpx
 from playwright.async_api import async_playwright, Page
 
 import sys
@@ -22,20 +25,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     BEHANCE_BASE, SCREENSHOTS_DIR, DB_PATH,
     DAILY_TARGET,
+    VISION_API_BASE, VISION_API_KEY, VISION_MODEL_DIRECT,
 )
 from scraper.human import random_delay, scroll_to_bottom, human_move, micro_delay
 from scraper.auth import BROWSER_ARGS, VIEWPORT, create_context
 import database as db
+sys.path.insert(0, str(Path(__file__).parent.parent / "dashboard"))
+import api_quota
 
 
-# ── Категории Behance для поиска (как fallback если мало тегов) ────────────────
+# ── Категории Behance для поиска (fallback если мало тегов) ───────────────────
 DEFAULT_SEARCH_TERMS = [
     "brand identity", "visual identity", "logo design",
     "typography poster", "motion design branding",
     "packaging design", "editorial design",
 ]
 
-# Минимум дней назад — берём только свежие (до 9 мес)
+# Максимальный возраст проекта (дней)
 MAX_AGE_DAYS = 270
 
 
@@ -58,7 +64,6 @@ def get_top_tags(limit: int = 15) -> list[str]:
         except Exception:
             pass
 
-    # Берём теги с частотой ≥ 2
     top = [tag for tag, cnt in counter.most_common(limit) if cnt >= 2]
     if not top:
         top = DEFAULT_SEARCH_TERMS[:5]
@@ -75,13 +80,11 @@ def _parse_behance_date(raw: str | None) -> str | None:
     if not raw:
         return None
     raw = raw.strip()
-    
-    # ISO datetime атрибут: "2025-01-15T10:30:00.000Z"
+
     m = re.match(r"(\d{4}-\d{2}-\d{2})", raw)
     if m:
         return m.group(1)
 
-    # Относительные: "2 months ago", "3 days ago", "1 year ago"
     now = datetime.utcnow()
     rel = raw.lower()
     try:
@@ -103,7 +106,6 @@ def _parse_behance_date(raw: str | None) -> str | None:
     except Exception:
         pass
 
-    # "January 5, 2025" или "Jan 5, 2025"
     for fmt in ("%B %d, %Y", "%b %d, %Y", "%B %Y", "%b %Y"):
         try:
             return datetime.strptime(raw, fmt).date().isoformat()
@@ -114,19 +116,17 @@ def _parse_behance_date(raw: str | None) -> str | None:
 
 
 async def _get_project_meta_fast(page: Page, url: str) -> dict:
-    """Быстрый сбор метаданных проекта (дата + теги + скриншот)."""
+    """Быстрый сбор метаданных проекта (дата + теги)."""
     result = {"posted_at": None, "tags": []}
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=25000)
         await random_delay(1.0, 2.5)
 
-        # Ищем <time> с datetime атрибутом
         time_el = await page.query_selector("time[datetime]")
         if time_el:
             raw = await time_el.get_attribute("datetime")
             result["posted_at"] = _parse_behance_date(raw)
-        
-        # Если нет — ищем по тексту
+
         if not result["posted_at"]:
             for selector in [
                 "[class*='ProjectDate']",
@@ -142,7 +142,6 @@ async def _get_project_meta_fast(page: Page, url: str) -> dict:
                         result["posted_at"] = parsed
                         break
 
-        # Теги
         tag_els = await page.query_selector_all(
             "a[href*='/search?search='], "
             "a[href*='field='], "
@@ -161,28 +160,26 @@ async def _get_project_meta_fast(page: Page, url: str) -> dict:
     return result
 
 
-import httpx
-
 async def _screenshot_project(page: Page, behance_id: str) -> str | None:
-    """Скачивает правильную обложку (og:image) вместо кривого скриншота."""
+    """Скачивает обложку (og:image) проекта."""
     try:
-        path = SCREENSHOTS_DIR / f"{behance_id}.png"
         og_image = await page.get_attribute('meta[property="og:image"]', 'content')
-        
+
         if og_image:
             ext = ".jpg"
-            if ".png" in og_image.lower(): ext = ".png"
-            elif ".webp" in og_image.lower(): ext = ".webp"
-            
+            if ".png" in og_image.lower():
+                ext = ".png"
+            elif ".webp" in og_image.lower():
+                ext = ".webp"
+
             path = SCREENSHOTS_DIR / f"{behance_id}{ext}"
             async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
                 r = await client.get(og_image)
                 r.raise_for_status()
-                with open(path, 'wb') as f:
+                with open(path, "wb") as f:
                     f.write(r.content)
         else:
             path = SCREENSHOTS_DIR / f"{behance_id}.png"
-            # Запасной вариант - скриншот верхней части страницы
             await page.screenshot(
                 path=str(path),
                 clip={"x": 0, "y": 0, "width": 1440, "height": 560}
@@ -201,11 +198,9 @@ async def _search_behance(page: Page, query: str, limit: int = 30) -> list[dict]
         await page.goto(url, wait_until="domcontentloaded", timeout=25000)
         await random_delay(2, 4)
 
-        # Скроллим чтобы загрузить больше
         await scroll_to_bottom(page, max_iterations=5)
         await random_delay(1, 2)
 
-        # Собираем карточки
         cards = await page.query_selector_all(
             "a[href*='/gallery/'], "
             "a.ContentGrid-gridItem-XZq, "
@@ -233,7 +228,11 @@ async def _search_behance(page: Page, query: str, limit: int = 30) -> list[dict]
                 )
                 author = (await author_el.inner_text()).strip() if author_el else ""
                 author_href = await author_el.get_attribute("href") if author_el else ""
-                author_url = (BEHANCE_BASE + author_href) if author_href and not author_href.startswith("http") else author_href
+                author_url = (
+                    (BEHANCE_BASE + author_href)
+                    if author_href and not author_href.startswith("http")
+                    else author_href
+                )
 
                 results.append({
                     "behance_id":  bid,
@@ -263,7 +262,6 @@ async def discover_new_projects(target: int = DAILY_TARGET):
     """
     print(f"\n[Discovery] Старт. Цель: {target} новых проектов")
 
-    # Получаем уже известные ID
     conn = sqlite3.connect(DB_PATH)
     known_ids = set(
         r[0] for r in conn.execute("SELECT behance_id FROM projects").fetchall()
@@ -271,7 +269,6 @@ async def discover_new_projects(target: int = DAILY_TARGET):
     conn.close()
     print(f"[Discovery] Уже в БД: {len(known_ids)} проектов")
 
-    # Топ-теги из appreciated
     tags = get_top_tags(limit=12)
     print(f"[Discovery] Теги для поиска: {tags[:8]}")
 
@@ -289,14 +286,13 @@ async def discover_new_projects(target: int = DAILY_TARGET):
             print(f"\n  🔍 Поиск: '{tag}'")
             found = await _search_behance(page, tag, limit=per_tag)
             new_found = [p for p in found if p["behance_id"] not in known_ids]
-            
-            # Добавляем только уникальные
+
             existing_ids = {c["behance_id"] for c in candidates}
             for proj in new_found:
                 if proj["behance_id"] not in existing_ids:
                     candidates.append(proj)
                     existing_ids.add(proj["behance_id"])
-            
+
             print(f"    Найдено: {len(found)}, новых: {len(new_found)}")
             await random_delay(2, 5)
 
@@ -309,14 +305,15 @@ async def discover_new_projects(target: int = DAILY_TARGET):
             if saved >= target:
                 break
 
-            print(f"  [{i}/{min(len(candidates), target*2)}] {proj['title'][:50] or proj['behance_url']}")
+            url_short = proj["title"][:50] or proj["behance_url"]
+            print(f"  [{i}/{min(len(candidates), target*2)}] {url_short}")
 
-            # Получаем метаданные
+            # Метаданные
             meta = await _get_project_meta_fast(page, proj["behance_url"])
             proj["posted_at"] = meta["posted_at"]
             proj["tags"]      = json.dumps(meta["tags"])
 
-            # Фильтр по возрасту — пропускаем слишком старые
+            # Фильтр по возрасту
             if proj["posted_at"]:
                 try:
                     age = (datetime.utcnow() - datetime.fromisoformat(proj["posted_at"])).days
@@ -327,46 +324,92 @@ async def discover_new_projects(target: int = DAILY_TARGET):
                 except Exception:
                     pass
 
-            # Скриншот
+            # Скриншот — всегда скачиваем ДО vision-фильтра
             screenshot = await _screenshot_project(page, proj["behance_id"])
             if not screenshot:
                 print("    ⏭  Ошибка скачивания обложки")
                 continue
 
-            # --- СТРОГИЙ ВИЗУАЛЬНЫЙ ФИЛЬТР ЦВЕТОВ ---
-            import base64
-            from config import LLM_API_BASE, LLM_API_KEY, VISION_MODEL
+            # --- ВИЗУАЛЬНЫЙ ФИЛЬТР ЦВЕТОВ (OpenRouter free vision models) ---
             try:
-                with open(screenshot, "rb") as f:
-                    b64_img = base64.b64encode(f.read()).decode("utf-8")
-                
-                async with httpx.AsyncClient(timeout=45) as client:
-                    vr = await client.post(
-                        f"{LLM_API_BASE}/chat/completions",
-                        headers={"Authorization": f"Bearer {LLM_API_KEY}"},
-                        json={
-                            "model": VISION_MODEL,
-                            "messages": [
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {"type": "text", "text": "Analyze this design portfolio project cover. We forcefully only allow 4 colors: Black, White, Grey, Orange. If you see ANY other noticeable colors like blue, green, red, pink, purple, or pure yellow, you MUST reply starting with 'REJECT'. If it strictly consists of black, white, grey, and/or orange, reply starting with 'APPROVE'."},
-                                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}}
-                                    ]
-                                }
-                            ],
-                            "max_tokens": 50,
-                            "temperature": 0.1
-                        }
+                # Pre-flight: проверяем квоту ДО любых API-вызовов
+                ok, calls_today, limit = api_quota.check_limit("vision")
+                if not ok:
+                    print(f"    ⚠️  Vision: квота исчерпана ({calls_today}/{limit} req/day) — пропускаем фильтр")
+                    vision_ans = None
+                else:
+                    img_ext = Path(screenshot).suffix.lower()
+                    mime = (
+                        "image/jpeg" if img_ext in (".jpg", ".jpeg") else
+                        "image/png"  if img_ext == ".png" else
+                        "image/webp" if img_ext == ".webp" else
+                        "image/jpeg"
                     )
-                    vr.raise_for_status()
-                    vision_ans = vr.json()["choices"][0]["message"]["content"].strip().upper()
-                
-                if "REJECT" in vision_ans:
-                    print(f"    ⏭  REJECT по цветам обложки (Разрешено только Ч/Б/Серый/Оранжевый)")
+                    with open(screenshot, "rb") as f:
+                        b64_img = base64.b64encode(f.read()).decode("utf-8")
+
+                    vision_ans = None
+                    vision_models = [m.strip() for m in VISION_MODEL_DIRECT.split(",") if m.strip()]
+
+                    for v_model in vision_models:
+                        # Проверяем квоту перед каждой попыткой
+                        ok, calls_today, limit = api_quota.check_limit("vision")
+                        if not ok:
+                            print(f"    ⚠️  Vision: квота исчерпана ({calls_today}/{limit}) — останавливаем каскад")
+                            break
+                        try:
+                            await asyncio.sleep(3)  # ~20 req/min на бесплатном tier
+                            async with httpx.AsyncClient(timeout=60) as client:
+                                vr = await client.post(
+                                    f"{VISION_API_BASE}/chat/completions",
+                                    headers={
+                                        "Authorization": f"Bearer {VISION_API_KEY}",
+                                        "HTTP-Referer": "https://behance-scout.local",
+                                        "X-Title": "Behance Scout",
+                                    },
+                                    json={
+                                        "model": v_model,
+                                        "messages": [
+                                            {
+                                                "role": "user",
+                                                "content": [
+                                                    {"type": "text", "text": (
+                                                        "Analyze this design portfolio project cover image. "
+                                                        "Allowed colors: Black, White, Grey, Orange ONLY. "
+                                                        "If you see ANY other noticeable color (blue, green, red, "
+                                                        "pink, purple, yellow, brown, beige, teal etc.) — "
+                                                        "reply with exactly 'REJECT'. "
+                                                        "If the image strictly uses only black/white/grey/orange — "
+                                                        "reply with exactly 'APPROVE'. One word only."
+                                                    )},
+                                                    {"type": "image_url", "image_url": {
+                                                        "url": f"data:{mime};base64,{b64_img}"
+                                                    }}
+                                                ]
+                                            }
+                                        ],
+                                        "max_tokens": 10,
+                                        "temperature": 0.0,
+                                    }
+                                )
+                                vr.raise_for_status()
+                                vision_ans = vr.json()["choices"][0]["message"]["content"].strip().upper()
+                                print(f"    [Vision] {v_model.split('/')[-1]}: {vision_ans[:30]}")
+                                api_quota.log_call("vision", v_model, success=True)
+                                break  # Успех — выходим из каскада
+                        except Exception as ve:
+                            print(f"    [Vision] {v_model.split('/')[-1]} failed: {ve}")
+                            api_quota.log_call("vision", v_model, success=False)
+                            continue
+
+                if vision_ans and "REJECT" in vision_ans:
+                    print("    ⏭  REJECT по цветам обложки (Ч/Б/Серый/Оранжевый only)")
                     continue
+                elif vision_ans is None:
+                    print("    ⚠️  Vision: все модели недоступны, пропускаем фильтр")
+
             except Exception as e:
-                print(f"    [Vision Ошибка] {e}")
+                print(f"    [Vision ошибка] {e}")
 
             # Сохраняем
             is_new = db.save_project(proj)
@@ -374,10 +417,10 @@ async def discover_new_projects(target: int = DAILY_TARGET):
                 if screenshot:
                     db.update_screenshot(proj["behance_id"], screenshot)
                 saved += 1
-                age_str = f"{proj['posted_at']}" if proj["posted_at"] else "дата неизвестна"
+                age_str = proj["posted_at"] if proj["posted_at"] else "дата неизвестна"
                 print(f"    ✅ Сохранён ({age_str})")
             else:
-                print(f"    ⏭  Уже в БД")
+                print("    ⏭  Уже в БД")
 
             await random_delay()
 

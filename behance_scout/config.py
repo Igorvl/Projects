@@ -16,30 +16,46 @@ STYLE_PROFILE_PATH = DATA_DIR / "style_profile.json"
 
 load_dotenv(BASE_DIR / ".env")
 
-# LLM Router (наш ai-router) — используется для текстовых запросов
+# ── OpenRouter — единая точка входа для ВСЕХ LLM ─────────────────────────────
+# Бесплатные модели: $0/M tokens, без кредитной карты.
+# Rate limit: ~20 req/min, ~200 req/day — достаточно для продакшена.
+OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
+OPENROUTER_API_KEY  = os.getenv("OPENROUTER_API_KEY", "").strip(' "\'')
+
+# LLM Router (оставляем для совместимости, fallback на DNA-роутер если нужен)
 LLM_API_BASE = os.getenv("LLM_API_BASE", "http://172.25.9.33:8000/v1").strip(' "\'')
 LLM_API_KEY  = os.getenv("LLM_API_KEY", os.getenv("SILICONFLOW_API_KEY", "sk-any"))
 if LLM_API_KEY:
     LLM_API_KEY = LLM_API_KEY.strip(' "\'')
-VISION_MODEL = os.getenv("VISION_MODEL", "qwen-vision-VL-32B").strip(' "\'')   # Для анализа обложек
-COMMENT_MODEL = os.getenv("COMMENT_MODEL", "qwen-vision-VL-32B").strip(' "\'')  # Для анализа всего проекта
 
-# Vision LLM — ПРЯМОЙ вызов SiliconFlow, минуя DNA-роутер
-# Причина: DNA-роутер имеет timeout=15s на Qwen-VL, а vision-запросы занимают ~47s → 502
-# Ключ берётся из SILICONFLOW_API_KEY (или переопределяется VISION_API_KEY в .env)
-VISION_API_BASE   = os.getenv("VISION_API_BASE", "https://api.siliconflow.com/v1").strip(' "\'')
-VISION_API_KEY    = os.getenv("VISION_API_KEY",
-    os.getenv("SILICONFLOW_API_KEY",
-    os.getenv("CRITIC_API_KEY",        # OpenRouter ключ — если переключились на OR для vision
-    os.getenv("LLM_API_KEY", "")))).strip(' "\'')
-VISION_MODEL_DIRECT = os.getenv("VISION_MODEL_DIRECT", "Qwen/Qwen3-VL-32B-Instruct,Qwen/Qwen2.5-VL-72B-Instruct,OpenGVLab/InternVL2-Llama3-76B").strip(' "\'')
+# Vision LLM — OpenRouter, бесплатные multimodal-модели
+# ID верифицированы через /api/v1/models (май 2026):
+# nemotron-nano-12b-v2-vl: NVIDIA VL, OCR+charts, 128K ctx, free
+# gemma-4-26b-a4b-it:      Google Gemma 4 26B, vision, 262K ctx, free
+# gemma-4-31b-it:          Google Gemma 4 31B, vision, 262K ctx, free
+# openrouter/free:         авто-роутер, сам выберет vision-модель (last resort)
+VISION_API_BASE   = os.getenv("VISION_API_BASE", OPENROUTER_API_BASE).strip(' "\'')
+VISION_API_KEY    = os.getenv("VISION_API_KEY", OPENROUTER_API_KEY).strip(' "\'')
+VISION_MODEL_DIRECT = os.getenv(
+    "VISION_MODEL_DIRECT",
+    "nvidia/nemotron-nano-12b-v2-vl:free,google/gemma-4-26b-a4b-it:free,google/gemma-4-31b-it:free,openrouter/free"
+).strip(' "\'')
+VISION_MODEL = os.getenv("VISION_MODEL", "nvidia/nemotron-nano-12b-v2-vl:free").strip(' "\'')
 
-# Critic LLM — НАПРЯМУЮ SiliconFlow (тот же провайдер что и Stage 1)
-# DeepSeek-V3.2 — быстрый текстовый модель, отлично редактирует текст (deepseek-ai/DeepSeek-V3.2 в antigravity.json)
-CRITIC_API_BASE     = os.getenv("CRITIC_API_BASE", VISION_API_BASE)   # тот же SiliconFlow
-CRITIC_API_KEY      = os.getenv("CRITIC_API_KEY",  VISION_API_KEY)   # тот же ключ
-CRITIC_MODEL_DIRECT = os.getenv("CRITIC_MODEL_DIRECT", "deepseek-ai/DeepSeek-V3.2,Qwen/Qwen3-VL-32B-Instruct")
-CRITIC_MODEL        = os.getenv("CRITIC_MODEL", CRITIC_MODEL_DIRECT)
+# Comment/Critic LLM — OpenRouter, бесплатные text-модели
+# Актуально на май 2026 (проверено по openrouter.ai/models?free=true):
+# gpt-oss-120b: OpenAI, 117B MoE, 5.1B active/pass, primary (в 6x крупнее 20b), авг 2025
+# gpt-oss-20b:  OpenAI, 21B MoE, 3.6B active/pass, fallback, авг 2025
+# GLM 4.5 Air:  Z.ai, thinking mode, MoE, free, июль 2025
+# Qwen3 Coder:  Alibaba, 480B MoE, 35B active, 1M context, free, июль 2025
+CRITIC_API_BASE     = os.getenv("CRITIC_API_BASE", OPENROUTER_API_BASE).strip(' "\'')
+CRITIC_API_KEY      = os.getenv("CRITIC_API_KEY", OPENROUTER_API_KEY).strip(' "\'')
+CRITIC_MODEL_DIRECT = os.getenv(
+    "CRITIC_MODEL_DIRECT",
+    "openai/gpt-oss-120b:free,openai/gpt-oss-20b:free,z-ai/glm-4.5-air:free,qwen/qwen3-coder-480b-a35b:free"
+).strip(' "\'')
+CRITIC_MODEL  = os.getenv("CRITIC_MODEL", CRITIC_MODEL_DIRECT)
+COMMENT_MODEL = os.getenv("COMMENT_MODEL", "openai/gpt-oss-120b:free").strip(' "\'')
 
 # Behance
 TARGET_PROFILE_URL = "https://www.behance.net/kseniyaartman/appreciated"
