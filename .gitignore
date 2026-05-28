@@ -12,3 +12,6 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# Node / JS
+node_modules/
