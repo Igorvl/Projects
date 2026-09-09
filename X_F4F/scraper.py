@@ -100,13 +100,14 @@ def inspect_user_profile(page, username: str) -> dict:
         print(f"Error inspecting @{clean_user}: {e}")
         return None
 
-def harvest_from_search(page, query: str, max_users: int = 15):
+def harvest_from_search(page, query: str, max_users: int = 12):
     """
-    Searches for query in X, grabs author usernames from tweets, and scores them
-    with organic human delays, micro-breaks, and natural feed scrolling.
+    Searches for query in X Top tab (filters out chronological spam),
+    grabs author usernames from tweets, and scores them with organic human pacing.
     """
     print(f"\n[Scraper] Searching for query: {query}")
-    search_url = f"https://x.com/search?q={query}&f=live"
+    # Используем Top результаты без &f=live, чтобы брать реальные посты с вовлечением, а не спам-ботов
+    search_url = f"https://x.com/search?q={query}"
     
     try:
         page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
@@ -116,14 +117,23 @@ def harvest_from_search(page, query: str, max_users: int = 15):
         scroll_attempts = 0
         
         while len(found_usernames) < max_users and scroll_attempts < 6:
-            # Find tweet author links
             tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
             for tw in tweet_elements:
+                # Автор твита
                 user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
                 if user_link:
                     href = user_link.get_attribute("href")
                     if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
                         u = href.replace("/", "").strip()
+                        if u and len(u) < 30:
+                            found_usernames.add(u)
+                
+                # Упомянутые дизайнеры в тексте (например: "Design by @username")
+                mentions = tw.query_selector_all('div[data-testid="tweetText"] a[href^="/"]')
+                for m in mentions:
+                    m_href = m.get_attribute("href") or ""
+                    if m_href.startswith("/") and not any(x in m_href for x in ["/hashtag/", "/search", "/i/"]):
+                        u = m_href.replace("/", "").strip()
                         if u and len(u) < 30:
                             found_usernames.add(u)
                             
@@ -132,59 +142,116 @@ def harvest_from_search(page, query: str, max_users: int = 15):
             scroll_attempts += 1
             
         print(f"[Scraper] Found {len(found_usernames)} unique users in feed. Starting evaluation...")
+        _evaluate_and_store_users(page, found_usernames, max_users, source_label=f"search:{query[:30]}")
         
-        # Now inspect and score each candidate with human pacing
-        for idx, username in enumerate(list(found_usernames)[:max_users], 1):
-            profile = inspect_user_profile(page, username)
-            if profile:
-                evaluation = evaluate_candidate(profile)
-                candidate_record = {
-                    **profile,
-                    "score": evaluation["score"],
-                    "ratio": evaluation["ratio"],
-                    "score_breakdown": evaluation["breakdown"],
-                    "source": f"search:{query[:30]}",
-                    "status": evaluation["status"]
-                }
-                upsert_candidate(candidate_record)
-                print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {evaluation['status']}")
-                
-                # Organic delay between candidates
-                human_delay(3.0, 7.0)
-                
-                # Natural micro-break every 4-6 profiles (mimics taking a sip of coffee or reading a tab)
-                if idx % random.randint(4, 6) == 0:
-                    break_sec = random.randint(12, 25)
-                    print(f"  [Human Pause] Short break ({break_sec}s) to maintain natural browsing patterns...")
-                    human_idle_noise(page)
-                    time.sleep(break_sec)
-                
     except Exception as e:
         print(f"Error during search harvesting: {e}")
 
-def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=3):
+def harvest_from_donor(page, donor_username: str, max_users: int = 12):
     """
-    Runs a batch harvesting cycle across random queries.
-    Includes natural warmup/glance at home feed between query batches.
+    Visits a high-tier design donor studio (e.g. readymag, framer, StudioDumbar, type01_),
+    scrapes credited creators, commenters, and recent timeline engagers.
+    """
+    clean_donor = donor_username.replace("@", "").strip()
+    print(f"\n[Scraper] Harvesting from design donor studio: @{clean_donor}")
+    donor_url = f"https://x.com/{clean_donor}/with_replies"
+    
+    try:
+        page.goto(donor_url, wait_until="domcontentloaded", timeout=20000)
+        human_delay(3.0, 5.0)
+        
+        found_usernames = set()
+        scroll_attempts = 0
+        
+        while len(found_usernames) < max_users and scroll_attempts < 6:
+            tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            for tw in tweet_elements:
+                # Авторы постов и ответов
+                user_links = tw.query_selector_all('div[data-testid="User-Name"] a[href^="/"]')
+                for ul in user_links:
+                    href = ul.get_attribute("href") or ""
+                    if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
+                        u = href.replace("/", "").strip()
+                        if u and u.lower() != clean_donor.lower() and len(u) < 30:
+                            found_usernames.add(u)
+                
+                # Упомянутые дизайнеры в кейсах студии
+                mentions = tw.query_selector_all('div[data-testid="tweetText"] a[href^="/"]')
+                for m in mentions:
+                    m_href = m.get_attribute("href") or ""
+                    if m_href.startswith("/") and not any(x in m_href for x in ["/hashtag/", "/search", "/i/"]):
+                        u = m_href.replace("/", "").strip()
+                        if u and u.lower() != clean_donor.lower() and len(u) < 30:
+                            found_usernames.add(u)
+
+            human_scroll(page, steps=random.randint(2, 3), allow_backtrack=True)
+            human_idle_noise(page)
+            scroll_attempts += 1
+
+        print(f"[Scraper] Found {len(found_usernames)} community designers from @{clean_donor}. Starting evaluation...")
+        _evaluate_and_store_users(page, found_usernames, max_users, source_label=f"donor:@{clean_donor}")
+
+    except Exception as e:
+        print(f"Error harvesting from donor @{clean_donor}: {e}")
+
+def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label: str):
+    """Helper to inspect and score a set of usernames."""
+    for idx, username in enumerate(list(usernames_set)[:max_users], 1):
+        profile = inspect_user_profile(page, username)
+        if profile:
+            evaluation = evaluate_candidate(profile)
+            candidate_record = {
+                **profile,
+                "score": evaluation["score"],
+                "ratio": evaluation["ratio"],
+                "score_breakdown": evaluation["breakdown"],
+                "source": source_label,
+                "status": evaluation["status"]
+            }
+            upsert_candidate(candidate_record)
+            status_emoji = "⭐ QUEUED" if evaluation['status'] == 'queued' else "ignored"
+            print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}")
+            
+            # Organic delay between candidates
+            human_delay(3.0, 6.5)
+            
+            # Natural micro-break every 4-6 profiles
+            if idx % random.randint(4, 6) == 0:
+                break_sec = random.randint(12, 22)
+                print(f"  [Human Pause] Short break ({break_sec}s) to maintain natural browsing patterns...")
+                human_idle_noise(page)
+                time.sleep(break_sec)
+
+def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=1, donors_count=1):
+    """
+    Runs a balanced harvesting cycle: search queries + donor studio communities.
+    Includes natural warmup/glance at home feed between batches.
     """
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     selected_queries = random.sample(SEARCH_QUERIES, min(queries_count, len(SEARCH_QUERIES)))
+    selected_donors = random.sample(TARGET_DONORS, min(donors_count, len(TARGET_DONORS)))
+    
+    tasks = [("search", q) for q in selected_queries] + [("donor", d) for d in selected_donors]
+    random.shuffle(tasks)
     
     try:
-        for i, q in enumerate(selected_queries, 1):
-            harvest_from_search(page, q, max_users=10)
+        for i, (task_type, target) in enumerate(tasks, 1):
+            if task_type == "search":
+                harvest_from_search(page, target, max_users=10)
+            else:
+                harvest_from_donor(page, target, max_users=10)
             
-            # Between queries: glance at home feed to blend with real traffic
-            if i < len(selected_queries):
-                inter_query_pause = random.randint(15, 30)
-                print(f"\n[Cooldown] Taking a {inter_query_pause}s cooldown between search topics...")
+            # Between batches: glance at home feed to blend with real traffic
+            if i < len(tasks):
+                inter_pause = random.randint(15, 30)
+                print(f"\n[Cooldown] Taking a {inter_pause}s cooldown before next source...")
                 try:
                     page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=20000)
                     human_delay(2.0, 4.0)
                     human_scroll(page, steps=1)
                 except Exception:
                     pass
-                time.sleep(inter_query_pause)
+                time.sleep(inter_pause)
                 
     finally:
         ctx.close()
@@ -194,4 +261,4 @@ def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=3):
 if __name__ == "__main__":
     import sys
     prof = sys.argv[1] if len(sys.argv) > 1 else "test_igorvl777"
-    run_harvesting_cycle(profile_name=prof, queries_count=2)
+    run_harvesting_cycle(profile_name=prof, queries_count=1, donors_count=1)

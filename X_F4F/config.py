@@ -10,21 +10,26 @@ import os
 # 1. СКОРИНГОВАЯ МАТРИЦА КЛЮЧЕВЫХ СЛОВ (BIO)
 # ==========================================
 
-# Кластер A: Должности и статус (Лица принимающие решения / Коллеги) - Вес: +35
+# Кластер A: Должности и статус (Лица принимающие решения / Дизайнеры) - Вес: +35
 KEYWORDS_ROLES = [
     "art director", "creative director", "design lead", "head of design",
-    "brand director", "founder", "co-founder", "spatial designer",
-    "design engineer", "creative technologist", "type designer", "design principal",
-    "lead designer", "design partner", "vp design"
+    "brand director", "founder", "co-founder", "ceo", "design partner", "vp design",
+    "design principal", "lead designer", "product designer", "graphic designer",
+    "brand designer", "visual designer", "motion designer", "type designer",
+    "spatial designer", "design engineer", "creative technologist", "ui/ux designer",
+    "ui/ux", "ui designer", "ux designer", "web designer", "designer",
+    "artist", "architect"
 ]
 
 # Кластер B: Эстетика и стиль (Прямой визуальный match) - Вес: +30
 KEYWORDS_STYLE = [
     "brutalism", "brutalist", "neo-brutalism", "neo-brutalist",
-    "swiss style", "swiss design", "editorial design", "information design",
+    "swiss style", "swiss design", "editorial design", "editorial", "information design",
     "data visualization", "generative design", "speculative design",
-    "monospace", "typography", "grid systems", "modular design",
-    "3d design", "functional typography", "utilitarian design", "hud design"
+    "monospace", "typography", "grid systems", "modular design", "grid",
+    "3d design", "functional typography", "utilitarian design", "hud design", "hud",
+    "branding", "brand identity", "visual identity", "design system", "poster design",
+    "framer", "figma", "spline", "blender", "touchdesigner", "cinema4d", "c4d"
 ]
 
 # Кластер C: Индустрия и ниша (Высокочековые заказчики / Студии) - Вес: +30
@@ -32,14 +37,23 @@ KEYWORDS_INDUSTRY = [
     "healthtech", "medtech", "biotech", "life sciences", "longevity",
     "packaging design", "spatial wayfinding", "future ui", "creative studio",
     "brand identity", "brand architecture", "cleanroom", "clinical aesthetic",
-    "pharma branding", "dermatology clinic", "cosmeceuticals"
+    "pharma branding", "dermatology clinic", "cosmeceuticals", "studio"
+]
+
+# Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
+NEGATIVE_KEYWORDS = [
+    "crypto", "airdrop", "solana", "memecoin", "forex", "trading", "pump",
+    "bounty", "affiliate", "paid collab", "paid collaboration", "dm for work",
+    "maga", "trump", "politician", "onlyfans", "nsfw", "porn", "casino",
+    "18+", "dropshipping", "dm for paid", "ai creator", "prompt engineer",
+    "tips/note", "tips", "brain/tips"
 ]
 
 # Ссылки на дизайнерские портфолио в Bio/URL (+15 очков)
 PORTFOLIO_DOMAINS = [
     "behance.net", "layers.to", "framer.website", "framer.com",
     "readymag.site", "dribbble.com", "cosmos.so", "bento.me",
-    "are.na", "contra.com"
+    "are.na", "contra.com", "github.com", "notion.site"
 ]
 
 # Минимальный проходной балл скоринга для постановки в очередь на подписку
@@ -69,15 +83,23 @@ SEARCH_QUERIES = [
     '"swiss style" typography',
     '"brutalist" design',
     '"editorial design" grid',
+    '"editorial design" typography',
+    '"brand identity" studio',
+    '"visual identity" design',
     '"speculative design"',
     '"spatial design" 3d',
     '"healthtech" branding',
     '"medtech" brand identity',
     '"biotech" design',
-    '"futuristic UI" OR "HUD design"',
     '"packaging design" pharma OR serum',
     '"brand guidelines" typography grid',
-    '"identity system" brutalism'
+    '"identity system" brutalism',
+    '"built with framer" portfolio',
+    '"readymag" portfolio site',
+    '"product designer" portfolio',
+    'to:readymag portfolio',
+    'to:framer website',
+    'to:type01_'
 ]
 
 # Аккаунты-доноры (чьих недавних лайкеров/ретвитеров будем парсить)

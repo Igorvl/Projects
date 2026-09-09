@@ -13,7 +13,8 @@ from config import (
     MIN_FOLLOWERS,
     MAX_FOLLOWERS,
     MIN_RATIO,
-    MIN_SCORE_THRESHOLD
+    MIN_SCORE_THRESHOLD,
+    NEGATIVE_KEYWORDS
 )
 
 def evaluate_candidate(profile_data: dict) -> dict:
@@ -39,6 +40,14 @@ def evaluate_candidate(profile_data: dict) -> dict:
     }
 
     # 2. Проверка Hard Gates
+    # А. Негативные стоп-слова (боты, скам, офферы)
+    combined_check = f"{bio} {url}"
+    for neg in NEGATIVE_KEYWORDS:
+        if neg in combined_check:
+            breakdown["hard_gates_passed"] = False
+            breakdown["reject_reasons"].append(f"Spam filter: '{neg}'")
+            break
+
     if followers < MIN_FOLLOWERS:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Followers ({followers}) < {MIN_FOLLOWERS}")
