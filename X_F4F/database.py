@@ -136,7 +136,11 @@ def upsert_candidate(data: dict):
                 ratio=excluded.ratio,
                 score=excluded.score,
                 score_breakdown=excluded.score_breakdown,
-                status=excluded.status,
+                -- НЕ перетираем статус у followed/mutual/unfollowed — бот не должен подписываться дважды
+                status=CASE
+                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
+                    ELSE excluded.status
+                END,
                 updated_at=excluded.updated_at
         """, (
             data["username"].lower().replace("@", ""),
@@ -168,7 +172,11 @@ def upsert_candidate(data: dict):
                 ratio=EXCLUDED.ratio,
                 score=EXCLUDED.score,
                 score_breakdown=EXCLUDED.score_breakdown::jsonb,
-                status=EXCLUDED.status,
+                -- НЕ перетираем статус у followed/mutual/unfollowed
+                status=CASE
+                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
+                    ELSE EXCLUDED.status
+                END,
                 updated_at=EXCLUDED.updated_at
         """, (
             data["username"].lower().replace("@", ""),

@@ -79,7 +79,12 @@ def inspect_user_profile(page, username: str) -> dict:
         if following_link:
             following_count = parse_stat_number(following_link.inner_text())
             
-        followers_link = page.query_selector(f'a[href="/{clean_user}/followers"]') or page.query_selector(f'a[href$="/followers"]') or page.query_selector(f'a[href="/{clean_user}/verified_followers"]')
+        # Priority: exact /followers URL. Fallback: /verified_followers only for same user.
+        # AVOID: a[href$="/followers"] — это может поймать случайную ссылку на странице!
+        followers_link = (
+            page.query_selector(f'a[href="/{clean_user}/followers"]') or
+            page.query_selector(f'a[href="/{clean_user}/verified_followers"]')
+        )
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text())
             

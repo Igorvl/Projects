@@ -45,8 +45,9 @@ NEGATIVE_KEYWORDS = [
     "crypto", "airdrop", "solana", "memecoin", "forex", "trading", "pump",
     "bounty", "affiliate", "paid collab", "paid collaboration", "dm for work",
     "maga", "trump", "politician", "onlyfans", "nsfw", "porn", "casino",
-    "18+", "dropshipping", "dm for paid", "ai creator", "prompt engineer",
-    "tips/note", "tips", "brain/tips"
+    "18+", "dropshipping", "dm for paid", "prompt engineer",
+    "tips/note", "brain/tips", "earn daily", "make money", "passive income",
+    "nft project", "web3 creator", "100x"
 ]
 
 # Ссылки на дизайнерские портфолио в Bio/URL (+15 очков)

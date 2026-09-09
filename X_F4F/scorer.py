@@ -56,16 +56,20 @@ def evaluate_candidate(profile_data: dict) -> dict:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Followers ({followers}) > {MAX_FOLLOWERS}")
 
-    if ratio < MIN_RATIO:
+    # Ratio — soft check only: very low ratio is penalised in scoring, not hard-rejected.
+    # Hard rejection only for extreme ghost accounts (ratio < 0.05).
+    if ratio < 0.05 and followers > 500:
         breakdown["hard_gates_passed"] = False
-        breakdown["reject_reasons"].append(f"Ratio ({ratio}) < {MIN_RATIO}")
+        breakdown["reject_reasons"].append(f"Ratio ({ratio}) < 0.05 (ghost account)")
 
     # 3. Скоринг совпадений
     score = 0
 
     # Кластер A: Роли (+35 за первое совпадение, +5 за доп.)
+    # NOTE: не используем \b word boundary — символ '/' в 'ui/ux' ломает границу слова.
+    # Вместо этого: точный substring match (bio уже в lower())
     for role in KEYWORDS_ROLES:
-        if re.search(r'\b' + re.escape(role) + r'\b', bio):
+        if role in bio:
             breakdown["roles_matched"].append(role)
     if breakdown["roles_matched"]:
         score += 35 + min(15, (len(breakdown["roles_matched"]) - 1) * 5)
@@ -92,9 +96,13 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if breakdown["portfolio_matched"]:
         score += 15
 
-    # Бонус за идеальный F4F Ratio (если Following >= Followers, т.е. активный взаимщик)
+    # Ratio scoring: бонус за активных взаимщиков, штраф за «звёзд»
     if ratio >= 0.95:
-        score += 10
+        score += 10   # Активный взаимщик — отличный F4F кандидат
+    elif ratio >= MIN_RATIO:   # 0.50+ — хороший взаимщик
+        score += 5
+    elif ratio < 0.15:         # Очень низкий ratio — звезда, вряд ли ответит
+        score -= 10
 
     # Итоговый статус
     is_qualified = breakdown["hard_gates_passed"] and (score >= MIN_SCORE_THRESHOLD)
