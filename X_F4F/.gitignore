@@ -1,0 +1,22 @@
+# Secrets — никогда не коммитить!
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Browser profiles (содержат сессии/cookies)
+profiles/
+
+# Database
+data/*.db
+data/*.sqlite
+
+# Chat History & Logs (приватная переписка и логи)
+chat_history.md
+chat_history.md.tmp
+*.log
+
+# Playwright
+playwright-report/

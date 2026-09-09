@@ -1,0 +1,33 @@
+{
+  "chat-history-export": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "C:\\agy_tools\\run_hook.cmd"
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "C:\\agy_tools\\run_hook.cmd"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\agy_tools\\run_hook.cmd"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "C:\\agy_tools\\run_hook.cmd"
+      }
+    ]
+  }
+}
