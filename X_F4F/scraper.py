@@ -14,19 +14,26 @@ from scorer import evaluate_candidate
 from database import upsert_candidate
 
 def parse_stat_number(text: str) -> int:
-    """Parses text numbers like '1.2K', '34.5M', '1,200' to integer."""
+    """
+    Parses text numbers like '8 489 подписчиков', '1.2K Followers', '34.5M', '1,200'.
+    Correctly handles non-breaking spaces (\xa0) from European/Russian locales.
+    """
     if not text:
         return 0
-    text = text.strip().upper().replace(",", "").replace(" ", "")
+    cleaned = text.replace("\xa0", " ").strip()
+    m = re.match(r"^([\d\s.,]+[KkMmBb]?)", cleaned)
+    if not m:
+        return 0
+    num_str = m.group(1).replace(" ", "").replace(",", "").upper()
     multiplier = 1
-    if "K" in text:
+    if "K" in num_str:
         multiplier = 1000
-        text = text.replace("K", "")
-    elif "M" in text:
+        num_str = num_str.replace("K", "")
+    elif "M" in num_str:
         multiplier = 1000000
-        text = text.replace("M", "")
+        num_str = num_str.replace("M", "")
     try:
-        return int(float(text) * multiplier)
+        return int(float(num_str) * multiplier)
     except Exception:
         return 0
 
@@ -70,11 +77,11 @@ def inspect_user_profile(page, username: str) -> dict:
         
         following_link = page.query_selector(f'a[href="/{clean_user}/following"]')
         if following_link:
-            following_count = parse_stat_number(following_link.inner_text().split()[0])
+            following_count = parse_stat_number(following_link.inner_text())
             
         followers_link = page.query_selector(f'a[href="/{clean_user}/verified_followers"]') or page.query_selector(f'a[href="/{clean_user}/followers"]')
         if followers_link:
-            followers_count = parse_stat_number(followers_link.inner_text().split()[0])
+            followers_count = parse_stat_number(followers_link.inner_text())
             
         # Human mimicry: glance at recent work/tweets (scroll down 1-2 times)
         if random.random() < 0.65:
