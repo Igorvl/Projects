@@ -11,7 +11,7 @@ import random
 from browser import get_browser_context, human_delay, human_scroll, human_click, human_idle_noise
 from config import SEARCH_QUERIES, TARGET_DONORS
 from scorer import evaluate_candidate
-from database import upsert_candidate
+from database import upsert_candidate, get_existing_candidate_usernames
 
 def parse_stat_number(text: str) -> int:
     """
@@ -195,8 +195,27 @@ def harvest_from_donor(page, donor_username: str, max_users: int = 12):
         print(f"Error harvesting from donor @{clean_donor}: {e}")
 
 def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label: str):
-    """Helper to inspect and score a set of usernames."""
-    for idx, username in enumerate(list(usernames_set)[:max_users], 1):
+    """Helper to inspect and score a set of usernames, skipping already known candidates."""
+    existing_users = get_existing_candidate_usernames()
+    
+    # Отсеиваем пользователей, которые уже есть в нашей базе (не тратим время и запросы)
+    new_candidates = []
+    skipped_count = 0
+    for u in usernames_set:
+        clean_u = u.lower().replace("@", "").strip()
+        if clean_u in existing_users:
+            skipped_count += 1
+        else:
+            new_candidates.append(u)
+            
+    if skipped_count > 0:
+        print(f"  [Deduplication] Skipped {skipped_count} users already tracked in database.")
+        
+    if not new_candidates:
+        print("  [Deduplication] All found users from this source are already known. Skipping.")
+        return
+
+    for idx, username in enumerate(new_candidates[:max_users], 1):
         profile = inspect_user_profile(page, username)
         if profile:
             evaluation = evaluate_candidate(profile)
@@ -209,6 +228,8 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                 "status": evaluation["status"]
             }
             upsert_candidate(candidate_record)
+            existing_users.add(username.lower().replace("@", "").strip())
+            
             status_emoji = "⭐ QUEUED" if evaluation['status'] == 'queued' else "ignored"
             print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}")
             

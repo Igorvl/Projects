@@ -204,6 +204,15 @@ def get_candidates_for_follow(limit: int = 10, min_score: int = None):
     conn.close()
     return rows
 
+def get_existing_candidate_usernames() -> set:
+    """Returns set of all lowercase usernames already tracked in candidates database."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT LOWER(username) FROM candidates")
+    existing = {r[0] for r in cur.fetchall()}
+    conn.close()
+    return existing
+
 def log_action(username: str, action_type: str, success: bool = True, error: str = ""):
     """Logs action taken and updates daily stats."""
     conn = get_connection()
