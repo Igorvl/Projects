@@ -25,13 +25,13 @@ def get_browser_context(profile_name="test_igorvl777", headless=False):
     # Modern Chrome flags for stability and stealth
     args = [
         "--disable-blink-features=AutomationControlled",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
         "--disable-infobars",
         "--start-maximized",
         "--no-first-run",
         "--no-default-browser-check"
     ]
+    if os.name != "nt":
+        args.extend(["--no-sandbox", "--disable-dev-shm-usage"])
     
     launch_kwargs = {
         "user_data_dir": user_data_dir,
@@ -61,6 +61,18 @@ def get_browser_context(profile_name="test_igorvl777", headless=False):
         });
     """)
     
+    # Auto-load cookies.json if present
+    cookie_file = os.path.join(user_data_dir, "cookies.json")
+    if os.path.exists(cookie_file):
+        try:
+            import json
+            with open(cookie_file, "r", encoding="utf-8") as f:
+                saved_cookies = json.load(f)
+                if saved_cookies:
+                    context.add_cookies(saved_cookies)
+        except Exception:
+            pass
+            
     page = context.pages[0] if context.pages else context.new_page()
     return playwright, context, page
 

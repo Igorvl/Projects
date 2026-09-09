@@ -114,13 +114,23 @@ def get_workspaces_for_conversation(cid):
     if os.path.exists(log_path):
         try:
             with open(log_path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    matches = re.findall(r'[a-zA-Z]:\\[^\\/:*?"<>|\r\n]+(?:\\[^\\/:*?"<>|\r\n]+)*', line)
-                    for m in matches:
-                        if os.path.isdir(m) and ("Projects" in m or "workspace" in m.lower()):
-                            workspaces.add(m)
+                # Only check header lines where workspace mapping is defined
+                for idx, line in enumerate(f):
+                    if idx > 30:
+                        break
+                    # Pattern for Antigravity workspace mapping: [URI] -> [CorpusName]
+                    for m in re.findall(r'([a-zA-Z]:\\[^\s\r\n]+)\s*->', line):
+                        m_clean = m.strip()
+                        if os.path.isdir(m_clean):
+                            workspaces.add(m_clean)
         except Exception:
             pass
+            
+    # Default fallback to current workspace if none found
+    default_ws = r"c:\Projects\Business\Web_projects_NEW\X_F4F"
+    if os.path.isdir(default_ws):
+        workspaces.add(default_ws)
+        
     return list(workspaces)
 
 def run_daemon():
