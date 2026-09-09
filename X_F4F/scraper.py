@@ -6,6 +6,7 @@ Extracts Bio, Followers, Following counts and passes to the scoring engine.
 """
 
 import re
+import time
 import random
 from browser import get_browser_context, human_delay, human_scroll, human_click, human_idle_noise
 from config import SEARCH_QUERIES, TARGET_DONORS
