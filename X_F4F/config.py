@@ -62,9 +62,9 @@ MIN_SCORE_THRESHOLD = 40
 # ==========================================
 # 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА (HARD GATES)
 # ==========================================
-MIN_FOLLOWERS = 200        # Отсекаем ботов и пустые аккаунты
+MIN_FOLLOWERS = 80         # Отсекаем ботов, но не блокируем начинающих/нишевых дизайнеров
 MAX_FOLLOWERS = 6000       # Отсекаем звезд, которые никогда не подпишутся в ответ
-MIN_RATIO = 0.65           # Following / Followers (0.65+ признак взаимщика)
+MIN_RATIO = 0.50           # Following / Followers (0.50+ здоровое соотношение для креативщиков)
 MAX_DAYS_INACTIVE = 3      # Аккаунт должен проявлять активность в последние 3 дня
 
 # ==========================================
@@ -80,23 +80,20 @@ UNFOLLOW_AFTER_DAYS = 5        # Через сколько дней отписы
 # 4. ПОИСКОВЫЕ ЗАПРОСЫ ДЛЯ СБОРА КАНДИДАТОВ
 # ==========================================
 SEARCH_QUERIES = [
-    '"swiss style" typography',
-    '"brutalist" design',
-    '"editorial design" grid',
-    '"editorial design" typography',
-    '"brand identity" studio',
-    '"visual identity" design',
-    '"speculative design"',
-    '"spatial design" 3d',
-    '"healthtech" branding',
-    '"medtech" brand identity',
-    '"biotech" design',
-    '"packaging design" pharma OR serum',
-    '"brand guidelines" typography grid',
-    '"identity system" brutalism',
-    '"built with framer" portfolio',
-    '"readymag" portfolio site',
-    '"product designer" portfolio',
+    'editorial design typography',
+    'brand identity studio',
+    'swiss style typography',
+    'brutalist design web',
+    'visual identity poster',
+    'speculative design futures',
+    'spatial design 3d',
+    'packaging design branding',
+    'brand guidelines typography',
+    'built with framer portfolio',
+    'readymag design portfolio',
+    'product designer ui ux',
+    'type design typography studio',
+    'graphic designer behance',
     'to:readymag portfolio',
     'to:framer website',
     'to:type01_'
