@@ -8,7 +8,7 @@ import sqlite3
 import os
 import json
 import datetime
-from config import SQLITE_PATH, DB_TYPE, DATABASE_URL
+from config import SQLITE_PATH, DB_TYPE, DATABASE_URL, MIN_SCORE_THRESHOLD
 
 def get_connection():
     """Returns database connection."""
@@ -136,6 +136,7 @@ def upsert_candidate(data: dict):
                 ratio=excluded.ratio,
                 score=excluded.score,
                 score_breakdown=excluded.score_breakdown,
+                status=excluded.status,
                 updated_at=excluded.updated_at
         """, (
             data["username"].lower().replace("@", ""),
@@ -167,6 +168,7 @@ def upsert_candidate(data: dict):
                 ratio=EXCLUDED.ratio,
                 score=EXCLUDED.score,
                 score_breakdown=EXCLUDED.score_breakdown::jsonb,
+                status=EXCLUDED.status,
                 updated_at=EXCLUDED.updated_at
         """, (
             data["username"].lower().replace("@", ""),
@@ -185,15 +187,18 @@ def upsert_candidate(data: dict):
     conn.commit()
     conn.close()
 
-def get_candidates_for_follow(limit: int = 10, min_score: int = 50):
+def get_candidates_for_follow(limit: int = 10, min_score: int = None):
     """Retrieves highest scored candidates ready to follow."""
+    if min_score is None:
+        min_score = MIN_SCORE_THRESHOLD
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("""
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"""
         SELECT * FROM candidates 
-        WHERE status = 'queued' AND score >= ? 
+        WHERE status = 'queued' AND score >= {ph} 
         ORDER BY score DESC, ratio DESC 
-        LIMIT ?
+        LIMIT {ph}
     """, (min_score, limit))
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
@@ -219,7 +224,8 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
     """, (today,))
 
     if action_type == "follow" and success:
-        cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
+        if error != "already_following":
+            cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'followed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "unfollow" and success:
         cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
