@@ -7,7 +7,7 @@ Extracts Bio, Followers, Following counts and passes to the scoring engine.
 
 import re
 import random
-from browser import get_browser_context, human_delay, human_scroll
+from browser import get_browser_context, human_delay, human_scroll, human_click, human_idle_noise
 from config import SEARCH_QUERIES, TARGET_DONORS
 from scorer import evaluate_candidate
 from database import upsert_candidate
@@ -31,14 +31,16 @@ def parse_stat_number(text: str) -> int:
 
 def inspect_user_profile(page, username: str) -> dict:
     """
-    Navigates to user profile and extracts bio, counts, url, and checks recency.
+    Navigates to user profile, simulates human reading behavior
+    (mouse wandering, scrolling recent tweets), and extracts bio + counts.
     """
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(1.5, 3.0)
+        # Natural reading delay upon landing
+        human_delay(2.0, 4.0)
         
         # Check if user exists or suspended
         page_text = page.inner_text("body")
@@ -62,7 +64,6 @@ def inspect_user_profile(page, username: str) -> dict:
             user_url = url_el.get_attribute("href") or url_el.inner_text()
             
         # Extract Following and Followers counts
-        # X uses links like /username/following and /username/verified_followers
         following_count = 0
         followers_count = 0
         
@@ -73,6 +74,11 @@ def inspect_user_profile(page, username: str) -> dict:
         followers_link = page.query_selector(f'a[href="/{clean_user}/verified_followers"]') or page.query_selector(f'a[href="/{clean_user}/followers"]')
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text().split()[0])
+            
+        # Human mimicry: glance at recent work/tweets (scroll down 1-2 times)
+        if random.random() < 0.65:
+            human_scroll(page, steps=random.randint(1, 2), allow_backtrack=True)
+            human_idle_noise(page)
             
         return {
             "username": clean_user,
@@ -88,19 +94,20 @@ def inspect_user_profile(page, username: str) -> dict:
 
 def harvest_from_search(page, query: str, max_users: int = 15):
     """
-    Searches for query in X, grabs author usernames from tweets, and scores them.
+    Searches for query in X, grabs author usernames from tweets, and scores them
+    with organic human delays, micro-breaks, and natural feed scrolling.
     """
     print(f"\n[Scraper] Searching for query: {query}")
     search_url = f"https://x.com/search?q={query}&f=live"
     
     try:
         page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 4.0)
+        human_delay(2.5, 4.5)
         
         found_usernames = set()
         scroll_attempts = 0
         
-        while len(found_usernames) < max_users and scroll_attempts < 5:
+        while len(found_usernames) < max_users and scroll_attempts < 6:
             # Find tweet author links
             tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
             for tw in tweet_elements:
@@ -112,13 +119,14 @@ def harvest_from_search(page, query: str, max_users: int = 15):
                         if u and len(u) < 30:
                             found_usernames.add(u)
                             
-            human_scroll(page, steps=2)
+            human_scroll(page, steps=random.randint(2, 3), allow_backtrack=True)
+            human_idle_noise(page)
             scroll_attempts += 1
             
         print(f"[Scraper] Found {len(found_usernames)} unique users in feed. Starting evaluation...")
         
-        # Now inspect and score each candidate
-        for username in list(found_usernames)[:max_users]:
+        # Now inspect and score each candidate with human pacing
+        for idx, username in enumerate(list(found_usernames)[:max_users], 1):
             profile = inspect_user_profile(page, username)
             if profile:
                 evaluation = evaluate_candidate(profile)
@@ -132,19 +140,44 @@ def harvest_from_search(page, query: str, max_users: int = 15):
                 }
                 upsert_candidate(candidate_record)
                 print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {evaluation['status']}")
-                human_delay(1.5, 3.5)
+                
+                # Organic delay between candidates
+                human_delay(3.0, 7.0)
+                
+                # Natural micro-break every 4-6 profiles (mimics taking a sip of coffee or reading a tab)
+                if idx % random.randint(4, 6) == 0:
+                    break_sec = random.randint(12, 25)
+                    print(f"  [Human Pause] Short break ({break_sec}s) to maintain natural browsing patterns...")
+                    human_idle_noise(page)
+                    time.sleep(break_sec)
                 
     except Exception as e:
         print(f"Error during search harvesting: {e}")
 
 def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=3):
-    """Runs a batch harvesting cycle across random queries."""
+    """
+    Runs a batch harvesting cycle across random queries.
+    Includes natural warmup/glance at home feed between query batches.
+    """
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     selected_queries = random.sample(SEARCH_QUERIES, min(queries_count, len(SEARCH_QUERIES)))
     
     try:
-        for q in selected_queries:
+        for i, q in enumerate(selected_queries, 1):
             harvest_from_search(page, q, max_users=10)
+            
+            # Between queries: glance at home feed to blend with real traffic
+            if i < len(selected_queries):
+                inter_query_pause = random.randint(15, 30)
+                print(f"\n[Cooldown] Taking a {inter_query_pause}s cooldown between search topics...")
+                try:
+                    page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=20000)
+                    human_delay(2.0, 4.0)
+                    human_scroll(page, steps=1)
+                except Exception:
+                    pass
+                time.sleep(inter_query_pause)
+                
     finally:
         ctx.close()
         pw.stop()

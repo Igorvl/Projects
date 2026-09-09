@@ -8,7 +8,13 @@ tracks mutual follows, and manages unfollows for non-responders.
 import random
 import time
 import datetime
-from browser import get_browser_context, human_delay
+from browser import (
+    get_browser_context,
+    human_delay,
+    human_click,
+    human_scroll,
+    human_idle_noise
+)
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
@@ -37,16 +43,18 @@ def get_today_counts():
     return 0, 0
 
 def follow_user(page, username: str) -> bool:
-    """Navigates to user profile and clicks the Follow button if not already followed."""
+    """
+    Navigates to user profile, smoothly moves cursor to Follow button via Bezier curves,
+    clicks with natural offset/duration, and lingers on profile to emulate human attention.
+    """
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 3.5)
+        human_delay(2.5, 4.5)
         
         # Look for Follow button
-        # In X, the button has testid="[id]-follow" or text "Follow"
         follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
         
         # Check if already following (Following button has testid="[id]-unfollow")
@@ -57,10 +65,22 @@ def follow_user(page, username: str) -> bool:
             return False
             
         if follow_btn:
-            follow_btn.click()
-            print(f"  [Follower] Successfully followed @{clean_user}!")
-            log_action(clean_user, "follow", success=True)
-            return True
+            # Human smooth click with Bezier trajectory
+            clicked = human_click(page, follow_btn)
+            if clicked:
+                print(f"  [Follower] Successfully followed @{clean_user}! (Human click applied)")
+                log_action(clean_user, "follow", success=True)
+                
+                # Human lingering: scroll down to inspect recent work/posts
+                human_delay(1.5, 3.5)
+                if random.random() < 0.55:
+                    human_scroll(page, steps=1)
+                    human_idle_noise(page)
+                return True
+            else:
+                print(f"  [Follower] Click failed on follow button for @{clean_user}")
+                log_action(clean_user, "follow", success=False, error="click_failed")
+                return False
         else:
             print(f"  [Follower] Follow button not found for @{clean_user}")
             log_action(clean_user, "follow", success=False, error="button_not_found")
@@ -79,31 +99,32 @@ def check_is_mutual(page, username: str) -> bool:
     clean_user = username.replace("@", "").strip()
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        human_delay(1.5, 3.0)
+        human_delay(1.8, 3.5)
         page_text = page.inner_text("body")
-        # X shows "Follows you" text in profile header for mutual followers
         return "Follows you" in page_text
     except Exception as e:
         print(f"  [Follower] Error checking mutual @{clean_user}: {e}")
         return False
 
 def unfollow_user(page, username: str) -> bool:
-    """Navigates to user profile and unfollows if they don't follow back."""
+    """Navigates to user profile and unfollows with human curve clicks."""
     clean_user = username.replace("@", "").strip()
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 3.5)
+        human_delay(2.0, 4.0)
         
         # Find "Following" button (means we follow them — can unfollow)
         unfollow_btn = page.query_selector('button[data-testid$="-unfollow"]') or page.query_selector('button:has-text("Following")')
         if unfollow_btn:
-            unfollow_btn.click()
-            human_delay(0.5, 1.5)
-            # X shows a confirm modal "Unfollow @user?" — click confirm
+            human_click(page, unfollow_btn)
+            human_delay(0.8, 1.8)
+            
+            # Confirm dialog
             confirm_btn = page.query_selector('button[data-testid="confirmationSheetConfirm"]')
             if confirm_btn:
-                confirm_btn.click()
-            print(f"  [Follower] Unfollowed @{clean_user}")
+                human_click(page, confirm_btn)
+                
+            print(f"  [Follower] Unfollowed @{clean_user} (organic click)")
             log_action(clean_user, "unfollow", success=True)
             return True
         else:
@@ -134,7 +155,10 @@ def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20
     return rows
 
 def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
-    """Executes a small batch of follows safely within limits."""
+    """
+    Executes a small batch of follows safely within limits with log-normal delays
+    and natural rest breaks.
+    """
     follows_today, _ = get_today_counts()
     if follows_today >= DAILY_FOLLOW_LIMIT:
         print(f"[Follower] Daily follow limit reached ({follows_today}/{DAILY_FOLLOW_LIMIT}). Halting.")
@@ -147,21 +171,34 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
         print("[Follower] No candidates in queue with qualifying score.")
         return
         
-    print(f"[Follower] Starting follow batch for {len(candidates)} candidates...")
+    print(f"[Follower] Starting safe follow batch for {len(candidates)} candidates...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     
     try:
-        for c in candidates:
+        for idx, c in enumerate(candidates, 1):
             u = c["username"]
             print(f"\n[Follower] Processing candidate @{u} (Score: {c['score']}, Ratio: {c['ratio']})...")
             success = follow_user(page, u)
             
             if success:
-                delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
-                print(f"  [Follower] Sleeping for {delay} seconds (safe delay)...")
+                # Log-normal distribution around center of min/max delay
+                mean_delay = (MIN_DELAY_SECONDS + MAX_DELAY_SECONDS) / 2.0
+                delay = int(max(MIN_DELAY_SECONDS, min(MAX_DELAY_SECONDS, random.gauss(mean_delay, (MAX_DELAY_SECONDS - MIN_DELAY_SECONDS) / 3.5))))
+                print(f"  [Follower] Human delay: {delay}s before next action...")
                 time.sleep(delay)
+                
+                # Session pause every 3-4 follows (mimics human walking away / switching tabs)
+                if idx % random.randint(3, 4) == 0 and idx < len(candidates):
+                    rest_sec = random.randint(45, 90)
+                    print(f"  [Session Rest] Taking an extended break of {rest_sec}s...")
+                    try:
+                        page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=15000)
+                        human_scroll(page, steps=1)
+                    except Exception:
+                        pass
+                    time.sleep(rest_sec)
             else:
-                human_delay(2.0, 4.0)
+                human_delay(3.0, 6.0)
     finally:
         ctx.close()
         pw.stop()
