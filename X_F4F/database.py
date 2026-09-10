@@ -15,6 +15,8 @@ def get_connection():
     if DB_TYPE == "sqlite":
         conn = sqlite3.connect(SQLITE_PATH, timeout=15)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
         return conn
     else:
         import psycopg2
@@ -121,12 +123,14 @@ def upsert_candidate(data: dict):
     breakdown_json = json.dumps(data.get("score_breakdown", {}), ensure_ascii=False)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    last_active = data.get("last_active")
+    
     if DB_TYPE == "sqlite":
         cur.execute("""
             INSERT INTO candidates (
                 username, name, bio, url, followers_count, following_count,
-                ratio, score, score_breakdown, source, status, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ratio, score, score_breakdown, source, status, last_active, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
                 name=excluded.name,
                 bio=excluded.bio,
@@ -136,6 +140,7 @@ def upsert_candidate(data: dict):
                 ratio=excluded.ratio,
                 score=excluded.score,
                 score_breakdown=excluded.score_breakdown,
+                last_active=COALESCE(excluded.last_active, candidates.last_active),
                 -- НЕ перетираем статус у followed/mutual/unfollowed — бот не должен подписываться дважды
                 status=CASE
                     WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
@@ -154,6 +159,7 @@ def upsert_candidate(data: dict):
             breakdown_json,
             data.get("source", ""),
             data.get("status", "discovered"),
+            last_active,
             now
         ))
     else:
@@ -161,8 +167,8 @@ def upsert_candidate(data: dict):
         cur.execute("""
             INSERT INTO candidates (
                 username, name, bio, url, followers_count, following_count,
-                ratio, score, score_breakdown, source, status, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s)
+                ratio, score, score_breakdown, source, status, last_active, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)
             ON CONFLICT(username) DO UPDATE SET
                 name=EXCLUDED.name,
                 bio=EXCLUDED.bio,
@@ -172,6 +178,7 @@ def upsert_candidate(data: dict):
                 ratio=EXCLUDED.ratio,
                 score=EXCLUDED.score,
                 score_breakdown=EXCLUDED.score_breakdown::jsonb,
+                last_active=COALESCE(EXCLUDED.last_active, candidates.last_active),
                 -- НЕ перетираем статус у followed/mutual/unfollowed
                 status=CASE
                     WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
@@ -190,6 +197,7 @@ def upsert_candidate(data: dict):
             breakdown_json,
             data.get("source", ""),
             data.get("status", "discovered"),
+            last_active,
             now
         ))
     conn.commit()

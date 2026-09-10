@@ -8,6 +8,7 @@ Extracts Bio, Followers, Following counts and passes to the scoring engine.
 import re
 import time
 import random
+import datetime
 from browser import get_browser_context, human_delay, human_scroll, human_click, human_idle_noise
 from config import SEARCH_QUERIES, TARGET_DONORS
 from scorer import evaluate_candidate
@@ -40,7 +41,7 @@ def parse_stat_number(text: str) -> int:
 def inspect_user_profile(page, username: str) -> dict:
     """
     Navigates to user profile, simulates human reading behavior
-    (mouse wandering, scrolling recent tweets), and extracts bio + counts.
+    (mouse wandering, scrolling recent tweets), and extracts bio + counts + last active date.
     """
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
@@ -80,7 +81,6 @@ def inspect_user_profile(page, username: str) -> dict:
             following_count = parse_stat_number(following_link.inner_text())
             
         # Priority: exact /followers URL. Fallback: /verified_followers only for same user.
-        # AVOID: a[href$="/followers"] — это может поймать случайную ссылку на странице!
         followers_link = (
             page.query_selector(f'a[href="/{clean_user}/followers"]') or
             page.query_selector(f'a[href="/{clean_user}/verified_followers"]')
@@ -88,6 +88,29 @@ def inspect_user_profile(page, username: str) -> dict:
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text())
             
+        # Extract last active date from latest tweet (activity freshness check)
+        days_inactive = None
+        last_active_str = None
+        try:
+            tweet_times = page.query_selector_all('article[data-testid="tweet"] time')
+            if tweet_times:
+                dates = []
+                for t_el in tweet_times[:3]:
+                    dt_val = t_el.get_attribute("datetime")
+                    if dt_val:
+                        try:
+                            parsed_dt = datetime.datetime.fromisoformat(dt_val.replace("Z", "+00:00"))
+                            dates.append(parsed_dt)
+                        except Exception:
+                            pass
+                if dates:
+                    most_recent = max(dates)
+                    now_utc = datetime.datetime.now(datetime.timezone.utc)
+                    days_inactive = max(0, (now_utc - most_recent).days)
+                    last_active_str = most_recent.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            pass
+
         # Human mimicry: glance at recent work/tweets (scroll down 1-2 times)
         if random.random() < 0.65:
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=True)
@@ -99,7 +122,9 @@ def inspect_user_profile(page, username: str) -> dict:
             "bio": bio,
             "url": user_url,
             "followers_count": followers_count,
-            "following_count": following_count
+            "following_count": following_count,
+            "days_inactive": days_inactive,
+            "last_active": last_active_str
         }
     except Exception as e:
         print(f"Error inspecting @{clean_user}: {e}")
@@ -199,6 +224,45 @@ def harvest_from_donor(page, donor_username: str, max_users: int = 12):
     except Exception as e:
         print(f"Error harvesting from donor @{clean_donor}: {e}")
 
+def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15):
+    """
+    Visits a high-tier or mid-tier design creator/platform's followers list:
+    https://x.com/{donor}/followers
+    Extracts actual following designers, filtering out noise.
+    High-yield source with >60% relevance.
+    """
+    clean_donor = donor_username.replace("@", "").strip()
+    print(f"\n[Scraper] Harvesting followers list from donor: @{clean_donor}")
+    url = f"https://x.com/{clean_donor}/followers"
+    
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        human_delay(3.0, 5.0)
+        
+        found_usernames = set()
+        scroll_attempts = 0
+        
+        while len(found_usernames) < max_users and scroll_attempts < 6:
+            user_cells = page.query_selector_all('div[data-testid="UserCell"]')
+            for cell in user_cells:
+                user_links = cell.query_selector_all('a[href^="/"]')
+                for ul in user_links:
+                    href = ul.get_attribute("href") or ""
+                    if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/", "/search"]):
+                        u = href.replace("/", "").strip()
+                        if u and u.lower() != clean_donor.lower() and len(u) < 30:
+                            found_usernames.add(u)
+                            
+            human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
+            human_idle_noise(page)
+            scroll_attempts += 1
+            
+        print(f"[Scraper] Found {len(found_usernames)} candidate designers from @{clean_donor}'s followers. Starting evaluation...")
+        _evaluate_and_store_users(page, found_usernames, max_users, source_label=f"donor_followers:@{clean_donor}")
+        
+    except Exception as e:
+        print(f"Error harvesting followers from @{clean_donor}: {e}")
+
 def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label: str):
     """Helper to inspect and score a set of usernames, skipping already known candidates."""
     existing_users = get_existing_candidate_usernames()
@@ -236,7 +300,8 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
             existing_users.add(username.lower().replace("@", "").strip())
             
             status_emoji = "⭐ QUEUED" if evaluation['status'] == 'queued' else "ignored"
-            print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}")
+            reasons_str = f" ({', '.join(evaluation['breakdown']['reject_reasons'])})" if evaluation['breakdown']['reject_reasons'] else ""
+            print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}{reasons_str}")
             
             # Organic delay between candidates
             human_delay(3.0, 6.5)
@@ -248,21 +313,34 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                 human_idle_noise(page)
                 time.sleep(break_sec)
 
-def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=1, donors_count=1):
+def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=1, donors_count=1, followers_count=1):
     """
-    Runs a balanced harvesting cycle: search queries + donor studio communities.
+    Runs a balanced harvesting cycle:
+    1. Donor Followers (highest yield and relevance)
+    2. Search queries
+    3. Donor community timeline & replies
     Includes natural warmup/glance at home feed between batches.
     """
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     selected_queries = random.sample(SEARCH_QUERIES, min(queries_count, len(SEARCH_QUERIES)))
     selected_donors = random.sample(TARGET_DONORS, min(donors_count, len(TARGET_DONORS)))
+    selected_follower_donors = random.sample(TARGET_DONORS, min(followers_count, len(TARGET_DONORS)))
     
-    tasks = [("search", q) for q in selected_queries] + [("donor", d) for d in selected_donors]
+    tasks = []
+    for fd in selected_follower_donors:
+        tasks.append(("donor_followers", fd))
+    for q in selected_queries:
+        tasks.append(("search", q))
+    for d in selected_donors:
+        tasks.append(("donor", d))
+        
     random.shuffle(tasks)
     
     try:
         for i, (task_type, target) in enumerate(tasks, 1):
-            if task_type == "search":
+            if task_type == "donor_followers":
+                harvest_from_donor_followers(page, target, max_users=12)
+            elif task_type == "search":
                 harvest_from_search(page, target, max_users=10)
             else:
                 harvest_from_donor(page, target, max_users=10)
@@ -287,4 +365,4 @@ def run_harvesting_cycle(profile_name="test_igorvl777", queries_count=1, donors_
 if __name__ == "__main__":
     import sys
     prof = sys.argv[1] if len(sys.argv) > 1 else "test_igorvl777"
-    run_harvesting_cycle(profile_name=prof, queries_count=1, donors_count=1)
+    run_harvesting_cycle(profile_name=prof, queries_count=1, donors_count=1, followers_count=1)

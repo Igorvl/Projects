@@ -86,8 +86,8 @@ def run_single_session(profile_name: str):
         needed = batch_target - queue_count
         print(f"[Orchestrator] Queue has {queue_count} leads (< target {batch_target}). Starting on-demand harvesting...")
         try:
-            # Запускаем 1 поиск + 1 донора
-            run_harvesting_cycle(profile_name=profile_name, queries_count=1, donors_count=1)
+            # Запускаем сбор из followers донора, поиска и донорских реплаев
+            run_harvesting_cycle(profile_name=profile_name, queries_count=1, donors_count=1, followers_count=1)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             

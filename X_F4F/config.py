@@ -42,8 +42,10 @@ KEYWORDS_INDUSTRY = [
 
 # Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
 NEGATIVE_KEYWORDS = [
-    "crypto", "airdrop", "solana", "memecoin", "forex", "trading", "pump",
-    "bounty", "affiliate", "paid collab", "paid collaboration", "dm for work",
+    "crypto", "airdrop", "solana", "memecoin", "forex", "trading",
+    "pump & dump", "pump and dump", "crypto pump",
+    "bounty", "affiliate", "paid collab", "paid collaboration",
+    "dm for paid promo", "dm for promo", "send dm for promo",
     "maga", "trump", "politician", "onlyfans", "nsfw", "porn", "casino",
     "18+", "dropshipping", "dm for paid", "prompt engineer",
     "tips/note", "brain/tips", "earn daily", "make money", "passive income",
@@ -65,7 +67,7 @@ MIN_SCORE_THRESHOLD = 40
 # ==========================================
 MIN_FOLLOWERS = 80         # Отсекаем ботов, но не блокируем начинающих/нишевых дизайнеров
 MAX_FOLLOWERS = 6000       # Отсекаем звезд, которые никогда не подпишутся в ответ
-MIN_RATIO = 0.50           # Following / Followers (0.50+ здоровое соотношение для креативщиков)
+MIN_RATIO = 0.35           # Following / Followers (0.35+ реалистичное соотношение для дизайнеров-взаимщиков)
 MAX_DAYS_INACTIVE = 3      # Аккаунт должен проявлять активность в последние 3 дня
 
 # ==========================================
