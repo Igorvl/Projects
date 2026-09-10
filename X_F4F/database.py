@@ -203,6 +203,18 @@ def upsert_candidate(data: dict):
     conn.commit()
     conn.close()
 
+def get_queue_count(min_score: int = None) -> int:
+    """Returns total number of candidates ready to follow."""
+    if min_score is None:
+        min_score = MIN_SCORE_THRESHOLD
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"SELECT COUNT(*) FROM candidates WHERE status = 'queued' AND score >= {ph}", (min_score,))
+    count = cur.fetchone()[0]
+    conn.close()
+    return count
+
 def get_candidates_for_follow(limit: int = 10, min_score: int = None):
     """Retrieves highest scored candidates ready to follow."""
     if min_score is None:

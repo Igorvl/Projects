@@ -13,7 +13,7 @@ import sys
 import time
 import random
 import datetime
-from database import get_connection, get_candidates_for_follow, DB_TYPE
+from database import get_connection, get_candidates_for_follow, get_queue_count, DB_TYPE
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
@@ -31,16 +31,6 @@ WORK_START_HOUR = 9      # 09:00 утра
 WORK_END_HOUR = 23       # 23:00 вечера
 SESSION_MIN_PAUSE_MIN = 60    # Минимум 60 минут между сессиями
 SESSION_MAX_PAUSE_MIN = 140   # Максимум 140 минут между сессиями
-
-def get_queue_count() -> int:
-    """Returns number of candidates ready to follow."""
-    conn = get_connection()
-    cur = conn.cursor()
-    ph = "?" if DB_TYPE == "sqlite" else "%s"
-    cur.execute(f"SELECT COUNT(*) FROM candidates WHERE status = 'queued' AND score >= {ph}", (MIN_SCORE_THRESHOLD,))
-    count = cur.fetchone()[0]
-    conn.close()
-    return count
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours."""
@@ -86,8 +76,8 @@ def run_single_session(profile_name: str):
         needed = batch_target - queue_count
         print(f"[Orchestrator] Queue has {queue_count} leads (< target {batch_target}). Starting on-demand harvesting...")
         try:
-            # Запускаем сбор из followers донора, поиска и донорских реплаев
-            run_harvesting_cycle(profile_name=profile_name, queries_count=1, donors_count=1, followers_count=1)
+            # Запускаем целевой сбор до достижения необходимого количества лидов
+            run_harvesting_cycle(profile_name=profile_name, target_queued=needed)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             
