@@ -9,9 +9,8 @@ __pycache__/
 # Browser profiles (содержат сессии/cookies)
 profiles/
 
-# Database
-data/*.db
-data/*.sqlite
+# Database & runtime data
+data/
 
 # Chat History & Logs (приватная переписка и логи)
 chat_history.md

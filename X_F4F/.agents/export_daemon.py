@@ -34,6 +34,8 @@ def parse_transcript(transcript_path):
         return []
     
     entries = []
+    current_actions = []
+    
     with open(transcript_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
@@ -47,23 +49,55 @@ def parse_transcript(transcript_path):
             step_type = data.get("type")
             content = data.get("content", "")
             created_at = format_timestamp(data.get("created_at", ""))
+            tool_calls = data.get("tool_calls")
+            
+            # Collect tool actions if present
+            if tool_calls:
+                for tc in tool_calls:
+                    args = tc.get("args") or {}
+                    summary = tc.get("toolSummary") or args.get("toolSummary") or args.get("Description") or tc.get("name")
+                    if summary and summary not in current_actions:
+                        current_actions.append(summary)
             
             if step_type == "USER_INPUT":
                 user_text = clean_user_message(content)
-                if user_text:
+                if not user_text:
+                    continue
+                
+                # Filter out repetitive automated 'Continue' prompts
+                is_continue = user_text.lower() in ("continue", "continue.", "продолжай", "продолжить")
+                if is_continue and entries and entries[-1]["role"] == "user" and entries[-1]["text"].lower() in ("continue", "continue.", "продолжай", "продолжить"):
+                    # Skip duplicate continue in a row
+                    continue
+                
+                # If there were accumulated tool actions before this user input, flush them
+                if current_actions and (not entries or entries[-1]["role"] == "user"):
+                    action_summary = "Выполненные операции: " + ", ".join(current_actions[:8])
+                    if len(current_actions) > 8:
+                        action_summary += f" и ещё {len(current_actions) - 8}..."
                     entries.append({
-                        "role": "user",
+                        "role": "agent",
                         "time": created_at,
-                        "text": user_text
+                        "text": f"🛠️ *[{action_summary}]*"
                     })
+                    current_actions = []
+                
+                entries.append({
+                    "role": "user",
+                    "time": created_at,
+                    "text": user_text
+                })
+                
             elif step_type == "PLANNER_RESPONSE" and content:
                 agent_text = str(content).strip()
                 if agent_text and agent_text != "None":
+                    current_actions = []  # reset because agent gave full textual response
                     entries.append({
                         "role": "agent",
                         "time": created_at,
                         "text": agent_text
                     })
+                    
     return entries
 
 def write_markdown_history(entries, output_path, conversation_id=""):

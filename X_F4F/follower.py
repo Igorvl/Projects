@@ -94,14 +94,21 @@ def follow_user(page, username: str) -> bool:
 def check_is_mutual(page, username: str) -> bool:
     """
     Checks if user follows us back.
-    X shows 'Follows you' badge on their profile page.
+    X shows 'Follows you' / 'Читает вас' badge on their profile page.
     """
     clean_user = username.replace("@", "").strip()
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
         human_delay(1.8, 3.5)
+        
+        # 1. Check official data-testid selector
+        indicator = page.locator('[data-testid="userFollowIndicator"]')
+        if indicator.count() > 0 and indicator.first.is_visible():
+            return True
+            
+        # 2. Multilingual text fallback (EN: 'Follows you', RU: 'Читает вас')
         page_text = page.inner_text("body")
-        return "Follows you" in page_text
+        return "Follows you" in page_text or "Читает вас" in page_text
     except Exception as e:
         print(f"  [Follower] Error checking mutual @{clean_user}: {e}")
         return False
