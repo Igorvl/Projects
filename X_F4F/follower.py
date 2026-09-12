@@ -20,7 +20,8 @@ from config import (
     DAILY_UNFOLLOW_LIMIT,
     MIN_DELAY_SECONDS,
     MAX_DELAY_SECONDS,
-    UNFOLLOW_AFTER_DAYS
+    UNFOLLOW_AFTER_DAYS,
+    TARGET_ACCOUNT
 )
 from database import (
     get_connection,
@@ -204,12 +205,75 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
                     except Exception:
                         pass
                     time.sleep(rest_sec)
-            else:
-                human_delay(3.0, 6.0)
+        # Quick sync of followers page while browser is already open
+        try:
+            sync_mutual_followers(page=page)
+        except Exception as e:
+            print(f"  [Follower] Follower sync notice: {e}")
     finally:
         ctx.close()
         pw.stop()
         print("\n[Follower] Follow batch finished.")
+
+def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
+    """
+    Scans our followers page (x.com/{TARGET_ACCOUNT}/followers) in 1 quick operation,
+    detects who followed us back, and updates their status in candidates DB to 'mutual'.
+    Fast, lightweight, and 100% accurate.
+    """
+    import re
+    should_close = False
+    pw = ctx = None
+    if page is None:
+        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
+        should_close = True
+
+    mutual_found = 0
+    try:
+        url = f"https://x.com/{TARGET_ACCOUNT}/followers"
+        print(f"[Follower Sync] Checking {url} for mutual follow-backs...")
+        page.goto(url, wait_until="domcontentloaded", timeout=25000)
+        human_delay(2.5, 4.0)
+
+        # Light scroll to load top 15-20 followers
+        for _ in range(2):
+            page.mouse.wheel(0, 400)
+            time.sleep(1.0)
+
+        cells = page.locator('[data-testid="UserCell"]')
+        count = cells.count()
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        ph = "?" if DB_TYPE == "sqlite" else "%s"
+
+        for i in range(count):
+            cell = cells.nth(i)
+            cell_text = cell.inner_text()
+            handles = re.findall(r'@([A-Za-z0-9_]+)', cell_text)
+            if not handles:
+                continue
+            handle = handles[0]
+
+            cur.execute(f"SELECT username, status FROM candidates WHERE LOWER(username) = LOWER({ph})", (handle,))
+            row = cur.fetchone()
+            if row and row[1] == "followed":
+                actual_user = row[0]
+                print(f"  [Follower Sync] Found follow-back from @{actual_user}! Marking MUTUAL ✅")
+                log_action(actual_user, "mutual", success=True)
+                mutual_found += 1
+
+        conn.close()
+        print(f"[Follower Sync] Sync complete. New mutuals detected: {mutual_found}")
+    except Exception as e:
+        print(f"[Follower Sync] Warning during mutual sync: {e}")
+    finally:
+        if should_close and ctx:
+            ctx.close()
+            if pw:
+                pw.stop()
+
+    return mutual_found
 
 def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
     """

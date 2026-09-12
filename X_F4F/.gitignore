@@ -19,3 +19,12 @@ chat_history.md.tmp
 
 # Playwright
 playwright-report/
+
+# Branding, avatars, banners & images (приватные медиафайлы)
+branding/
+assets/
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
