@@ -53,6 +53,7 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "styles_matched": [],
         "industry_matched": [],
         "portfolio_matched": [],
+        "hungry_talent_bonus": False,
         "hard_gates_passed": True,
         "reject_reasons": []
     }
@@ -123,6 +124,11 @@ def evaluate_candidate(profile_data: dict) -> dict:
         score += 10   # Здоровое сообщество дизайнеров
     elif ratio >= MIN_RATIO:
         score += 5
+
+    # Сегмент "Голодные таланты" (200 - 2000 фолловеров, ratio >= 0.8) - супер-высокая конверсия F4F
+    if 200 <= followers <= 2000 and ratio >= 0.80:
+        score += 15
+        breakdown["hungry_talent_bonus"] = True
 
     # Итоговый статус
     is_qualified = breakdown["hard_gates_passed"] and (score >= MIN_SCORE_THRESHOLD)

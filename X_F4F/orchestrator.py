@@ -107,6 +107,17 @@ def run_single_session(profile_name: str):
         except Exception as e:
             print(f"[Orchestrator] Mutual check error: {e}")
 
+def sleep_until(target_dt: datetime.datetime):
+    """
+    Sleeps until target_dt checking wall-clock time in 15-second chunks.
+    Resilient to Windows standby, sleep, and system clock changes.
+    """
+    while datetime.datetime.now() < target_dt:
+        diff = (target_dt - datetime.datetime.now()).total_seconds()
+        if diff <= 0:
+            break
+        time.sleep(min(15.0, diff))
+
 def run_daemon_loop(profile_name: str):
     """
     Main autonomous daemon loop.
@@ -126,7 +137,7 @@ def run_daemon_loop(profile_name: str):
                     morning += datetime.timedelta(days=1)
                 sleep_seconds = max(60, int((morning - now).total_seconds()))
                 print(f"[Night Mode] Current time {now.strftime('%H:%M')}. Night rest until {morning.strftime('%H:%M:%S')} (~{sleep_seconds // 3600}h {(sleep_seconds % 3600) // 60}m)...")
-                time.sleep(sleep_seconds)
+                sleep_until(morning)
                 continue
                 
             # Проверка суточной квоты
@@ -136,7 +147,7 @@ def run_daemon_loop(profile_name: str):
                 sleep_seconds = max(60, int((tomorrow - now).total_seconds()))
                 print(f"[Daily Limit Reached] Completed {follows_today}/{DAILY_FOLLOW_LIMIT} follows today.")
                 print(f"Resting until next day session ({tomorrow.strftime('%Y-%m-%d %H:%M:%S')})...")
-                time.sleep(sleep_seconds)
+                sleep_until(tomorrow)
                 continue
                 
             # Выполняем дневную сессию
@@ -147,7 +158,7 @@ def run_daemon_loop(profile_name: str):
             next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
             print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes.")
             print(f"Next active session planned at: {next_time.strftime('%H:%M:%S')}\n")
-            time.sleep(pause_minutes * 60)
+            sleep_until(next_time)
             
         except KeyboardInterrupt:
             print("\n[Orchestrator] Manual shutdown requested by user. Terminating gracefully.")
