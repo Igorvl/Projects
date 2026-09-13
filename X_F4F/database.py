@@ -69,7 +69,8 @@ def init_db():
                 candidates_found INTEGER DEFAULT 0,
                 follows_sent INTEGER DEFAULT 0,
                 mutual_received INTEGER DEFAULT 0,
-                unfollows_done INTEGER DEFAULT 0
+                unfollows_done INTEGER DEFAULT 0,
+                likes_sent INTEGER DEFAULT 0
             )
         """)
 
@@ -270,6 +271,8 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
     elif action_type == "mutual":
         cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+    elif action_type == "like" and success:
+        cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
 
     conn.commit()
     conn.close()

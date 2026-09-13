@@ -11,7 +11,7 @@ import json
 import sqlite3
 import os
 import urllib.parse
-from config import SQLITE_PATH, DASHBOARD_PORT, DASHBOARD_HOST, TARGET_ACCOUNT
+from config import SQLITE_PATH, DASHBOARD_PORT, DASHBOARD_HOST, TARGET_ACCOUNT, DAILY_LIKE_LIMIT
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="ru">
@@ -388,6 +388,10 @@ HTML_PAGE = """<!DOCTYPE html>
             <div class="stat-value" id="stat-ignored" style="color:#717a8c">--</div>
         </div>
         <div class="stat-card">
+            <div class="stat-label">Лайков квота</div>
+            <div class="stat-value" id="stat-likes" style="color:#ff758f">-- / 30</div>
+        </div>
+        <div class="stat-card">
             <div class="stat-label">Конверсия F4F</div>
             <div class="stat-value success" id="stat-cr">--%</div>
         </div>
@@ -560,6 +564,8 @@ HTML_PAGE = """<!DOCTYPE html>
                     if (pill) pill.innerText = '@' + esc(data.target_account);
                 }
                 
+                document.getElementById('stat-likes').innerText = `${data.likes_today || 0} / ${data.daily_like_limit || 30}`;
+
                 const cr = data.followed_count > 0 ? ((data.mutual_count / data.followed_count) * 100).toFixed(1) : '0';
                 document.getElementById('stat-cr').innerText = cr + '%';
             } catch (err) {
@@ -680,6 +686,13 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
 
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'ignored'")
                     stats["ignored_count"] = cur.fetchone()[0]
+
+                    import datetime
+                    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+                    cur.execute("SELECT COALESCE(likes_sent, 0) FROM daily_stats WHERE date = ?", (today_str,))
+                    row_likes = cur.fetchone()
+                    stats["likes_today"] = row_likes[0] if row_likes else 0
+                    stats["daily_like_limit"] = DAILY_LIKE_LIMIT
                     
                     conn.close()
                 except Exception as e:

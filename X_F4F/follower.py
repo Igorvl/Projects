@@ -18,6 +18,8 @@ from browser import (
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
+    DAILY_LIKE_LIMIT,
+    LIKE_PROBABILITY,
     MIN_DELAY_SECONDS,
     MAX_DELAY_SECONDS,
     UNFOLLOW_AFTER_DAYS,
@@ -31,7 +33,7 @@ from database import (
 )
 
 def get_today_counts():
-    """Gets total actions executed today."""
+    """Gets total actions executed today (follows, unfollows)."""
     conn = get_connection()
     cur = conn.cursor()
     today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -43,28 +45,107 @@ def get_today_counts():
         return row[0], row[1]
     return 0, 0
 
+def get_today_likes() -> int:
+    """Gets total likes executed today to preserve daily quota."""
+    conn = get_connection()
+    cur = conn.cursor()
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"SELECT COALESCE(likes_sent, 0) FROM daily_stats WHERE date = {ph}", (today,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    return 0
+
+def like_recent_post(page, username: str) -> bool:
+    """
+    Carefully inspects user's latest original post and leaves 1 like.
+    Strictly respects DAILY_LIKE_LIMIT, skips retweets, and preserves quota.
+    """
+    likes_today = get_today_likes()
+    if likes_today >= DAILY_LIKE_LIMIT:
+        print(f"  [Liker] Daily like limit reached ({likes_today}/{DAILY_LIKE_LIMIT}). Preserving quota.")
+        return False
+
+    if random.random() > LIKE_PROBABILITY:
+        print(f"  [Liker] Skipped like for @{username} (organic variance / preserving quota).")
+        return False
+
+    try:
+        # Smooth scroll down to view recent posts
+        human_scroll(page, steps=1)
+        human_delay(1.5, 2.5)
+
+        tweets = page.locator('article[data-testid="tweet"]')
+        tweet_count = tweets.count()
+        if tweet_count == 0:
+            return False
+
+        for i in range(min(2, tweet_count)):
+            tweet = tweets.nth(i)
+
+            # Skip retweets/reposts — only like author's own work!
+            social_context = tweet.locator('[data-testid="socialContext"]')
+            if social_context.count() > 0:
+                sc_text = social_context.first.inner_text().lower()
+                if "repost" in sc_text or "ретвит" in sc_text:
+                    continue
+
+            # Skip if already liked
+            if tweet.locator('[data-testid="unlike"]').count() > 0:
+                return False
+
+            like_btn = tweet.locator('[data-testid="like"]')
+            if like_btn.count() > 0 and like_btn.first.is_visible():
+                human_delay(0.8, 1.8)
+                clicked = human_click(page, like_btn.first)
+                if clicked:
+                    log_action(username, "like", success=True)
+                    print(f"  [Liker] ❤️ Liked recent work of @{username}! (Quota: {likes_today + 1}/{DAILY_LIKE_LIMIT})")
+                    human_delay(1.5, 2.5)
+                    return True
+
+        return False
+    except Exception as e:
+        print(f"  [Liker] Notice while inspecting post for @{username}: {e}")
+        return False
+
 def follow_user(page, username: str) -> bool:
     """
-    Navigates to user profile, smoothly moves cursor to Follow button via Bezier curves,
-    clicks with natural offset/duration, and lingers on profile to emulate human attention.
+    Navigates to user profile, likes recent work (within daily quota),
+    moves cursor to Follow button via Bezier curves, and follows with human delays.
     """
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.5, 4.5)
+        human_delay(2.5, 4.0)
         
-        # Look for Follow button
-        follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
-        
-        # Check if already following (Following button has testid="[id]-unfollow")
+        # Check if already following
         unfollow_btn = page.query_selector('button[data-testid$="-unfollow"]') or page.query_selector('button:has-text("Following")')
         if unfollow_btn:
             print(f"  [Follower] Already following @{clean_user}, skipping.")
             log_action(clean_user, "follow", success=True, error="already_following")
             return False
             
+        follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+        if not follow_btn:
+            print(f"  [Follower] Follow button not found for @{clean_user}")
+            log_action(clean_user, "follow", success=False, error="button_not_found")
+            return False
+
+        # 1. Warm touch: Like author's recent work first (respects daily quota)
+        like_recent_post(page, clean_user)
+        
+        # 2. Scroll back if needed and locate Follow button
+        follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+        if not follow_btn:
+            page.evaluate("window.scrollTo(0, 0)")
+            human_delay(1.0, 1.8)
+            follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+
         if follow_btn:
             # Human smooth click with Bezier trajectory
             clicked = human_click(page, follow_btn)
@@ -72,10 +153,9 @@ def follow_user(page, username: str) -> bool:
                 print(f"  [Follower] Successfully followed @{clean_user}! (Human click applied)")
                 log_action(clean_user, "follow", success=True)
                 
-                # Human lingering: scroll down to inspect recent work/posts
-                human_delay(1.5, 3.5)
-                if random.random() < 0.55:
-                    human_scroll(page, steps=1)
+                # Human lingering
+                human_delay(1.5, 3.0)
+                if random.random() < 0.4:
                     human_idle_noise(page)
                 return True
             else:
