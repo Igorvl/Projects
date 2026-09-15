@@ -28,3 +28,10 @@ assets/
 *.png
 *.webp
 *.gif
+
+# Strategic planning, Growth roadmaps & Implementation plans (секретные планы и стратегии)
+TODO.md
+*TODO*
+*todo*
+*plan*.md
+implementation_plan*
