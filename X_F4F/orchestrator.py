@@ -100,29 +100,34 @@ def run_single_session(profile_name: str):
     else:
         print("[Orchestrator] No qualified candidates found in this cycle. Will retry in next session.")
         
-    # 3. Периодическое пополнение статусных публичных списков (Ego-List Bombing)
+    # 3. Воронка Дожима — День 3: Second-Wave Nudge (повторный лайк на свежий твит)
     now = datetime.datetime.now()
-    if 12 <= now.hour <= 21:
+    if 12 <= now.hour <= 20:
         try:
-            from list_bomber import run_list_bombing_batch
-            from database import get_today_list_adds
-            from config import DAILY_LIST_ADD_LIMIT
-            if get_today_list_adds() < DAILY_LIST_ADD_LIMIT:
-                print("\n[Orchestrator] Midday catalyst: Ego-List Bombing session...")
-                run_list_bombing_batch(profile_name=profile_name, batch_size=random.randint(3, 5))
+            from follower import run_nudge_batch
+            print("\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review...")
+            run_nudge_batch(profile_name=profile_name, batch_size=random.randint(2, 4))
         except Exception as e:
-            print(f"[Orchestrator] List bombing notice: {e}")
+            print(f"[Orchestrator] Day 3 Nudge notice: {e}")
 
-    # 4. Вечерний аудит взаимности (после 18:00)
-    now = datetime.datetime.now()
+    # 4. Воронка Дожима — День 4: Last-Chance Ego-List (дожим системным пушем тщеславия)
+    if 14 <= now.hour <= 21:
+        try:
+            from follower import run_funnel_list_batch
+            print("\n[Orchestrator] Funnel Stage 3: Day 4 Ego-List review...")
+            run_funnel_list_batch(profile_name=profile_name, batch_size=random.randint(2, 4))
+        except Exception as e:
+            print(f"[Orchestrator] Day 4 Funnel List notice: {e}")
+
+    # 5. Вечерний аудит взаимности (после 18:00) с Weekend Safe-Zone
     if now.hour >= 18:
         print("\n[Orchestrator] Evening routine: checking reciprocal follows & non-responders...")
         try:
-            run_unfollow_batch(profile_name=profile_name, batch_size=6)
+            run_unfollow_batch(profile_name=profile_name, batch_size=5)
         except Exception as e:
             print(f"[Orchestrator] Mutual check error: {e}")
 
-    # 5. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
+    # 6. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
     try:
         from follower import sync_mutual_followers
         from browser import get_browser_context

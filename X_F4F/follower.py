@@ -376,8 +376,8 @@ def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20
     cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT username FROM candidates
-        WHERE status = 'followed' AND updated_at <= {ph}
-        ORDER BY updated_at ASC
+        WHERE status = 'followed' AND COALESCE(followed_at, updated_at) <= {ph}
+        ORDER BY COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}
     """, (cutoff, limit))
     rows = [r[0] for r in cur.fetchall()]
@@ -525,6 +525,11 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
                 log_action(username, "mutual", success=True)
                 print(f"  [Follower] @{username} followed back — marked as MUTUAL ✅")
             else:
+                # Weekend Safe-Zone: Don't unfollow on Sat(5)/Sun(6) when creators catch up with feeds
+                if datetime.datetime.now().weekday() in (5, 6):
+                    print(f"  [Follower] 🛡️ Weekend Safe-Zone active: Non-responder unfollow for @{username} postponed to Monday.")
+                    continue
+
                 # No reciprocity after N days — unfollow
                 _, unfollows_today = get_today_counts()
                 if unfollows_today >= DAILY_UNFOLLOW_LIMIT:
@@ -543,12 +548,136 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
         print("\n[Follower] Unfollow batch finished.")
 
 
+def nudge_user_like(page, username: str) -> bool:
+    """
+    Day 3 Second-Wave Nudge:
+    Navigates to user profile, verifies mutual status first.
+    If not mutual, likes their newest tweet to resurface in their notifications.
+    """
+    clean_user = username.replace("@", "").strip()
+    try:
+        page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
+        human_delay(2.0, 4.0)
+
+        # 1. First check if they already followed back
+        is_mutual = check_is_mutual(page, clean_user)
+        if is_mutual:
+            print(f"  [Nudge] @{clean_user} is already MUTUAL ✅! Skipping like.")
+            log_action(clean_user, "mutual", success=True)
+            return True
+
+        # 2. Scroll gently down to see tweets
+        human_scroll(page, min_scroll=250, max_scroll=500)
+        human_delay(1.5, 2.5)
+
+        # Query for like buttons in articles/tweets
+        like_buttons = page.query_selector_all('article [data-testid="like"]')
+        if like_buttons:
+            target_btn = like_buttons[0]
+            human_click(page, target_btn)
+            print(f"  [Nudge] Day 3 Nudge Like delivered to @{clean_user} newest tweet! ❤️")
+            log_action(clean_user, "nudge_like", success=True)
+            return True
+        else:
+            # If no unliked tweet found or already liked, mark nudge_sent so we don't repeat
+            print(f"  [Nudge] No unliked tweets found for @{clean_user}, marking nudge as delivered.")
+            log_action(clean_user, "nudge_like", success=True)
+            return True
+    except Exception as e:
+        print(f"  [Nudge] Error nudging @{clean_user}: {e}")
+        log_action(clean_user, "nudge_like", success=False, error=str(e))
+        return False
+
+def run_nudge_batch(profile_name="test_igorvl777", batch_size=3):
+    """
+    Executes Day 3 Second-Wave Nudge for candidates followed 3-4 days ago.
+    """
+    from database import get_candidates_for_nudge
+    from config import DAILY_LIKE_LIMIT
+
+    today_likes = get_today_likes()
+    if today_likes >= DAILY_LIKE_LIMIT:
+        print(f"[Nudge] Daily like limit reached ({today_likes}/{DAILY_LIKE_LIMIT}). Postponing nudge batch.")
+        return
+
+    candidates = get_candidates_for_nudge(days=3, limit=batch_size)
+    if not candidates:
+        print("[Nudge] No candidates currently due for Day 3 Nudge.")
+        return
+
+    print(f"[Nudge] Starting Day 3 Nudge batch for {len(candidates)} candidates...")
+    pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
+    try:
+        for c in candidates:
+            u = c["username"]
+            print(f"\n[Nudge] Processing Day 3 Nudge for @{u} (Score: {c.get('score', 0)})...")
+            success = nudge_user_like(page, u)
+            if success:
+                delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+                print(f"  [Nudge] Organic pause {delay}s...")
+                time.sleep(delay)
+            human_delay(2.0, 3.5)
+    finally:
+        ctx.close()
+        pw.stop()
+        print("\n[Nudge] Day 3 Nudge batch completed.")
+
+def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
+    """
+    Executes Day 4 Last-Chance Ego-List addition for candidates followed 4-5 days ago.
+    """
+    from database import get_candidates_for_funnel_list_add, get_today_list_adds
+    from config import DAILY_LIST_ADD_LIMIT, EGO_LIST_DEFAULT_NAME
+    from list_bomber import add_user_to_list, ensure_ego_list_exists
+
+    today_adds = get_today_list_adds()
+    if today_adds >= DAILY_LIST_ADD_LIMIT:
+        print(f"[Funnel List] Daily list add limit reached ({today_adds}/{DAILY_LIST_ADD_LIMIT}). Postponing.")
+        return
+
+    candidates = get_candidates_for_funnel_list_add(days=4, limit=batch_size)
+    if not candidates:
+        print("[Funnel List] No candidates currently due for Day 4 Ego-List addition.")
+        return
+
+    print(f"[Funnel List] Starting Day 4 Ego-List batch for {len(candidates)} candidates...")
+    pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
+    try:
+        if not ensure_ego_list_exists(page, EGO_LIST_DEFAULT_NAME):
+            print("[Funnel List] Could not verify ego list. Aborting batch.")
+            return
+
+        for c in candidates:
+            u = c["username"]
+            print(f"\n[Funnel List] Checking Day 4 Ego-List addition for @{u}...")
+            # Check mutual first
+            is_mutual = check_is_mutual(page, u)
+            if is_mutual:
+                print(f"  [Funnel List] @{u} is already MUTUAL ✅! Skipping list add.")
+                log_action(u, "mutual", success=True)
+                continue
+
+            added = add_user_to_list(page, u, EGO_LIST_DEFAULT_NAME)
+            if added:
+                delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+                print(f"  [Funnel List] Organic pause {delay}s...")
+                time.sleep(delay)
+            human_delay(2.0, 3.5)
+    finally:
+        ctx.close()
+        pw.stop()
+        print("\n[Funnel List] Day 4 Ego-List batch completed.")
+
 if __name__ == "__main__":
     import sys
     prof = sys.argv[1] if len(sys.argv) > 1 else "test_igorvl777"
     mode = sys.argv[2] if len(sys.argv) > 2 else "follow"
     if mode == "unfollow":
         run_unfollow_batch(profile_name=prof, batch_size=3)
+    elif mode == "nudge":
+        run_nudge_batch(profile_name=prof, batch_size=3)
+    elif mode == "funnel_list":
+        run_funnel_list_batch(profile_name=prof, batch_size=3)
     else:
         run_follow_batch(profile_name=prof, batch_size=3)
 

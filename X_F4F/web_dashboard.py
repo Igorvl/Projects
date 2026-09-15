@@ -498,7 +498,7 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         const KNOWN_STATUSES = ['queued','followed','mutual','ignored','discovered','unfollowed','failed_unfollow'];
-        function statusBadge(status, attempts) {
+        function statusBadge(status, attempts, nudge_sent, list_add_sent) {
             const s = KNOWN_STATUSES.includes(status) ? status : 'ignored';
             const labels = {
                 'mutual': '⭐ Взаимный',
@@ -511,6 +511,13 @@ HTML_PAGE = """<!DOCTYPE html>
             let badgeHtml = `<span class="badge ${s}">${labels[s] || esc(status)}</span>`;
             if (s === 'failed_unfollow') {
                 badgeHtml += `<div style="font-size: 11px; color: #ff6b6b; margin-top: 4px; font-family: 'JetBrains Mono', monospace;">Попыток: ${attempts || 5}/5</div>`;
+            } else if (s === 'followed') {
+                let tags = [];
+                if (nudge_sent) tags.push('<span style="color:#ff758f; background: rgba(255,117,143,0.15); padding: 1px 5px; border-radius: 4px;">❤️ Nudge 3d</span>');
+                if (list_add_sent) tags.push('<span style="color:#a78bfa; background: rgba(167,139,250,0.15); padding: 1px 5px; border-radius: 4px;">✦ List 4d</span>');
+                if (tags.length > 0) {
+                    badgeHtml += `<div style="font-size: 10px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; display: flex; gap: 4px;">${tags.join('')}</div>`;
+                }
             }
             return badgeHtml;
         }
@@ -642,7 +649,7 @@ HTML_PAGE = """<!DOCTYPE html>
                             </div>
                         </td>
                         <td><div class="score-pill ${c.score < 40 ? 'low' : ''}">${esc(c.score || 0)}</div></td>
-                        <td>${statusBadge(c.status, c.unfollow_attempts)}</td>
+                        <td>${statusBadge(c.status, c.unfollow_attempts, c.nudge_sent, c.list_add_sent)}</td>
                     </tr>
                 `).join('');
             } catch (err) {

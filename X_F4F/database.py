@@ -45,24 +45,36 @@ def init_db():
                 source TEXT,
                 status TEXT DEFAULT 'discovered', -- discovered, queued, followed, mutual, unqueued, ignored, unfollowed, failed_unfollow
                 unfollow_attempts INTEGER DEFAULT 0,
+                followed_at TIMESTAMP,
+                nudge_sent INTEGER DEFAULT 0,
+                list_add_sent INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_active TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Auto-migrate SQLite if unfollow_attempts column is missing
-        try:
-            cur.execute("ALTER TABLE candidates ADD COLUMN unfollow_attempts INTEGER DEFAULT 0")
-        except Exception:
-            pass
+        # Auto-migrate SQLite if columns are missing
+        for col, col_def in [
+            ("unfollow_attempts", "INTEGER DEFAULT 0"),
+            ("followed_at", "TIMESTAMP"),
+            ("nudge_sent", "INTEGER DEFAULT 0"),
+            ("list_add_sent", "INTEGER DEFAULT 0")
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE candidates ADD COLUMN {col} {col_def}")
+            except Exception:
+                pass
+
+        # Backfill followed_at for existing followed users
+        cur.execute("UPDATE candidates SET followed_at = updated_at WHERE status = 'followed' AND followed_at IS NULL")
 
         # Action history (follows, unfollows, detections)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS actions_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 candidate_username TEXT NOT NULL,
-                action_type TEXT NOT NULL, -- follow, unfollow, check_mutual
+                action_type TEXT NOT NULL, -- follow, unfollow, check_mutual, nudge_like, list_add
                 success INTEGER DEFAULT 1,
                 error_message TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -99,6 +111,9 @@ def init_db():
                 source VARCHAR(128),
                 status VARCHAR(32) DEFAULT 'discovered',
                 unfollow_attempts INTEGER DEFAULT 0,
+                followed_at TIMESTAMP,
+                nudge_sent INTEGER DEFAULT 0,
+                list_add_sent INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT NOW(),
                 last_active TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT NOW()
@@ -122,11 +137,19 @@ def init_db():
             );
         """)
 
-        # Auto-migrate Postgres if unfollow_attempts is missing
-        try:
-            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS unfollow_attempts INTEGER DEFAULT 0;")
-        except Exception:
-            pass
+        # Auto-migrate Postgres if columns are missing
+        for col, col_def in [
+            ("unfollow_attempts", "INTEGER DEFAULT 0"),
+            ("followed_at", "TIMESTAMP"),
+            ("nudge_sent", "INTEGER DEFAULT 0"),
+            ("list_add_sent", "INTEGER DEFAULT 0")
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE candidates ADD COLUMN IF NOT EXISTS {col} {col_def};")
+            except Exception:
+                pass
+
+        cur.execute("UPDATE candidates SET followed_at = updated_at WHERE status = 'followed' AND followed_at IS NULL;")
 
     conn.commit()
     conn.close()
@@ -279,7 +302,7 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
     if action_type == "follow" and success:
         if error != "already_following":
             cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET status = 'followed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+        cur.execute(f"UPDATE candidates SET status = 'followed', followed_at = COALESCE(followed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "unfollow" and success:
         cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'unfollowed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
@@ -301,10 +324,14 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
     elif action_type == "mutual":
         cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+    elif action_type == "nudge_like" and success:
+        cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
+        cur.execute(f"UPDATE candidates SET nudge_sent = 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "like" and success:
         cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
     elif action_type == "list_add" and success:
         cur.execute(f"UPDATE daily_stats SET list_adds_sent = COALESCE(list_adds_sent, 0) + 1 WHERE date = {ph}", (today,))
+        cur.execute(f"UPDATE candidates SET list_add_sent = 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
 
     conn.commit()
     conn.close()
@@ -319,6 +346,48 @@ def get_today_list_adds() -> int:
     row = cur.fetchone()
     conn.close()
     return row[0] if row else 0
+
+def get_candidates_for_nudge(days: int = 3, limit: int = 5) -> list:
+    """
+    Returns candidates followed N+ days ago (Day 3 Nudge) who haven't received
+    a second-wave nudge like yet and haven't followed back.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    cur.execute(f"""
+        SELECT * FROM candidates
+        WHERE status = 'followed'
+          AND COALESCE(nudge_sent, 0) = 0
+          AND COALESCE(followed_at, updated_at) <= {ph}
+        ORDER BY score DESC, COALESCE(followed_at, updated_at) ASC
+        LIMIT {ph}
+    """, (cutoff, limit))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def get_candidates_for_funnel_list_add(days: int = 4, limit: int = 5) -> list:
+    """
+    Returns candidates followed N+ days ago (Day 4 Ego-List) who haven't received
+    a list addition yet and haven't followed back.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    cur.execute(f"""
+        SELECT * FROM candidates
+        WHERE status = 'followed'
+          AND COALESCE(list_add_sent, 0) = 0
+          AND COALESCE(followed_at, updated_at) <= {ph}
+        ORDER BY score DESC, COALESCE(followed_at, updated_at) ASC
+        LIMIT {ph}
+    """, (cutoff, limit))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 def get_candidates_for_list_bombing(limit: int = 10, min_score: int = 50) -> list:
     """
