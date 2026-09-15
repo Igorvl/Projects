@@ -43,12 +43,19 @@ def init_db():
                 score INTEGER DEFAULT 0,
                 score_breakdown TEXT,
                 source TEXT,
-                status TEXT DEFAULT 'discovered', -- discovered, queued, followed, mutual, unqueued, ignored, unfollowed
+                status TEXT DEFAULT 'discovered', -- discovered, queued, followed, mutual, unqueued, ignored, unfollowed, failed_unfollow
+                unfollow_attempts INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_active TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Auto-migrate SQLite if unfollow_attempts column is missing
+        try:
+            cur.execute("ALTER TABLE candidates ADD COLUMN unfollow_attempts INTEGER DEFAULT 0")
+        except Exception:
+            pass
 
         # Action history (follows, unfollows, detections)
         cur.execute("""
@@ -91,6 +98,7 @@ def init_db():
                 score_breakdown JSONB,
                 source VARCHAR(128),
                 status VARCHAR(32) DEFAULT 'discovered',
+                unfollow_attempts INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT NOW(),
                 last_active TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT NOW()
@@ -113,6 +121,12 @@ def init_db():
                 unfollows_done INTEGER DEFAULT 0
             );
         """)
+
+        # Auto-migrate Postgres if unfollow_attempts is missing
+        try:
+            cur.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS unfollow_attempts INTEGER DEFAULT 0;")
+        except Exception:
+            pass
 
     conn.commit()
     conn.close()
@@ -143,9 +157,9 @@ def upsert_candidate(data: dict):
                 score=excluded.score,
                 score_breakdown=excluded.score_breakdown,
                 last_active=COALESCE(excluded.last_active, candidates.last_active),
-                -- НЕ перетираем статус у followed/mutual/unfollowed — бот не должен подписываться дважды
+                -- НЕ перетираем статус у followed/mutual/unfollowed/failed_unfollow — бот не должен подписываться дважды
                 status=CASE
-                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
+                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed', 'failed_unfollow') THEN candidates.status
                     ELSE excluded.status
                 END,
                 updated_at=excluded.updated_at
@@ -181,9 +195,9 @@ def upsert_candidate(data: dict):
                 score=EXCLUDED.score,
                 score_breakdown=EXCLUDED.score_breakdown::jsonb,
                 last_active=COALESCE(EXCLUDED.last_active, candidates.last_active),
-                -- НЕ перетираем статус у followed/mutual/unfollowed
+                -- НЕ перетираем статус у followed/mutual/unfollowed/failed_unfollow
                 status=CASE
-                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed') THEN candidates.status
+                    WHEN candidates.status IN ('followed', 'mutual', 'unfollowed', 'failed_unfollow') THEN candidates.status
                     ELSE EXCLUDED.status
                 END,
                 updated_at=EXCLUDED.updated_at
@@ -269,6 +283,21 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
     elif action_type == "unfollow" and success:
         cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'unfollowed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+    elif action_type == "unfollow" and not success:
+        cur.execute(f"""
+            UPDATE candidates 
+            SET unfollow_attempts = COALESCE(unfollow_attempts, 0) + 1,
+                status = CASE WHEN COALESCE(unfollow_attempts, 0) + 1 >= 5 THEN 'failed_unfollow' ELSE status END
+            WHERE username = {ph}
+        """, (username,))
+        cur.execute(f"SELECT unfollow_attempts, status FROM candidates WHERE username = {ph}", (username,))
+        row = cur.fetchone()
+        attempts = row[0] if row else 1
+        curr_status = row[1] if row else 'followed'
+        if curr_status == 'failed_unfollow':
+            print(f"  [Follower] ⚠️ @{username} reached {attempts}/5 failed unfollow attempts -> marked as 'failed_unfollow'. Bot will not touch this account anymore.")
+        else:
+            print(f"  [Follower] Unfollow attempt {attempts}/5 failed for @{username}.")
     elif action_type == "mutual":
         cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))

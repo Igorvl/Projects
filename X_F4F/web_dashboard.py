@@ -189,6 +189,11 @@ HTML_PAGE = """<!DOCTYPE html>
             color: var(--warning);
             border-color: var(--warning);
         }
+        .filter-btn.active.danger-btn {
+            background: rgba(255, 77, 79, 0.18);
+            color: #ff6b6b;
+            border-color: #ff4d4f;
+        }
 
         .filter-count {
             background: rgba(255, 255, 255, 0.08);
@@ -294,6 +299,7 @@ HTML_PAGE = """<!DOCTYPE html>
         .badge.mutual { background: var(--success-glow); color: var(--success); border: 1px solid var(--success); }
         .badge.ignored { background: #1a1d28; color: var(--text-dim); border: 1px solid #292e40; }
         .badge.unfollowed { background: rgba(255, 77, 79, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        .badge.failed_unfollow { background: rgba(255, 77, 79, 0.22); color: #ff6b6b; border: 1px solid #ff4d4f; }
 
         .score-pill {
             font-weight: 700;
@@ -387,6 +393,10 @@ HTML_PAGE = """<!DOCTYPE html>
             <div class="stat-label">Отклонено скорингом</div>
             <div class="stat-value" id="stat-ignored" style="color:#717a8c">--</div>
         </div>
+        <div class="stat-card" onclick="setStatusFilter('failed_unfollow')" id="card-failed_unfollow">
+            <div class="stat-label">Ошибки отписки (Manual)</div>
+            <div class="stat-value" id="stat-failed_unfollow" style="color:var(--danger)">--</div>
+        </div>
         <div class="stat-card">
             <div class="stat-label">Лайков квота</div>
             <div class="stat-value" id="stat-likes" style="color:#ff758f">-- / 30</div>
@@ -414,6 +424,9 @@ HTML_PAGE = """<!DOCTYPE html>
             </button>
             <button class="filter-btn" id="filter-ignored" onclick="setStatusFilter('ignored')">
                 🚫 Ignored <span class="filter-count" id="count-ignored">0</span>
+            </button>
+            <button class="filter-btn danger-btn" id="filter-failed_unfollow" onclick="setStatusFilter('failed_unfollow')">
+                ⚠️ Ошибки отписки <span class="filter-count" id="count-failed_unfollow">0</span>
             </button>
         </div>
 
@@ -484,17 +497,22 @@ HTML_PAGE = """<!DOCTYPE html>
                 .replace(/'/g, '&#39;');
         }
 
-        const KNOWN_STATUSES = ['queued','followed','mutual','ignored','discovered','unfollowed'];
-        function statusBadge(status) {
+        const KNOWN_STATUSES = ['queued','followed','mutual','ignored','discovered','unfollowed','failed_unfollow'];
+        function statusBadge(status, attempts) {
             const s = KNOWN_STATUSES.includes(status) ? status : 'ignored';
             const labels = {
                 'mutual': '⭐ Взаимный',
                 'followed': '⏳ Отправлен',
                 'queued': '📥 В очереди',
                 'ignored': '🚫 Ignored',
-                'unfollowed': 'Отписан'
+                'unfollowed': 'Отписан',
+                'failed_unfollow': '⚠️ Ошибка отписки'
             };
-            return `<span class="badge ${s}">${labels[s] || esc(status)}</span>`;
+            let badgeHtml = `<span class="badge ${s}">${labels[s] || esc(status)}</span>`;
+            if (s === 'failed_unfollow') {
+                badgeHtml += `<div style="font-size: 11px; color: #ff6b6b; margin-top: 4px; font-family: 'JetBrains Mono', monospace;">Попыток: ${attempts || 5}/5</div>`;
+            }
+            return badgeHtml;
         }
 
         function setStatusFilter(status) {
@@ -552,12 +570,14 @@ HTML_PAGE = """<!DOCTYPE html>
                 document.getElementById('stat-followed').innerText = data.followed_count;
                 document.getElementById('stat-mutual').innerText = data.mutual_count;
                 document.getElementById('stat-ignored').innerText = data.ignored_count || 0;
+                document.getElementById('stat-failed_unfollow').innerText = data.failed_unfollow_count || 0;
                 
                 document.getElementById('count-all').innerText = data.total_candidates;
                 document.getElementById('count-mutual').innerText = data.mutual_count;
                 document.getElementById('count-followed').innerText = data.followed_count;
                 document.getElementById('count-queued').innerText = data.queued_count;
                 document.getElementById('count-ignored').innerText = data.ignored_count || 0;
+                document.getElementById('count-failed_unfollow').innerText = data.failed_unfollow_count || 0;
 
                 if (data.target_account) {
                     const pill = document.getElementById('target-account');
@@ -622,7 +642,7 @@ HTML_PAGE = """<!DOCTYPE html>
                             </div>
                         </td>
                         <td><div class="score-pill ${c.score < 40 ? 'low' : ''}">${esc(c.score || 0)}</div></td>
-                        <td>${statusBadge(c.status)}</td>
+                        <td>${statusBadge(c.status, c.unfollow_attempts)}</td>
                     </tr>
                 `).join('');
             } catch (err) {
@@ -686,6 +706,9 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
 
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'ignored'")
                     stats["ignored_count"] = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'failed_unfollow'")
+                    stats["failed_unfollow_count"] = cur.fetchone()[0]
 
                     import datetime
                     today_str = datetime.datetime.now().strftime("%Y-%m-%d")

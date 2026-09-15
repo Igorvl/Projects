@@ -302,20 +302,60 @@ def unfollow_user(page, username: str) -> bool:
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
         human_delay(2.0, 4.0)
-        
-        # Find "Following" button (means we follow them — can unfollow)
-        unfollow_btn = page.query_selector('button[data-testid$="-unfollow"]') or page.query_selector('button:has-text("Following")')
+
+        # 1. Проверяем, существует ли аккаунт или он заблокирован
+        page_text = ""
+        try:
+            page_text = page.inner_text("body")
+        except Exception:
+            pass
+
+        if any(msg in page_text for msg in [
+            "Account suspended", "Учетная запись заблокирована",
+            "This account doesn’t exist", "Такой учетной записи нет",
+            "You’re blocked", "Вы заблокированы"
+        ]):
+            print(f"  [Follower] Account @{clean_user} is suspended, blocked or doesn't exist.")
+            log_action(clean_user, "unfollow", success=False, error="account_unavailable")
+            return False
+
+        # 2. Ищем кнопку 'Following' / 'Читаю' (мы подписаны — нужно отписаться)
+        unfollow_btn = (
+            page.query_selector('button[data-testid$="-unfollow"]') or
+            page.query_selector('button:has-text("Following")') or
+            page.query_selector('button:has-text("Читаю")') or
+            page.query_selector('button:has-text("Подписан")') or
+            page.query_selector('button:has-text("Отслеживать")')
+        )
+
+        # 3. Проверяем, возможно мы уже НЕ подписаны (активна кнопка 'Follow' / 'Читать')
+        already_not_following = (
+            page.query_selector('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])') or
+            page.query_selector('button:has-text("Follow")') or
+            page.query_selector('button:has-text("Читать")')
+        )
+
         if unfollow_btn:
             human_click(page, unfollow_btn)
             human_delay(0.8, 1.8)
-            
-            # Confirm dialog
-            confirm_btn = page.query_selector('button[data-testid="confirmationSheetConfirm"]')
+
+            # Модальное окно подтверждения отписки (мультиязычное)
+            confirm_btn = (
+                page.query_selector('button[data-testid="confirmationSheetConfirm"]') or
+                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Unfollow")') or
+                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Отменить")') or
+                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Отписаться")')
+            )
             if confirm_btn:
                 human_click(page, confirm_btn)
-                
+                human_delay(0.5, 1.2)
+
             print(f"  [Follower] Unfollowed @{clean_user} (organic click)")
             log_action(clean_user, "unfollow", success=True)
+            return True
+        elif already_not_following:
+            print(f"  [Follower] Already not following @{clean_user} (Follow/Читать button visible). Marking as unfollowed.")
+            log_action(clean_user, "unfollow", success=True, error="already_not_following")
             return True
         else:
             print(f"  [Follower] Unfollow button not found for @{clean_user}")
