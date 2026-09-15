@@ -8,6 +8,7 @@ import sqlite3
 import os
 import json
 import datetime
+import random
 from config import SQLITE_PATH, DB_TYPE, DATABASE_URL, MIN_SCORE_THRESHOLD
 
 def get_connection():
@@ -94,6 +95,32 @@ def init_db():
             )
         """)
 
+        # Discovery Engine 2.0: Source tracking & cooldown table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sources_tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_identifier TEXT UNIQUE NOT NULL,
+                source_type TEXT NOT NULL, -- donor_likes, donor_followers, search, dynamic_donor
+                last_scraped_at TIMESTAMP,
+                total_evaluated INTEGER DEFAULT 0,
+                leads_yielded INTEGER DEFAULT 0,
+                cooldown_hours INTEGER DEFAULT 48,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Dynamic donors discovered via Snowball network graph
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dynamic_donors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                discovered_from TEXT,
+                followers_count INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'active', -- active, exhausted, invalid
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
     else:
         # Postgres dialect
         cur.execute("""
@@ -134,6 +161,26 @@ def init_db():
                 follows_sent INTEGER DEFAULT 0,
                 mutual_received INTEGER DEFAULT 0,
                 unfollows_done INTEGER DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS sources_tracking (
+                id SERIAL PRIMARY KEY,
+                source_identifier VARCHAR(128) UNIQUE NOT NULL,
+                source_type VARCHAR(64) NOT NULL,
+                last_scraped_at TIMESTAMP,
+                total_evaluated INTEGER DEFAULT 0,
+                leads_yielded INTEGER DEFAULT 0,
+                cooldown_hours INTEGER DEFAULT 48,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS dynamic_donors (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(64) UNIQUE NOT NULL,
+                discovered_from VARCHAR(64),
+                followers_count INTEGER DEFAULT 0,
+                status VARCHAR(32) DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT NOW()
             );
         """)
 
@@ -410,7 +457,162 @@ def get_candidates_for_list_bombing(limit: int = 10, min_score: int = 50) -> lis
     """, (min_score, limit))
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
-    return rows
+def record_source_scrape(source_identifier: str, source_type: str, evaluated_count: int, leads_yielded: int, cooldown_hours: int = 48):
+    """Records that a source was scraped, updates historical lead yield and resets cooldown timer."""
+    conn = get_connection()
+    cur = conn.cursor()
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if DB_TYPE == "sqlite":
+        cur.execute("""
+            INSERT INTO sources_tracking (source_identifier, source_type, last_scraped_at, total_evaluated, leads_yielded, cooldown_hours)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source_identifier) DO UPDATE SET
+                last_scraped_at = excluded.last_scraped_at,
+                total_evaluated = sources_tracking.total_evaluated + excluded.total_evaluated,
+                leads_yielded = sources_tracking.leads_yielded + excluded.leads_yielded,
+                cooldown_hours = excluded.cooldown_hours
+        """, (source_identifier, source_type, now, evaluated_count, leads_yielded, cooldown_hours))
+    else:
+        cur.execute("""
+            INSERT INTO sources_tracking (source_identifier, source_type, last_scraped_at, total_evaluated, leads_yielded, cooldown_hours)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT(source_identifier) DO UPDATE SET
+                last_scraped_at = EXCLUDED.last_scraped_at,
+                total_evaluated = sources_tracking.total_evaluated + EXCLUDED.total_evaluated,
+                leads_yielded = sources_tracking.leads_yielded + EXCLUDED.leads_yielded,
+                cooldown_hours = EXCLUDED.cooldown_hours
+        """, (source_identifier, source_type, now, evaluated_count, leads_yielded, cooldown_hours))
+
+    conn.commit()
+    conn.close()
+
+def add_dynamic_donor(username: str, discovered_from: str = "", followers_count: int = 0):
+    """Saves a new donor discovered via Snowball network graph into dynamic_donors pool."""
+    clean_u = username.lower().replace("@", "").strip()
+    if not clean_u:
+        return
+    conn = get_connection()
+    cur = conn.cursor()
+    if DB_TYPE == "sqlite":
+        cur.execute("""
+            INSERT INTO dynamic_donors (username, discovered_from, followers_count)
+            VALUES (?, ?, ?)
+            ON CONFLICT(username) DO NOTHING
+        """, (clean_u, discovered_from, followers_count))
+    else:
+        cur.execute("""
+            INSERT INTO dynamic_donors (username, discovered_from, followers_count)
+            VALUES (%s, %s, %s)
+            ON CONFLICT(username) DO NOTHING
+        """, (clean_u, discovered_from, followers_count))
+    conn.commit()
+    conn.close()
+
+def get_available_sources() -> list:
+    """
+    Builds a list of candidate sources (donor_likes, donor_followers, search queries, dynamic donors)
+    that are NOT on cooldown, prioritized by historical lead yield and time since last scraped.
+    """
+    from config import (
+        TARGET_DONORS, SEARCH_QUERIES,
+        DONOR_COOLDOWN_HOURS, SEARCH_COOLDOWN_HOURS
+    )
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT source_identifier, last_scraped_at, leads_yielded, cooldown_hours FROM sources_tracking")
+    tracking_map = {}
+    for r in cur.fetchall():
+        tracking_map[r[0]] = {
+            "last_scraped_at": r[1],
+            "leads_yielded": r[2] or 0,
+            "cooldown_hours": r[3] or 48
+        }
+
+    # Fetch active dynamic donors
+    cur.execute("SELECT username FROM dynamic_donors WHERE status = 'active' ORDER BY id DESC LIMIT 50")
+    dynamic_donors = [r[0] for r in cur.fetchall()]
+    conn.close()
+
+    all_candidates = []
+    now = datetime.datetime.now()
+
+    # 1. Target Donors: both 'donor_likes' and 'donor_followers'
+    combined_donors = list(TARGET_DONORS) + dynamic_donors
+    for d in combined_donors:
+        clean_d = d.replace("@", "").strip()
+
+        # Type A: donor_likes (cooldown 24h for fresh daily tweets)
+        id_likes = f"donor_likes:{clean_d}"
+        info_likes = tracking_map.get(id_likes)
+        is_ready = True
+        if info_likes and info_likes["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < 24 * 3600:
+                    is_ready = False
+            except Exception:
+                pass
+        if is_ready:
+            all_candidates.append({
+                "type": "donor_likes",
+                "target": clean_d,
+                "identifier": id_likes,
+                "cooldown": 24,
+                "yield": info_likes["leads_yielded"] if info_likes else 0,
+                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
+            })
+
+        # Type B: donor_followers (cooldown DONOR_COOLDOWN_HOURS = 48)
+        id_folls = f"donor_followers:{clean_d}"
+        info_folls = tracking_map.get(id_folls)
+        is_ready_folls = True
+        if info_folls and info_folls["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_folls["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < DONOR_COOLDOWN_HOURS * 3600:
+                    is_ready_folls = False
+            except Exception:
+                pass
+        if is_ready_folls:
+            all_candidates.append({
+                "type": "donor_followers",
+                "target": clean_d,
+                "identifier": id_folls,
+                "cooldown": DONOR_COOLDOWN_HOURS,
+                "yield": info_folls["leads_yielded"] if info_folls else 0,
+                "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
+            })
+
+    # 2. Search queries (cooldown SEARCH_COOLDOWN_HOURS = 12)
+    for q in SEARCH_QUERIES:
+        id_search = f"search:{q}"
+        info_search = tracking_map.get(id_search)
+        is_ready_search = True
+        if info_search and info_search["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_search["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < SEARCH_COOLDOWN_HOURS * 3600:
+                    is_ready_search = False
+            except Exception:
+                pass
+        if is_ready_search:
+            all_candidates.append({
+                "type": "search",
+                "target": q,
+                "identifier": id_search,
+                "cooldown": SEARCH_COOLDOWN_HOURS,
+                "yield": info_search["leads_yielded"] if info_search else 0,
+                "has_scraped": bool(info_search and info_search["last_scraped_at"])
+            })
+
+    # Prioritization:
+    # Priority 1: Unscraped sources first
+    # Priority 2: High historical yield
+    random.shuffle(all_candidates)
+    all_candidates.sort(key=lambda s: (not s["has_scraped"], s["yield"]), reverse=True)
+    return all_candidates
 
 if __name__ == "__main__":
     init_db()

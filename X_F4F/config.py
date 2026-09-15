@@ -65,10 +65,10 @@ MIN_SCORE_THRESHOLD = 40
 # ==========================================
 # 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА (HARD GATES)
 # ==========================================
-MIN_FOLLOWERS = 80         # Отсекаем ботов, но не блокируем начинающих/нишевых дизайнеров
+MIN_FOLLOWERS = 50         # Отсекаем ботов, но захватываем перспективных начинающих/нишевых талантов
 MAX_FOLLOWERS = 3000       # Отсекаем звезд и перегруженные аккаунты, максимизируем конверсию F4F
 MIN_RATIO = 0.35           # Following / Followers (0.35+ реалистичное соотношение для дизайнеров-взаимщиков)
-MAX_DAYS_INACTIVE = 3      # Аккаунт должен проявлять активность в последние 3 дня
+MAX_DAYS_INACTIVE = 7      # Аккаунт должен проявлять активность в последние 7 дней (не бракуем еженедельных авторов)
 
 # ==========================================
 # 3. БЕЗОПАСНЫЕ ЛИМИТЫ (RATE LIMITS)
@@ -93,6 +93,14 @@ EGO_LIST_DEFAULT_NAME = "✦ Top 1% Frontier Designers 2026"  # Основной
 EGO_LIST_MIN_SCORE = 50        # Минимальный скор кандидата для включения в список
 LIST_ADD_DELAY_SECONDS = (35, 75) # Случайная пауза между добавлениями в список
 
+# Настройки Discovery Engine 2.0 (Кулдауны источников и Snowball Graph)
+DONOR_COOLDOWN_HOURS = 48      # Кулдаун для повторного парсинга донора
+SEARCH_COOLDOWN_HOURS = 12     # Кулдаун для повторного запуска поискового запроса
+HARVEST_MAX_SCROLLS = 20       # Глубокий скролл для пробития слоя уже собранных подписчиков
+SNOWBALL_MIN_SCORE = 65        # Порог скора кандидата для парсинга его подписок в базу доноров
+SNOWBALL_DONOR_MIN_FOLLOWERS = 1500  # Мин. подписчиков у аккаунта, чтобы стать новым донором
+SNOWBALL_DONOR_MAX_FOLLOWERS = 120000 # Макс. подписчиков у нового донора
+
 # ==========================================
 # 4. ПОИСКОВЫЕ ЗАПРОСЫ ДЛЯ СБОРА КАНДИДАТОВ
 # ==========================================
@@ -116,16 +124,43 @@ SEARCH_QUERIES = [
     'to:type01_'
 ]
 
-# Аккаунты-доноры (чьих недавних лайкеров/ретвитеров будем парсить)
+# Аккаунты-доноры (студии, дизайн-инструменты, инди-типографии, кураторы)
 TARGET_DONORS = [
-    "StudioDumbar",
+    # Инструменты и платформы
     "readymag",
     "framer",
     "layers",
-    "bauxitedesign",
-    "kaborist",
+    "spline_3d",
+    "rive_app",
+    "godlywebsite",
+    "hoverstat_es",
+    "MinimalGallery",
+    "SiteInspire",
+    "Linear",
+    "raycastapp",
+    # Типографика и шрифтовые бюро
+    "type01_",
+    "grillitype",
+    "pangram_pangram",
+    "dinamo_bureau",
+    "v_j_t_y_p_e",
+    "tightype",
+    "schicktoikka",
+    # Передовые брендинговые и дизайн-студии
+    "StudioDumbar",
     "PentagramDesign",
-    "type01_"
+    "kaborist",
+    "bauxitedesign",
+    "koto_studios",
+    "designstudio",
+    "monopo_london",
+    "buck_design",
+    "wolffolins",
+    "HugeInc",
+    # Кураторские каналы и медиа
+    "MindsparkleMag",
+    "itwisthard",
+    "CuratedSystem"
 ]
 
 # ==========================================
