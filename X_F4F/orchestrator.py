@@ -138,37 +138,50 @@ def run_single_session(profile_name: str):
     except Exception as e:
         print(f"[Orchestrator] Quick mutual sync notice: {e}")
 
-def sleep_until(target_dt: datetime.datetime):
+def sleep_until(target_dt: datetime.datetime, reason: str = "Break"):
     """
     Sleeps until target_dt checking wall-clock time in 15-second chunks.
     Resilient to Windows standby, sleep, and system clock changes.
+    Prints periodic countdown heartbeats so the user knows it's actively waiting.
     """
+    last_heartbeat = 0.0
     while datetime.datetime.now() < target_dt:
         diff = (target_dt - datetime.datetime.now()).total_seconds()
         if diff <= 0:
             break
+        now_ts = time.time()
+        # Print status every 2 minutes or when remaining is under 60s
+        if now_ts - last_heartbeat >= 120.0 or (diff <= 60 and now_ts - last_heartbeat >= 20.0):
+            hours = int(diff // 3600)
+            mins = int((diff % 3600) // 60)
+            secs = int(diff % 60)
+            time_str = f"{hours:02d}h {mins:02d}m" if hours > 0 else f"{mins}m {secs:02d}s"
+            print(f"  ⏳ [{reason}] Next action at {target_dt.strftime('%H:%M:%S')} (Remaining: {time_str})...")
+            last_heartbeat = now_ts
         time.sleep(min(15.0, diff))
 
-def run_daemon_loop(profile_name: str):
+def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
     """
     Main autonomous daemon loop.
     Coordinates daytime micro-sessions and night rest.
     """
     print(f"[Orchestrator] Launching continuous autonomous loop for @{profile_name}...")
+    if ignore_work_hours:
+        print("[Orchestrator] ⚡ Night mode bypass enabled (--force / --ignore-night). Running 24/7.")
     
     while True:
         try:
             now = datetime.datetime.now()
             
             # Проверка ночного сна (23:00 - 09:00)
-            if not is_work_hours():
-                # Вычисляем время до утра
+            if not ignore_work_hours and not is_work_hours():
                 morning = now.replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
                 if now.hour >= WORK_END_HOUR:
                     morning += datetime.timedelta(days=1)
                 sleep_seconds = max(60, int((morning - now).total_seconds()))
-                print(f"[Night Mode] Current time {now.strftime('%H:%M')}. Night rest until {morning.strftime('%H:%M:%S')} (~{sleep_seconds // 3600}h {(sleep_seconds % 3600) // 60}m)...")
-                sleep_until(morning)
+                print(f"\n[Night Mode] Current time {now.strftime('%H:%M')}. Night rest until {morning.strftime('%H:%M:%S')} (~{sleep_seconds // 3600}h {(sleep_seconds % 3600) // 60}m)...")
+                print("Tip: Run with --force or --ignore-night if you want to run micro-sessions right now during night hours.")
+                sleep_until(morning, reason="Night Rest")
                 continue
                 
             # Проверка суточной квоты
@@ -178,7 +191,7 @@ def run_daemon_loop(profile_name: str):
                 sleep_seconds = max(60, int((tomorrow - now).total_seconds()))
                 print(f"[Daily Limit Reached] Completed {follows_today}/{DAILY_FOLLOW_LIMIT} follows today.")
                 print(f"Resting until next day session ({tomorrow.strftime('%Y-%m-%d %H:%M:%S')})...")
-                sleep_until(tomorrow)
+                sleep_until(tomorrow, reason="Daily Quota Full")
                 continue
                 
             # Выполняем дневную сессию
@@ -189,7 +202,7 @@ def run_daemon_loop(profile_name: str):
             next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
             print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes.")
             print(f"Next active session planned at: {next_time.strftime('%H:%M:%S')}\n")
-            sleep_until(next_time)
+            sleep_until(next_time, reason="Session Break")
             
         except KeyboardInterrupt:
             print("\n[Orchestrator] Manual shutdown requested by user. Terminating gracefully.")
@@ -202,10 +215,13 @@ def run_daemon_loop(profile_name: str):
 if __name__ == "__main__":
     profile = "test_igorvl777"
     run_once = False
+    ignore_work_hours = False
     
     for arg in sys.argv[1:]:
         if arg in ("--once", "-1"):
             run_once = True
+        elif arg in ("--force", "--ignore-night", "--anytime", "-f"):
+            ignore_work_hours = True
         elif not arg.startswith("-"):
             profile = arg
             
@@ -213,4 +229,4 @@ if __name__ == "__main__":
         print(f"[Orchestrator] Running single session for @{profile}...")
         run_single_session(profile)
     else:
-        run_daemon_loop(profile)
+        run_daemon_loop(profile, ignore_work_hours=ignore_work_hours)
