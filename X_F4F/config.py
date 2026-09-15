@@ -65,10 +65,10 @@ MIN_SCORE_THRESHOLD = 40
 # ==========================================
 # 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА (HARD GATES)
 # ==========================================
-MIN_FOLLOWERS = 50         # Отсекаем ботов, но захватываем перспективных начинающих/нишевых талантов
-MAX_FOLLOWERS = 3000       # Отсекаем звезд и перегруженные аккаунты, максимизируем конверсию F4F
+MIN_FOLLOWERS = 35         # Отсекаем ботов, но захватываем перспективных начинающих/нишевых талантов
+MAX_FOLLOWERS = 4500       # Лимит для F4F (захватываем лид-дизайнеров, инди-типографов и студии)
 MIN_RATIO = 0.35           # Following / Followers (0.35+ реалистичное соотношение для дизайнеров-взаимщиков)
-MAX_DAYS_INACTIVE = 7      # Аккаунт должен проявлять активность в последние 7 дней (не бракуем еженедельных авторов)
+MAX_DAYS_INACTIVE = 21     # Активность в последние 21 день (дизайнеры публикуют кейсы раз в 2-3 недели)
 
 # ==========================================
 # 3. БЕЗОПАСНЫЕ ЛИМИТЫ (RATE LIMITS)
@@ -119,6 +119,12 @@ SEARCH_QUERIES = [
     'product designer ui ux',
     'type design typography studio',
     'graphic designer behance',
+    '"framer.website" design',
+    '"readymag.site" portfolio',
+    '"behance.net/gallery" design',
+    'layers.to portfolio',
+    'design system figma',
+    'type foundry typography',
     'to:readymag portfolio',
     'to:framer website',
     'to:type01_'

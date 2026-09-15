@@ -538,33 +538,11 @@ def get_available_sources() -> list:
     all_candidates = []
     now = datetime.datetime.now()
 
-    # 1. Target Donors: both 'donor_likes' and 'donor_followers'
+    # 1. Target Donors: 'donor_followers' (cooldown DONOR_COOLDOWN_HOURS = 48)
     combined_donors = list(TARGET_DONORS) + dynamic_donors
     for d in combined_donors:
         clean_d = d.replace("@", "").strip()
 
-        # Type A: donor_likes (cooldown 24h for fresh daily tweets)
-        id_likes = f"donor_likes:{clean_d}"
-        info_likes = tracking_map.get(id_likes)
-        is_ready = True
-        if info_likes and info_likes["last_scraped_at"]:
-            try:
-                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
-                if (now - last_dt).total_seconds() < 24 * 3600:
-                    is_ready = False
-            except Exception:
-                pass
-        if is_ready:
-            all_candidates.append({
-                "type": "donor_likes",
-                "target": clean_d,
-                "identifier": id_likes,
-                "cooldown": 24,
-                "yield": info_likes["leads_yielded"] if info_likes else 0,
-                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
-            })
-
-        # Type B: donor_followers (cooldown DONOR_COOLDOWN_HOURS = 48)
         id_folls = f"donor_followers:{clean_d}"
         info_folls = tracking_map.get(id_folls)
         is_ready_folls = True

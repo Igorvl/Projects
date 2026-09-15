@@ -24,13 +24,13 @@ from database import (
 
 def parse_stat_number(text: str) -> int:
     """
-    Parses text numbers like '8 489 подписчиков', '1.2K Followers', '34.5M', '1,200'.
-    Correctly handles non-breaking spaces (\xa0) from European/Russian locales.
+    Parses text numbers like '8 489 подписчиков', '1.2K Followers', '34.5M', '1,200', 'Followers\n1,200'.
+    Robustly extracts numbers with K/M/B suffix from anywhere in the string regardless of locale or prefix.
     """
     if not text:
         return 0
     cleaned = text.replace("\xa0", " ").strip()
-    m = re.match(r"^([\d\s.,]+[KkMmBb]?)", cleaned)
+    m = re.search(r"([\d.,]+(?:\s*[\d.,]+)*\s*[KkMmBb]?)", cleaned)
     if not m:
         return 0
     num_str = m.group(1).replace(" ", "").replace(",", "").upper()
@@ -41,6 +41,9 @@ def parse_stat_number(text: str) -> int:
     elif "M" in num_str:
         multiplier = 1000000
         num_str = num_str.replace("M", "")
+    elif "B" in num_str:
+        multiplier = 1000000000
+        num_str = num_str.replace("B", "")
     try:
         return int(float(num_str) * multiplier)
     except Exception:
@@ -80,18 +83,24 @@ def inspect_user_profile(page, username: str) -> dict:
         if url_el:
             user_url = url_el.get_attribute("href") or url_el.inner_text()
             
-        # Extract Following and Followers counts
+        # Extract Following and Followers counts with case-insensitive and robust fallbacks
         following_count = 0
         followers_count = 0
         
-        following_link = page.query_selector(f'a[href="/{clean_user}/following"]')
+        following_link = (
+            page.query_selector(f'a[href="/{clean_user}/following" i]') or
+            page.query_selector('a[href$="/following" i]') or
+            page.query_selector('a[href*="/following" i]')
+        )
         if following_link:
             following_count = parse_stat_number(following_link.inner_text())
             
-        # Priority: exact /followers URL. Fallback: /verified_followers only for same user.
         followers_link = (
-            page.query_selector(f'a[href="/{clean_user}/followers"]') or
-            page.query_selector(f'a[href="/{clean_user}/verified_followers"]')
+            page.query_selector(f'a[href="/{clean_user}/followers" i]') or
+            page.query_selector(f'a[href="/{clean_user}/verified_followers" i]') or
+            page.query_selector('a[href$="/verified_followers" i]') or
+            page.query_selector('a[href$="/followers" i]') or
+            page.query_selector('a[href*="/followers" i]')
         )
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text())
@@ -488,12 +497,12 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             print(f"\n--- [Source #{sources_processed}/{max_sources}] Type: {stype} | Target: {target} ---")
             
             queued_this_source = 0
-            if stype == "donor_likes":
-                queued_this_source = harvest_from_donor_likes(page, target, max_users=12)
-            elif stype == "donor_followers":
-                queued_this_source = harvest_from_donor_followers(page, target, max_users=15)
+            if stype == "donor_followers":
+                queued_this_source = harvest_from_donor_followers(page, target, max_users=18)
             elif stype == "search":
-                queued_this_source = harvest_from_search(page, target, max_users=12)
+                queued_this_source = harvest_from_search(page, target, max_users=15)
+            elif stype == "donor_likes":
+                queued_this_source = harvest_from_donor_likes(page, target, max_users=12)
             else:
                 queued_this_source = harvest_from_donor(page, target, max_users=10)
                 
