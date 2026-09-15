@@ -98,7 +98,20 @@ def run_single_session(profile_name: str):
     else:
         print("[Orchestrator] No qualified candidates found in this cycle. Will retry in next session.")
         
-    # 3. Вечерний аудит взаимности (после 18:00)
+    # 3. Периодическое пополнение статусных публичных списков (Ego-List Bombing)
+    now = datetime.datetime.now()
+    if 12 <= now.hour <= 20:
+        try:
+            from list_bomber import run_list_bombing_batch
+            from database import get_today_list_adds
+            from config import DAILY_LIST_ADD_LIMIT
+            if get_today_list_adds() < DAILY_LIST_ADD_LIMIT:
+                print("\n[Orchestrator] Midday catalyst: Ego-List Bombing session...")
+                run_list_bombing_batch(profile_name=profile_name, batch_size=random.randint(4, 6))
+        except Exception as e:
+            print(f"[Orchestrator] List bombing notice: {e}")
+
+    # 4. Вечерний аудит взаимности (после 18:00)
     now = datetime.datetime.now()
     if now.hour >= 18:
         print("\n[Orchestrator] Evening routine: checking reciprocal follows & non-responders...")

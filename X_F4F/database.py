@@ -70,7 +70,8 @@ def init_db():
                 follows_sent INTEGER DEFAULT 0,
                 mutual_received INTEGER DEFAULT 0,
                 unfollows_done INTEGER DEFAULT 0,
-                likes_sent INTEGER DEFAULT 0
+                likes_sent INTEGER DEFAULT 0,
+                list_adds_sent INTEGER DEFAULT 0
             )
         """)
 
@@ -273,10 +274,45 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
         cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "like" and success:
         cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
+    elif action_type == "list_add" and success:
+        cur.execute(f"UPDATE daily_stats SET list_adds_sent = COALESCE(list_adds_sent, 0) + 1 WHERE date = {ph}", (today,))
 
     conn.commit()
     conn.close()
 
+def get_today_list_adds() -> int:
+    """Gets count of list adds executed today to enforce DAILY_LIST_ADD_LIMIT."""
+    conn = get_connection()
+    cur = conn.cursor()
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"SELECT COALESCE(list_adds_sent, 0) FROM daily_stats WHERE date = {ph}", (today,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+def get_candidates_for_list_bombing(limit: int = 10, min_score: int = 50) -> list:
+    """
+    Retrieves qualified candidates (status 'queued' or 'followed') who have NOT yet
+    been added to an ego list.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"""
+        SELECT c.* FROM candidates c
+        WHERE c.status IN ('queued', 'followed')
+          AND c.score >= {ph}
+          AND c.username NOT IN (
+              SELECT candidate_username FROM actions_history 
+              WHERE action_type = 'list_add' AND success = 1
+          )
+        ORDER BY c.score DESC, c.ratio DESC
+        LIMIT {ph}
+    """, (min_score, limit))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 if __name__ == "__main__":
     init_db()
