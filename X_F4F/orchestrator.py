@@ -29,8 +29,9 @@ from follower import (
 # Расписание дня
 WORK_START_HOUR = 9      # 09:00 утра
 WORK_END_HOUR = 23       # 23:00 вечера
-SESSION_MIN_PAUSE_MIN = 60    # Минимум 60 минут между сессиями
-SESSION_MAX_PAUSE_MIN = 140   # Максимум 140 минут между сессиями
+SESSION_MIN_PAUSE_MIN = 35    # Минимум 35 минут между сессиями (обеспечивает 6-8 активных сессий в день)
+SESSION_MAX_PAUSE_MIN = 65    # Максимум 65 минут между сессиями
+MIN_QUEUE_BUFFER = 15         # Постоянный буфер очереди (чтобы бот никогда не простаивал без лидов)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours."""
@@ -54,9 +55,11 @@ def run_single_session(profile_name: str):
     """
     Executes one complete human-style session:
     1. Checks daily quota
-    2. Harvests if queue is low
+    2. Harvests if queue is below buffer target
     3. Executes micro-batch follows
-    4. Runs mutual check / pruning once a day in evening
+    4. Runs Ego-List bombing catalyst
+    5. Runs evening mutual check / pruning
+    6. Syncs mutual followers for up-to-date stats
     """
     print_banner(profile_name)
     follows_today, _ = get_today_counts()
@@ -66,23 +69,22 @@ def run_single_session(profile_name: str):
         return
         
     remaining_today = DAILY_FOLLOW_LIMIT - follows_today
-    batch_target = min(random.randint(8, 12), remaining_today)
+    batch_target = min(random.randint(6, 9), remaining_today)
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
-    # 1. Проверяем очередь кандидатов. Если мало — добираем скрапером
+    # 1. Проверяем очередь кандидатов. Держим здоровый буфер (минимум MIN_QUEUE_BUFFER лидов)
     queue_count = get_queue_count()
-    if queue_count < batch_target:
-        needed = batch_target - queue_count
-        print(f"[Orchestrator] Queue has {queue_count} leads (< target {batch_target}). Starting on-demand harvesting...")
+    if queue_count < MIN_QUEUE_BUFFER:
+        target_to_harvest = max(10, MIN_QUEUE_BUFFER - queue_count + batch_target)
+        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting on-demand harvesting (+{target_to_harvest})...")
         try:
-            # Запускаем целевой сбор до достижения необходимого количества лидов
-            run_harvesting_cycle(profile_name=profile_name, target_queued=needed)
+            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             
-        # Человеческая пауза между ресёрчем и началом подписок (1.5–3 минуты)
-        pause_sec = random.randint(90, 180)
+        # Человеческая пауза между ресёрчем и началом подписок (1.5–2.5 минуты)
+        pause_sec = random.randint(75, 150)
         print(f"[Orchestrator] Human pause between research and follow actions ({pause_sec}s)...")
         time.sleep(pause_sec)
         
@@ -100,14 +102,14 @@ def run_single_session(profile_name: str):
         
     # 3. Периодическое пополнение статусных публичных списков (Ego-List Bombing)
     now = datetime.datetime.now()
-    if 12 <= now.hour <= 20:
+    if 12 <= now.hour <= 21:
         try:
             from list_bomber import run_list_bombing_batch
             from database import get_today_list_adds
             from config import DAILY_LIST_ADD_LIMIT
             if get_today_list_adds() < DAILY_LIST_ADD_LIMIT:
                 print("\n[Orchestrator] Midday catalyst: Ego-List Bombing session...")
-                run_list_bombing_batch(profile_name=profile_name, batch_size=random.randint(4, 6))
+                run_list_bombing_batch(profile_name=profile_name, batch_size=random.randint(3, 5))
         except Exception as e:
             print(f"[Orchestrator] List bombing notice: {e}")
 
@@ -119,6 +121,17 @@ def run_single_session(profile_name: str):
             run_unfollow_batch(profile_name=profile_name, batch_size=6)
         except Exception as e:
             print(f"[Orchestrator] Mutual check error: {e}")
+
+    # 5. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
+    try:
+        from follower import sync_mutual_followers
+        from browser import get_browser_context
+        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
+        sync_mutual_followers(page)
+        ctx.close()
+        pw.stop()
+    except Exception as e:
+        print(f"[Orchestrator] Quick mutual sync notice: {e}")
 
 def sleep_until(target_dt: datetime.datetime):
     """
