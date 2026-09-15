@@ -564,7 +564,7 @@ HTML_PAGE = """<!DOCTYPE html>
                     if (pill) pill.innerText = '@' + esc(data.target_account);
                 }
                 
-                document.getElementById('stat-likes').innerText = `${data.likes_today || 0} / ${data.daily_like_limit || 30}`;
+                document.getElementById('stat-likes').innerText = `${data.likes_today || 0} / ${data.daily_like_limit || 55}`;
 
                 const cr = data.followed_count > 0 ? ((data.mutual_count / data.followed_count) * 100).toFixed(1) : '0';
                 document.getElementById('stat-cr').innerText = cr + '%';

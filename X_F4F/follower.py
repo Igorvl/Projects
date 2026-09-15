@@ -23,7 +23,11 @@ from config import (
     MIN_DELAY_SECONDS,
     MAX_DELAY_SECONDS,
     UNFOLLOW_AFTER_DAYS,
-    TARGET_ACCOUNT
+    TARGET_ACCOUNT,
+    TRI_TOUCH_ENABLED,
+    TRI_TOUCH_MIN_SCORE,
+    TRI_TOUCH_PAUSE_BETWEEN_LIKES,
+    TRI_TOUCH_PAUSE_BEFORE_FOLLOW
 )
 from database import (
     get_connection,
@@ -58,34 +62,57 @@ def get_today_likes() -> int:
         return row[0]
     return 0
 
-def like_recent_post(page, username: str) -> bool:
+def execute_engagement_cascade(page, username: str, candidate_score: int = 0, is_hungry_talent: bool = False) -> int:
     """
-    Carefully inspects user's latest original post and leaves 1 like.
-    Strictly respects DAILY_LIKE_LIMIT, skips retweets, and preserves quota.
+    Executes Scheme 1: Micro-Engagement Cascade.
+    For high-priority candidates (hungry talents or score >= TRI_TOUCH_MIN_SCORE),
+    performs a dense 2-like cascade (Fresh thought + Media/Portfolio) separated by organic Dwell Time.
+    For standard candidates, executes a single warm-touch like.
+    Strictly enforces DAILY_LIKE_LIMIT to safeguard account quotas.
+    Returns: count of likes executed (0, 1, or 2).
     """
     likes_today = get_today_likes()
     if likes_today >= DAILY_LIKE_LIMIT:
-        print(f"  [Liker] Daily like limit reached ({likes_today}/{DAILY_LIKE_LIMIT}). Preserving quota.")
-        return False
+        print(f"  [Cascade] Daily like limit reached ({likes_today}/{DAILY_LIKE_LIMIT}). Preserving quota.")
+        return 0
 
-    if random.random() > LIKE_PROBABILITY:
-        print(f"  [Liker] Skipped like for @{username} (organic variance / preserving quota).")
-        return False
+    likes_remaining = DAILY_LIKE_LIMIT - likes_today
+    
+    # Check if candidate qualifies for dense Tri-Touch cascade (2 likes)
+    qualifies_for_cascade = (
+        TRI_TOUCH_ENABLED and 
+        (is_hungry_talent or candidate_score >= TRI_TOUCH_MIN_SCORE) and 
+        likes_remaining >= 2
+    )
+
+    max_likes_target = 2 if qualifies_for_cascade else 1
+    
+    # Organic probability check for single-like tier
+    if not qualifies_for_cascade and random.random() > LIKE_PROBABILITY:
+        print(f"  [Cascade] Skipped like for @{username} (organic variance / preserving quota).")
+        return 0
+
+    mode_label = "Tri-Touch Cascade (2 likes + Dwell)" if qualifies_for_cascade else "Single Warm Touch"
+    print(f"  [Cascade] Mode: {mode_label} for @{username} (Score: {candidate_score}, Quota remaining: {likes_remaining})")
+
+    likes_placed = 0
 
     try:
-        # Smooth scroll down to view recent posts
+        # Step 1: Smooth scroll down to view recent posts
         human_scroll(page, steps=1)
-        human_delay(1.5, 2.5)
+        human_delay(1.5, 3.0)
 
         tweets = page.locator('article[data-testid="tweet"]')
         tweet_count = tweets.count()
         if tweet_count == 0:
-            return False
+            return 0
 
-        for i in range(min(2, tweet_count)):
+        # --- TOUCH 1: Fresh Author's Post (Original, non-repost) ---
+        liked_indices = set()
+        for i in range(min(3, tweet_count)):
             tweet = tweets.nth(i)
 
-            # Skip retweets/reposts — only like author's own work!
+            # Skip retweets/reposts
             social_context = tweet.locator('[data-testid="socialContext"]')
             if social_context.count() > 0:
                 sc_text = social_context.first.inner_text().lower()
@@ -94,30 +121,105 @@ def like_recent_post(page, username: str) -> bool:
 
             # Skip if already liked
             if tweet.locator('[data-testid="unlike"]').count() > 0:
-                return False
+                continue
 
             like_btn = tweet.locator('[data-testid="like"]')
             if like_btn.count() > 0 and like_btn.first.is_visible():
-                human_delay(0.8, 1.8)
+                human_delay(1.0, 2.2)
                 clicked = human_click(page, like_btn.first)
                 if clicked:
+                    likes_placed += 1
+                    liked_indices.add(i)
                     log_action(username, "like", success=True)
-                    print(f"  [Liker] ❤️ Liked recent work of @{username}! (Quota: {likes_today + 1}/{DAILY_LIKE_LIMIT})")
-                    human_delay(1.5, 2.5)
-                    return True
+                    print(f"  [Cascade] ❤️ [Touch 1/2] Liked recent post of @{username} (Today: {likes_today + likes_placed}/{DAILY_LIKE_LIMIT})")
+                    break
 
-        return False
+        # If only 1 like requested or 1st like wasn't placed, return early
+        if likes_placed == 0 or max_likes_target == 1:
+            if likes_placed > 0:
+                pre_pause = random.uniform(TRI_TOUCH_PAUSE_BEFORE_FOLLOW[0], TRI_TOUCH_PAUSE_BEFORE_FOLLOW[1])
+                human_delay(pre_pause, pre_pause + 0.8)
+            return likes_placed
+
+        # --- STEP 2: Dwell Time + Organic Scroll towards Media / Case Study ---
+        pause_between = random.uniform(TRI_TOUCH_PAUSE_BETWEEN_LIKES[0], TRI_TOUCH_PAUSE_BETWEEN_LIKES[1])
+        print(f"  [Cascade] ⏳ Dwell Time warming ({pause_between:.1f}s) & exploring portfolio/media...")
+        human_delay(pause_between / 2.0, pause_between / 2.0 + 1.0)
+        human_scroll(page, steps=random.randint(1, 2))
+        human_delay(pause_between / 2.0 - 0.5, pause_between / 2.0 + 0.5)
+
+        # Refresh tweets locator after scrolling
+        tweets = page.locator('article[data-testid="tweet"]')
+        tweet_count = tweets.count()
+
+        # --- TOUCH 2: Visual Media / Portfolio Post ---
+        for i in range(tweet_count):
+            if i in liked_indices:
+                continue
+
+            tweet = tweets.nth(i)
+
+            # Skip retweets/reposts
+            social_context = tweet.locator('[data-testid="socialContext"]')
+            if social_context.count() > 0:
+                sc_text = social_context.first.inner_text().lower()
+                if "repost" in sc_text or "ретвит" in sc_text:
+                    continue
+
+            # Skip if already liked
+            if tweet.locator('[data-testid="unlike"]').count() > 0:
+                continue
+
+            # Check for visual media or portfolio cards
+            has_media = (
+                tweet.locator('[data-testid="tweetPhoto"]').count() > 0 or
+                tweet.locator('[data-testid="videoPlayer"]').count() > 0 or
+                tweet.locator('[data-testid="card.wrapper"]').count() > 0
+            )
+
+            like_btn = tweet.locator('[data-testid="like"]')
+            if like_btn.count() > 0 and like_btn.first.is_visible():
+                if has_media or i >= min(4, tweet_count - 1):
+                    human_delay(1.2, 2.5)
+                    clicked = human_click(page, like_btn.first)
+                    if clicked:
+                        likes_placed += 1
+                        log_action(username, "like", success=True)
+                        print(f"  [Cascade] 🎨 [Touch 2/2] Liked visual/portfolio work of @{username} (Today: {likes_today + likes_placed}/{DAILY_LIKE_LIMIT})")
+                        break
+
+        # Step 3: Final Dwell pause before Follow action
+        final_pause = random.uniform(TRI_TOUCH_PAUSE_BEFORE_FOLLOW[0], TRI_TOUCH_PAUSE_BEFORE_FOLLOW[1])
+        print(f"  [Cascade] ⏳ Pre-follow composure pause ({final_pause:.1f}s)...")
+        human_delay(final_pause, final_pause + 0.8)
+
+        return likes_placed
+
     except Exception as e:
-        print(f"  [Liker] Notice while inspecting post for @{username}: {e}")
-        return False
+        print(f"  [Cascade] Notice during engagement cascade for @{username}: {e}")
+        return likes_placed
 
-def follow_user(page, username: str) -> bool:
+def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
     """
-    Navigates to user profile, likes recent work (within daily quota),
-    moves cursor to Follow button via Bezier curves, and follows with human delays.
+    Navigates to user profile, executes engagement cascade (Tri-Touch or Warm Touch),
+    moves cursor to Follow button via Bezier curves, and follows with human composure.
     """
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
+    
+    candidate_score = 0
+    is_hungry_talent = False
+    if candidate_meta:
+        candidate_score = candidate_meta.get("score", 0)
+        breakdown = candidate_meta.get("score_breakdown", {})
+        if isinstance(breakdown, str):
+            import json
+            try:
+                breakdown = json.loads(breakdown)
+            except Exception:
+                breakdown = {}
+        if isinstance(breakdown, dict):
+            is_hungry_talent = breakdown.get("hungry_talent_bonus", False)
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
@@ -136,25 +238,25 @@ def follow_user(page, username: str) -> bool:
             log_action(clean_user, "follow", success=False, error="button_not_found")
             return False
 
-        # 1. Warm touch: Like author's recent work first (respects daily quota)
-        like_recent_post(page, clean_user)
+        # 1. Execute Engagement Cascade (Tri-Touch: 2 likes + Dwell Time or single warm touch)
+        execute_engagement_cascade(page, clean_user, candidate_score=candidate_score, is_hungry_talent=is_hungry_talent)
         
-        # 2. Scroll back if needed and locate Follow button
+        # 2. Scroll back to top if needed and locate Follow button
         follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
         if not follow_btn:
             page.evaluate("window.scrollTo(0, 0)")
-            human_delay(1.0, 1.8)
+            human_delay(1.2, 2.0)
             follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
 
         if follow_btn:
             # Human smooth click with Bezier trajectory
             clicked = human_click(page, follow_btn)
             if clicked:
-                print(f"  [Follower] Successfully followed @{clean_user}! (Human click applied)")
+                print(f"  [Follower] 🎯 Successfully followed @{clean_user}! (Tri-Touch complete)")
                 log_action(clean_user, "follow", success=True)
                 
                 # Human lingering
-                human_delay(1.5, 3.0)
+                human_delay(2.0, 3.5)
                 if random.random() < 0.4:
                     human_idle_noise(page)
                 return True
@@ -266,7 +368,7 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
         for idx, c in enumerate(candidates, 1):
             u = c["username"]
             print(f"\n[Follower] Processing candidate @{u} (Score: {c['score']}, Ratio: {c['ratio']})...")
-            success = follow_user(page, u)
+            success = follow_user(page, u, candidate_meta=c)
             
             if success:
                 # Log-normal distribution around center of min/max delay
