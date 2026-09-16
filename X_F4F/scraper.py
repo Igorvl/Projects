@@ -197,18 +197,19 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
         print(f"Error during search harvesting: {e}")
         return 0
 
-def harvest_from_donor(page, donor_username: str, max_users: int = 12) -> int:
+def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -> int:
     """
-    Visits a high-tier design donor studio (e.g. readymag, framer, StudioDumbar, type01_),
-    scrapes credited creators, commenters, and recent timeline engagers.
+    Algorithm 1: Fresh Drop Commenters & Engagers
+    Queries live chronological replies/mentions to:donor (e.g. to:readymag, to:framer, to:type01_)
+    Extracts active creators commenting on the studio's newest posts right now.
     Returns count of newly queued candidates.
     """
     clean_donor = donor_username.replace("@", "").strip()
-    print(f"\n[Scraper] Harvesting from design donor studio: @{clean_donor}")
-    donor_url = f"https://x.com/{clean_donor}/with_replies"
+    print(f"\n[Scraper] [Algorithm 1] Harvesting live commenters to studio: to:@{clean_donor}")
+    search_url = f"https://x.com/search?q={urllib.parse.quote(f'to:{clean_donor}')}&f=live"
     
     try:
-        page.goto(donor_url, wait_until="domcontentloaded", timeout=20000)
+        page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
         human_delay(3.0, 5.0)
         
         existing_users = get_existing_candidate_usernames()
@@ -218,33 +219,24 @@ def harvest_from_donor(page, donor_username: str, max_users: int = 12) -> int:
         while len(fresh_usernames) < max_users and scroll_attempts < HARVEST_MAX_SCROLLS:
             tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
             for tw in tweet_elements:
-                user_links = tw.query_selector_all('div[data-testid="User-Name"] a[href^="/"]')
-                for ul in user_links:
-                    href = ul.get_attribute("href") or ""
+                user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                if user_link:
+                    href = user_link.get_attribute("href") or ""
                     if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
                         u = href.replace("/", "").strip()
                         if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
                             if u.lower() not in existing_users:
                                 fresh_usernames.add(u)
-                
-                mentions = tw.query_selector_all('div[data-testid="tweetText"] a[href^="/"]')
-                for m in mentions:
-                    m_href = m.get_attribute("href") or ""
-                    if m_href.startswith("/") and not any(x in m_href for x in ["/hashtag/", "/search", "/i/"]):
-                        u = m_href.replace("/", "").strip()
-                        if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users:
-                                fresh_usernames.add(u)
-
-            human_scroll(page, steps=random.randint(2, 3), allow_backtrack=True)
+                                
+            human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
             human_idle_noise(page)
             scroll_attempts += 1
-
-        print(f"[Scraper] Found {len(fresh_usernames)} fresh designers from @{clean_donor}. Starting evaluation...")
-        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor:@{clean_donor}")
-
+            
+        print(f"[Scraper] Found {len(fresh_usernames)} active commenters to @{clean_donor}. Starting evaluation...")
+        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_replies:@{clean_donor}")
+        
     except Exception as e:
-        print(f"Error harvesting from donor @{clean_donor}: {e}")
+        print(f"Error harvesting commenters to donor @{clean_donor}: {e}")
         return 0
 
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
@@ -307,92 +299,47 @@ def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15)
         print(f"Error harvesting followers from @{clean_donor}: {e}")
         return 0
 
-def harvest_from_donor_likes(page, donor_username: str, max_users: int = 15) -> int:
+def harvest_from_peer_following(page, seed_username: str, max_users: int = 15) -> int:
     """
-    Visits a design studio/donor, finds their newest tweets, and extracts active likers
-    from /status/{id}/likes. These are guaranteed live, active creators who engaged recently.
+    Algorithm 3: Snowball Graph of Super-Engagers
+    Visits the following list of a verified Super-Engager (/{seed}/following).
+    Because this creator is a proven active engager (high ratio, creative bio),
+    the people they follow represent their inner circle of active peers and likers.
     Returns count of newly queued candidates.
     """
-    clean_donor = donor_username.replace("@", "").strip()
-    print(f"\n[Scraper] Harvesting active tweet likers from donor: @{clean_donor}")
-    donor_url = f"https://x.com/{clean_donor}"
-
+    clean_seed = seed_username.replace("@", "").strip()
+    print(f"\n[Scraper] [Algorithm 3] Harvesting peer network from @{clean_seed}'s following...")
+    url = f"https://x.com/{clean_seed}/following"
+    
     try:
-        page.goto(donor_url, wait_until="domcontentloaded", timeout=20000)
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
         human_delay(3.0, 5.0)
-
-        # Scroll down slightly to ensure tweets render
-        human_scroll(page, steps=1)
-        human_delay(1.5, 2.5)
-
-        # Find status links of the first 2-3 tweets
-        tweet_articles = page.query_selector_all('article[data-testid="tweet"]')
-        status_urls = []
-        for art in tweet_articles[:3]:
-            links = art.query_selector_all('a[href*="/status/"]')
-            for l in links:
-                h = l.get_attribute("href") or ""
-                if f"/{clean_donor}/status/" in h and "/analytics" not in h and "/photo/" not in h and "/video/" not in h:
-                    status_id = h.split("/status/")[1].split("/")[0].split("?")[0]
-                    clean_status_url = f"https://x.com/{clean_donor}/status/{status_id}/likes"
-                    if clean_status_url not in status_urls:
-                        status_urls.append(clean_status_url)
-                    break
-
-        if not status_urls:
-            donor_url = f"https://x.com/{clean_donor}/with_replies"
-            page.goto(donor_url, wait_until="domcontentloaded", timeout=20000)
-            human_delay(2.5, 4.0)
-            tweet_articles = page.query_selector_all('article[data-testid="tweet"]')
-            for art in tweet_articles[:3]:
-                links = art.query_selector_all('a[href*="/status/"]')
-                for l in links:
-                    h = l.get_attribute("href") or ""
-                    if f"/{clean_donor}/status/" in h:
-                        status_id = h.split("/status/")[1].split("/")[0].split("?")[0]
-                        clean_status_url = f"https://x.com/{clean_donor}/status/{status_id}/likes"
-                        if clean_status_url not in status_urls:
-                            status_urls.append(clean_status_url)
-                        break
-
-        if not status_urls:
-            print(f"  [Scraper] No recent tweets found for @{clean_donor}. Skipping.")
-            return 0
-
+        
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
-
-        for s_url in status_urls:
-            if len(fresh_usernames) >= max_users:
-                break
-            print(f"  [Scraper] Inspecting likers at: {s_url}")
-            page.goto(s_url, wait_until="domcontentloaded", timeout=20000)
-            human_delay(2.5, 4.0)
-            page.mouse.wheel(0, 300)
-            time.sleep(2.0)
-
-            scroll_attempts = 0
-            while len(fresh_usernames) < max_users and scroll_attempts < 10:
-                user_cells = page.query_selector_all('div[data-testid="UserCell"]')
-                for cell in user_cells:
-                    user_links = cell.query_selector_all('a[href^="/"]')
-                    for ul in user_links:
-                        href = ul.get_attribute("href") or ""
-                        if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/", "/search"]):
-                            u = href.replace("/", "").strip()
-                            if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
-                                if u.lower() not in existing_users:
-                                    fresh_usernames.add(u)
-
-                human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
-                human_idle_noise(page)
-                scroll_attempts += 1
-
-        print(f"[Scraper] Found {len(fresh_usernames)} fresh active likers from @{clean_donor}. Starting evaluation...")
-        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_likes:@{clean_donor}")
-
+        scroll_attempts = 0
+        
+        while len(fresh_usernames) < max_users and scroll_attempts < 12:
+            user_cells = page.query_selector_all('div[data-testid="UserCell"]')
+            for cell in user_cells:
+                user_links = cell.query_selector_all('a[href^="/"]')
+                for ul in user_links:
+                    href = ul.get_attribute("href") or ""
+                    if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/", "/search"]):
+                        u = href.replace("/", "").strip()
+                        if u and u.lower() != clean_seed.lower() and len(u) < 30 and not "/" in u:
+                            if u.lower() not in existing_users:
+                                fresh_usernames.add(u)
+                                
+            human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
+            human_idle_noise(page)
+            scroll_attempts += 1
+            
+        print(f"[Scraper] Found {len(fresh_usernames)} active peers from @{clean_seed}'s network. Starting evaluation...")
+        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"peer_following:@{clean_seed}")
+        
     except Exception as e:
-        print(f"Error harvesting likes from donor @{clean_donor}: {e}")
+        print(f"Error harvesting peer network from @{clean_seed}: {e}")
         return 0
 
 def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label: str) -> int:
@@ -447,6 +394,11 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                     if bm.lower() not in existing_users and bm.lower() != username.lower():
                         add_dynamic_donor(bm, discovered_from=username)
                         print(f"  [Snowball Graph] Discovered new potential donor studio @{bm} from @{username}'s bio!")
+
+            # Algorithm 3: Auto-record verified Super-Engagers as peer_seeds for network discovery
+            if evaluation['status'] == 'queued' and (evaluation['score'] >= 90 or evaluation['breakdown'].get('super_engager_bonus', 0) > 0):
+                add_dynamic_donor(username, discovered_from=source_label, followers_count=profile.get('followers_count', 0), donor_type="peer_seed")
+                print(f"  [Snowball Graph] Recorded Super-Engager @{username} as peer_seed for network discovery!")
             
             # Organic delay between candidates
             human_delay(3.0, 6.5)
@@ -464,7 +416,7 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
     """
     Discovery Engine 2.0:
     Continuously harvests across dynamic rotating sources via get_available_sources()
-    (donor_likes, donor_followers, live search, dynamic_donors)
+    (donor_replies, peer_following, donor_followers, live search, dynamic_donors)
     respecting cooldowns, deep scrolling, and recording yield.
     """
     from database import get_available_sources, record_source_scrape, get_queue_count
@@ -497,14 +449,16 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             print(f"\n--- [Source #{sources_processed}/{max_sources}] Type: {stype} | Target: {target} ---")
             
             queued_this_source = 0
-            if stype == "donor_followers":
+            if stype == "donor_replies":
+                queued_this_source = harvest_from_donor_replies(page, target, max_users=15)
+            elif stype == "peer_following":
+                queued_this_source = harvest_from_peer_following(page, target, max_users=15)
+            elif stype == "donor_followers":
                 queued_this_source = harvest_from_donor_followers(page, target, max_users=18)
             elif stype == "search":
                 queued_this_source = harvest_from_search(page, target, max_users=15)
-            elif stype == "donor_likes":
-                queued_this_source = harvest_from_donor_likes(page, target, max_users=12)
             else:
-                queued_this_source = harvest_from_donor(page, target, max_users=10)
+                queued_this_source = harvest_from_donor_followers(page, target, max_users=12)
                 
             total_queued_added += queued_this_source
             

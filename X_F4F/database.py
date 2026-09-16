@@ -109,19 +109,32 @@ def init_db():
             )
         """)
 
-        # Dynamic donors discovered via Snowball network graph
+        # Dynamic donors discovered via Snowball network graph & Peer seeds
         cur.execute("""
             CREATE TABLE IF NOT EXISTS dynamic_donors (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 discovered_from TEXT,
                 followers_count INTEGER DEFAULT 0,
+                donor_type TEXT DEFAULT 'donor', -- 'donor' (studio) or 'peer_seed' (super-engager)
                 status TEXT DEFAULT 'active', -- active, exhausted, invalid
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
     else:
+        # Postgres dialect
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dynamic_donors (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(64) UNIQUE NOT NULL,
+                discovered_from VARCHAR(64),
+                followers_count INTEGER DEFAULT 0,
+                donor_type VARCHAR(32) DEFAULT 'donor',
+                status VARCHAR(32) DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Postgres dialect
         cur.execute("""
             CREATE TABLE IF NOT EXISTS candidates (
@@ -487,8 +500,8 @@ def record_source_scrape(source_identifier: str, source_type: str, evaluated_cou
     conn.commit()
     conn.close()
 
-def add_dynamic_donor(username: str, discovered_from: str = "", followers_count: int = 0):
-    """Saves a new donor discovered via Snowball network graph into dynamic_donors pool."""
+def add_dynamic_donor(username: str, discovered_from: str = "", followers_count: int = 0, donor_type: str = "donor"):
+    """Saves a new donor or peer_seed discovered via Snowball network graph into dynamic_donors pool."""
     clean_u = username.lower().replace("@", "").strip()
     if not clean_u:
         return
@@ -496,23 +509,27 @@ def add_dynamic_donor(username: str, discovered_from: str = "", followers_count:
     cur = conn.cursor()
     if DB_TYPE == "sqlite":
         cur.execute("""
-            INSERT INTO dynamic_donors (username, discovered_from, followers_count)
-            VALUES (?, ?, ?)
+            INSERT INTO dynamic_donors (username, discovered_from, followers_count, donor_type)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(username) DO NOTHING
-        """, (clean_u, discovered_from, followers_count))
+        """, (clean_u, discovered_from, followers_count, donor_type))
     else:
         cur.execute("""
-            INSERT INTO dynamic_donors (username, discovered_from, followers_count)
-            VALUES (%s, %s, %s)
+            INSERT INTO dynamic_donors (username, discovered_from, followers_count, donor_type)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT(username) DO NOTHING
-        """, (clean_u, discovered_from, followers_count))
+        """, (clean_u, discovered_from, followers_count, donor_type))
     conn.commit()
     conn.close()
 
 def get_available_sources() -> list:
     """
-    Builds a list of candidate sources (donor_likes, donor_followers, search queries, dynamic donors)
-    that are NOT on cooldown, prioritized by historical lead yield and time since last scraped.
+    Builds a list of candidate sources across all 3 Discovery vectors:
+    - donor_followers: deep followers list of design studios & platforms
+    - donor_replies: live commenters under studio posts (to:donor)
+    - peer_following: network neighbors / following of proven super-engagers
+    - search: live chronological feed for WIP and design challenges
+    Prioritized by unscraped sources first and historical lead yield.
     """
     from config import (
         TARGET_DONORS, SEARCH_QUERIES,
@@ -530,19 +547,22 @@ def get_available_sources() -> list:
             "cooldown_hours": r[3] or 48
         }
 
-    # Fetch active dynamic donors
-    cur.execute("SELECT username FROM dynamic_donors WHERE status = 'active' ORDER BY id DESC LIMIT 50")
-    dynamic_donors = [r[0] for r in cur.fetchall()]
+    # Fetch active dynamic donors and peer seeds
+    cur.execute("SELECT username, donor_type FROM dynamic_donors WHERE status = 'active' ORDER BY id DESC LIMIT 60")
+    dynamic_records = cur.fetchall()
+    dynamic_donors = [r[0] for r in dynamic_records if r[1] != 'peer_seed']
+    peer_seeds = [r[0] for r in dynamic_records if r[1] == 'peer_seed']
     conn.close()
 
     all_candidates = []
     now = datetime.datetime.now()
 
-    # 1. Target Donors: 'donor_followers' (cooldown DONOR_COOLDOWN_HOURS = 48)
+    # 1. Target Donors: 'donor_followers' and 'donor_replies'
     combined_donors = list(TARGET_DONORS) + dynamic_donors
     for d in combined_donors:
         clean_d = d.replace("@", "").strip()
 
+        # A. Followers (cooldown DONOR_COOLDOWN_HOURS = 48)
         id_folls = f"donor_followers:{clean_d}"
         info_folls = tracking_map.get(id_folls)
         is_ready_folls = True
@@ -563,7 +583,51 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
             })
 
-    # 2. Search queries (cooldown SEARCH_COOLDOWN_HOURS = 12)
+        # B. Live Commenters / Replies (cooldown 12h)
+        id_replies = f"donor_replies:{clean_d}"
+        info_replies = tracking_map.get(id_replies)
+        is_ready_replies = True
+        if info_replies and info_replies["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_replies["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < 12 * 3600:
+                    is_ready_replies = False
+            except Exception:
+                pass
+        if is_ready_replies:
+            all_candidates.append({
+                "type": "donor_replies",
+                "target": clean_d,
+                "identifier": id_replies,
+                "cooldown": 12,
+                "yield": info_replies["leads_yielded"] if info_replies else 0,
+                "has_scraped": bool(info_replies and info_replies["last_scraped_at"])
+            })
+
+    # 2. Peer Seeds: 'peer_following' (following of verified super-engagers, cooldown 72h)
+    for p in peer_seeds:
+        clean_p = p.replace("@", "").strip()
+        id_peer = f"peer_following:{clean_p}"
+        info_peer = tracking_map.get(id_peer)
+        is_ready_peer = True
+        if info_peer and info_peer["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_peer["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < 72 * 3600:
+                    is_ready_peer = False
+            except Exception:
+                pass
+        if is_ready_peer:
+            all_candidates.append({
+                "type": "peer_following",
+                "target": clean_p,
+                "identifier": id_peer,
+                "cooldown": 72,
+                "yield": info_peer["leads_yielded"] if info_peer else 0,
+                "has_scraped": bool(info_peer and info_peer["last_scraped_at"])
+            })
+
+    # 3. Live Search Queries (cooldown SEARCH_COOLDOWN_HOURS = 12)
     for q in SEARCH_QUERIES:
         id_search = f"search:{q}"
         info_search = tracking_map.get(id_search)
