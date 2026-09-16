@@ -27,7 +27,8 @@ from config import (
     TRI_TOUCH_ENABLED,
     TRI_TOUCH_MIN_SCORE,
     TRI_TOUCH_PAUSE_BETWEEN_LIKES,
-    TRI_TOUCH_PAUSE_BEFORE_FOLLOW
+    TRI_TOUCH_PAUSE_BEFORE_FOLLOW,
+    get_current_ramp_up
 )
 from database import (
     get_connection,
@@ -72,11 +73,13 @@ def execute_engagement_cascade(page, username: str, candidate_score: int = 0, is
     Returns: count of likes executed (0, 1, or 2).
     """
     likes_today = get_today_likes()
-    if likes_today >= DAILY_LIKE_LIMIT:
-        print(f"  [Cascade] Daily like limit reached ({likes_today}/{DAILY_LIKE_LIMIT}). Preserving quota.")
+    _, stage_data, _ = get_current_ramp_up()
+    daily_like_limit = stage_data["likes"]
+    if likes_today >= daily_like_limit:
+        print(f"  [Cascade] Daily like limit reached ({likes_today}/{daily_like_limit}). Preserving quota.")
         return 0
 
-    likes_remaining = DAILY_LIKE_LIMIT - likes_today
+    likes_remaining = daily_like_limit - likes_today
     
     # Check if candidate qualifies for dense Tri-Touch cascade (2 likes)
     qualifies_for_cascade = (
@@ -390,11 +393,13 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
     and natural rest breaks.
     """
     follows_today, _ = get_today_counts()
-    if follows_today >= DAILY_FOLLOW_LIMIT:
-        print(f"[Follower] Daily follow limit reached ({follows_today}/{DAILY_FOLLOW_LIMIT}). Halting.")
+    _, stage_data, _ = get_current_ramp_up()
+    daily_follow_limit = stage_data["follows"]
+    if follows_today >= daily_follow_limit:
+        print(f"[Follower] Daily follow limit reached ({follows_today}/{daily_follow_limit}). Halting.")
         return
         
-    allowed_count = min(batch_size, DAILY_FOLLOW_LIMIT - follows_today)
+    allowed_count = min(batch_size, daily_follow_limit - follows_today)
     candidates = get_candidates_for_follow(limit=allowed_count)
     
     if not candidates:
@@ -503,8 +508,10 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
     unfollows non-responders, marks mutuals.
     """
     _, unfollows_today = get_today_counts()
-    if unfollows_today >= DAILY_UNFOLLOW_LIMIT:
-        print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{DAILY_UNFOLLOW_LIMIT}). Halting.")
+    _, stage_data, _ = get_current_ramp_up()
+    daily_unfollow_limit = stage_data["unfollows"]
+    if unfollows_today >= daily_unfollow_limit:
+        print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting.")
         return
 
     candidates = get_candidates_for_unfollow(days=UNFOLLOW_AFTER_DAYS, limit=batch_size)

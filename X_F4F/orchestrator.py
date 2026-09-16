@@ -17,7 +17,8 @@ from database import get_connection, get_candidates_for_follow, get_queue_count,
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
-    MIN_SCORE_THRESHOLD
+    MIN_SCORE_THRESHOLD,
+    get_current_ramp_up
 )
 from scraper import run_harvesting_cycle
 from follower import (
@@ -29,9 +30,7 @@ from follower import (
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
 WORK_START_HOUR = 7       # 07:00 утра
 WORK_END_HOUR = 24        # 00:00 (полночь)
-SESSION_MIN_PAUSE_MIN = 15    # Случайные 15-35 минут между сессиями (темп 30-35 действий/час)
-SESSION_MAX_PAUSE_MIN = 35    # Обеспечивает ~14 полноценных сессий за 17 активных дневных часов
-MIN_QUEUE_BUFFER = 75         # Постоянный буфер очереди (держим 75+ проверенных супер-лайкеров)
+MIN_QUEUE_BUFFER = 75     # Постоянный буфер очереди (держим 75+ проверенных супер-лайкеров)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
@@ -39,37 +38,42 @@ def is_work_hours() -> bool:
     return now.hour >= WORK_START_HOUR
 
 def print_banner(profile_name: str):
-    """Prints status header."""
+    """Prints status header with Smart Ramp-Up progression."""
     follows_today, unfollows_today = get_today_counts()
     queue_count = get_queue_count()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stage_idx, stage_data, ramp_day = get_current_ramp_up()
     
     print("\n" + "=" * 65)
-    print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR [HIGH-EFFICIENCY 2.0]")
+    print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR [SMART RAMP-UP]")
     print(f"  Profile: @{profile_name}  |  Time: {now_str}")
-    print(f"  Follows today: {follows_today}/{DAILY_FOLLOW_LIMIT}  |  Queue: {queue_count} leads ready")
-    print(f"  Unfollows today: {unfollows_today}/{DAILY_UNFOLLOW_LIMIT}")
+    print(f"  Ramp-Up: {stage_data['name']} (День {ramp_day}/8)")
+    print(f"  Follows today: {follows_today}/{stage_data['follows']} (Цель: 300) | Queue: {queue_count} leads ready")
+    print(f"  Unfollows today: {unfollows_today}/{stage_data['unfollows']}")
     print("=" * 65 + "\n")
 
 def run_single_session(profile_name: str):
     """
-    Executes one complete human-style session:
-    1. Checks daily quota
+    Executes one complete human-style session according to active Ramp-Up stage:
+    1. Checks daily quota for current stage
     2. Harvests if queue is below buffer target (MIN_QUEUE_BUFFER = 75)
-    3. Executes micro-batch follows (20-22 follows per session, lasting 35-55 mins)
+    3. Executes micro-batch follows according to current stage pace
     4. Runs Ego-List bombing catalyst
     5. Runs evening mutual check / pruning (72h non-responders)
     6. Syncs mutual followers for up-to-date stats
     """
     print_banner(profile_name)
     follows_today, _ = get_today_counts()
+    stage_idx, stage_data, _ = get_current_ramp_up()
+    daily_follow_limit = stage_data["follows"]
     
-    if follows_today >= DAILY_FOLLOW_LIMIT:
-        print(f"[Orchestrator] Daily follow limit ({DAILY_FOLLOW_LIMIT}) reached for today. Standing by.")
+    if follows_today >= daily_follow_limit:
+        print(f"[Orchestrator] Daily follow limit for {stage_data['name']} ({daily_follow_limit}) reached today. Standing by.")
         return
         
-    remaining_today = DAILY_FOLLOW_LIMIT - follows_today
-    batch_target = min(random.randint(20, 22), remaining_today)
+    remaining_today = daily_follow_limit - follows_today
+    min_b, max_b = stage_data["batch"]
+    batch_target = min(random.randint(min_b, max_b), remaining_today)
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
@@ -244,7 +248,9 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
                     # Дневное активное время (07:00 - 00:00): НЕ засыпаем на полдня!
                     # Запускаем режим «Активной разведки и удержания» (Passive Intelligence)
                     run_passive_intelligence_session(profile_name)
-                    pause_minutes = random.randint(SESSION_MIN_PAUSE_MIN, SESSION_MAX_PAUSE_MIN)
+                    _, stage_data, _ = get_current_ramp_up()
+                    p_min, p_max = stage_data["pause"]
+                    pause_minutes = random.randint(p_min, p_max)
                     next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
                     print(f"\n[Intelligence Cycle Done] Break for {pause_minutes}m. Next check at: {next_time.strftime('%H:%M:%S')}\n")
                     sleep_until(next_time, reason="Passive Mode Break")
@@ -253,10 +259,12 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
             # Выполняем дневную сессию
             run_single_session(profile_name)
             
-            # Рассчитываем человеческий перерыв между сессиями
-            pause_minutes = random.randint(SESSION_MIN_PAUSE_MIN, SESSION_MAX_PAUSE_MIN)
+            # Рассчитываем человеческий перерыв между сессиями согласно активному этапу разгона
+            _, stage_data, _ = get_current_ramp_up()
+            p_min, p_max = stage_data["pause"]
+            pause_minutes = random.randint(p_min, p_max)
             next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
-            print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes.")
+            print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes ({stage_data['name']}).")
             print(f"Next active session planned at: {next_time.strftime('%H:%M:%S')}\n")
             sleep_until(next_time, reason="Session Break")
             

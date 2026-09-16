@@ -79,13 +79,67 @@ MIN_RATIO = 0.65           # Только щедрые на взаимные д�
 MAX_DAYS_INACTIVE = 4      # Гипер-активность: последний твит не старше 4 дней (постоянно онлайн)
 
 # ==========================================
-# 3. БЕЗОПАСНЫЕ ЛИМИТЫ «НА ГРАНИ ФОЛА» (RATE LIMITS)
+# 3. СТУПЕНЧАТЫЙ РАЗГОН: 4 ЭТАПА ПО 2 ДНЯ (SMART RAMP-UP)
+# Целевой максимум (290-310 follow / 380-420 likes / 72h) достигается равными долями за 8 дней
 # ==========================================
-DAILY_FOLLOW_LIMIT = 300       # Рабочий порог 290–310 / сутки (~14 сессий по 20–22 подписки)
-DAILY_UNFOLLOW_LIMIT = 300     # Авто-анфолловинг тех, кто не ответил за 72ч (290–310 / сутки)
-DAILY_LIKE_LIMIT = 400         # Полноценные Tri-Touch каскады 380–420 / сутки (лимит X: ~500)
+RAMP_UP_START_DATE = "2026-09-17"  # День старта разгона
+
+RAMP_UP_STAGES = {
+    1: {
+        "name": "Этап 1 (Дни 1–2, 17–18 сен)",
+        "follows": 125,
+        "unfollows": 125,
+        "likes": 200,
+        "batch": (8, 10),
+        "pause": (25, 45),
+        "desc": "Мягкий старт после 65 (+60 follow). Защита от спайк-фильтра."
+    },
+    2: {
+        "name": "Этап 2 (Дни 3–4, 19–20 сен)",
+        "follows": 185,
+        "unfollows": 185,
+        "likes": 270,
+        "batch": (12, 14),
+        "pause": (20, 40),
+        "desc": "Разгон до 50% мощности (+60 follow)."
+    },
+    3: {
+        "name": "Этап 3 (Дни 5–6, 21–22 сен)",
+        "follows": 245,
+        "unfollows": 245,
+        "likes": 340,
+        "batch": (16, 18),
+        "pause": (15, 35),
+        "desc": "Предмаксимальный уровень (+60 follow)."
+    },
+    4: {
+        "name": "Этап 4 (Целевой боевой максимум с 23 сен)",
+        "follows": 300,
+        "unfollows": 300,
+        "likes": 400,
+        "batch": (20, 22),
+        "pause": (15, 35),
+        "desc": "Полный выход на целевой порог (290–310 follow / 380–420 likes)."
+    }
+}
+
+def get_current_ramp_up():
+    """Calculates active ramp-up stage and limits based on calendar date."""
+    import datetime
+    start = datetime.datetime.strptime(RAMP_UP_START_DATE, "%Y-%m-%d").date()
+    today = datetime.date.today()
+    diff_days = max(0, (today - start).days)
+    stage_idx = min(4, (diff_days // 2) + 1)
+    return stage_idx, RAMP_UP_STAGES[stage_idx], diff_days + 1
+
+# Активные динамические квоты для текущего дня
+CURRENT_STAGE_IDX, CURRENT_STAGE_DATA, CURRENT_RAMP_DAY = get_current_ramp_up()
+DAILY_FOLLOW_LIMIT = CURRENT_STAGE_DATA["follows"]
+DAILY_UNFOLLOW_LIMIT = CURRENT_STAGE_DATA["unfollows"]
+DAILY_LIKE_LIMIT = CURRENT_STAGE_DATA["likes"]
+
 LIKE_PROBABILITY = 0.90        # Высокая вероятность теплого касания
-MIN_DELAY_SECONDS = 20         # Минимальная пауза между целями (согласно регламенту 20–45с)
+MIN_DELAY_SECONDS = 20         # Минимальная пауза между целями (регламент 20–45с)
 MAX_DELAY_SECONDS = 45         # Максимальная пауза между целями
 UNFOLLOW_AFTER_DAYS = 3        # 72 часа (3 суток) дедлайн взаимности
 
