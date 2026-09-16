@@ -29,9 +29,9 @@ from follower import (
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
 WORK_START_HOUR = 7       # 07:00 утра
 WORK_END_HOUR = 24        # 00:00 (полночь)
-SESSION_MIN_PAUSE_MIN = 45    # 45-75 минут между сессиями (равномерно 12-14 микро-сессий за 17 часов)
-SESSION_MAX_PAUSE_MIN = 75    # Исключает всплески и подозрения спам-фильтра
-MIN_QUEUE_BUFFER = 45         # Постоянный буфер очереди (держим 45+ проверенных супер-лайкеров)
+SESSION_MIN_PAUSE_MIN = 15    # Случайные 15-35 минут между сессиями (темп 30-35 действий/час)
+SESSION_MAX_PAUSE_MIN = 35    # Обеспечивает ~14 полноценных сессий за 17 активных дневных часов
+MIN_QUEUE_BUFFER = 75         # Постоянный буфер очереди (держим 75+ проверенных супер-лайкеров)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
@@ -55,10 +55,10 @@ def run_single_session(profile_name: str):
     """
     Executes one complete human-style session:
     1. Checks daily quota
-    2. Harvests if queue is below buffer target (MIN_QUEUE_BUFFER = 45)
-    3. Executes micro-batch follows (4-6 follows per session for organic pacing)
+    2. Harvests if queue is below buffer target (MIN_QUEUE_BUFFER = 75)
+    3. Executes micro-batch follows (20-22 follows per session, lasting 35-55 mins)
     4. Runs Ego-List bombing catalyst
-    5. Runs evening mutual check / pruning
+    5. Runs evening mutual check / pruning (72h non-responders)
     6. Syncs mutual followers for up-to-date stats
     """
     print_banner(profile_name)
@@ -69,7 +69,7 @@ def run_single_session(profile_name: str):
         return
         
     remaining_today = DAILY_FOLLOW_LIMIT - follows_today
-    batch_target = min(random.randint(4, 6), remaining_today)
+    batch_target = min(random.randint(20, 22), remaining_today)
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
