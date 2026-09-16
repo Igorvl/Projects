@@ -40,6 +40,14 @@ KEYWORDS_INDUSTRY = [
     "pharma branding", "dermatology clinic", "cosmeceuticals", "studio"
 ]
 
+# Кластер D: Архиваторы, создатели процесса и супер-лайкеры (Высокая взаимность и реакция) - Вес: +25
+KEYWORDS_ENGAGEMENT = [
+    "archive", "curating", "curator", "daily render", "wip", "work in progress",
+    "visual diary", "collecting", "moodboard", "visual exploration", "type exploration",
+    "daily design", "experiments", "study", "building in public", "framer experiment",
+    "blender wip", "design diary", "visual archive", "generative"
+]
+
 # Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
 NEGATIVE_KEYWORDS = [
     "crypto", "airdrop", "solana", "memecoin", "forex", "trading",
@@ -63,12 +71,12 @@ PORTFOLIO_DOMAINS = [
 MIN_SCORE_THRESHOLD = 40
 
 # ==========================================
-# 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА (HARD GATES)
+# 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА: СУПЕР-ЛАЙКЕРЫ (HARD GATES)
 # ==========================================
-MIN_FOLLOWERS = 35         # Отсекаем ботов, но захватываем перспективных начинающих/нишевых талантов
-MAX_FOLLOWERS = 4500       # Лимит для F4F (захватываем лид-дизайнеров, инди-типографов и студии)
-MIN_RATIO = 0.35           # Following / Followers (0.35+ реалистичное соотношение для дизайнеров-взаимщиков)
-MAX_DAYS_INACTIVE = 21     # Активность в последние 21 день (дизайнеры публикуют кейсы раз в 2-3 недели)
+MIN_FOLLOWERS = 80         # Отсекаем пустые аккаунты, берем реальных авторов от 80
+MAX_FOLLOWERS = 2200       # "Sweet Spot": авторы до 2200 читают каждое уведомление и лично взаимят
+MIN_RATIO = 0.65           # Только щедрые на взаимные действия пользователи (Following / Followers >= 0.65)
+MAX_DAYS_INACTIVE = 4      # Гипер-активность: последний твит не старше 4 дней (постоянно онлайн)
 
 # ==========================================
 # 3. БЕЗОПАСНЫЕ ЛИМИТЫ (RATE LIMITS)
@@ -102,29 +110,27 @@ SNOWBALL_DONOR_MIN_FOLLOWERS = 1500  # Мин. подписчиков у акк�
 SNOWBALL_DONOR_MAX_FOLLOWERS = 120000 # Макс. подписчиков у нового донора
 
 # ==========================================
-# 4. ПОИСКОВЫЕ ЗАПРОСЫ ДЛЯ СБОРА КАНДИДАТОВ
+# 4. ПОИСКОВЫЕ ЗАПРОСЫ: АКТИВНЫЕ АВТОРЫ И ЛАЙКЕРЫ
 # ==========================================
 SEARCH_QUERIES = [
-    'editorial design typography',
-    'brand identity studio',
-    'swiss style typography',
+    '"daily render" 3d',
+    '"work in progress" design',
+    '"wip" poster',
+    '"wip" typography',
+    '"framer experiment"',
+    '"type design" wip',
+    '"poster archive"',
+    '"brand identity exploration"',
+    'built with framer',
+    'blender 3d wip',
+    'swiss typography poster',
     'brutalist design web',
-    'visual identity poster',
+    'editorial design typography',
     'speculative design futures',
-    'spatial design 3d',
-    'packaging design branding',
-    'brand guidelines typography',
-    'built with framer portfolio',
-    'readymag design portfolio',
-    'product designer ui ux',
-    'type design typography studio',
-    'graphic designer behance',
-    '"framer.website" design',
+    'visual identity exploration',
     '"readymag.site" portfolio',
-    '"behance.net/gallery" design',
     'layers.to portfolio',
     'design system figma',
-    'type foundry typography',
     'to:readymag portfolio',
     'to:framer website',
     'to:type01_'

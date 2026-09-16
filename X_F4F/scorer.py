@@ -9,6 +9,7 @@ from config import (
     KEYWORDS_ROLES,
     KEYWORDS_STYLE,
     KEYWORDS_INDUSTRY,
+    KEYWORDS_ENGAGEMENT,
     PORTFOLIO_DOMAINS,
     MIN_FOLLOWERS,
     MAX_FOLLOWERS,
@@ -52,8 +53,10 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "roles_matched": [],
         "styles_matched": [],
         "industry_matched": [],
+        "engagement_matched": [],
         "portfolio_matched": [],
         "hungry_talent_bonus": False,
+        "super_engager_bonus": False,
         "hard_gates_passed": True,
         "reject_reasons": []
     }
@@ -75,12 +78,12 @@ def evaluate_candidate(profile_data: dict) -> dict:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Followers ({followers}) > {MAX_FOLLOWERS}")
 
-    # B. Проверка F4F Ratio (взаимность)
+    # B. Проверка F4F Ratio (взаимность и щедрость на лайки)
     if ratio < MIN_RATIO:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Ratio ({ratio}) < {MIN_RATIO} (low reciprocity)")
 
-    # C. Проверка активности (аккаунт должен быть живым)
+    # C. Проверка активности (только гипер-активные авторы)
     if days_inactive is not None and days_inactive > MAX_DAYS_INACTIVE:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Inactive ({days_inactive}d > {MAX_DAYS_INACTIVE}d)")
@@ -102,12 +105,19 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if breakdown["styles_matched"]:
         score += 30 + min(15, (len(breakdown["styles_matched"]) - 1) * 5)
 
-    # Кластер C: Индустрия (+30 за первое, +5 за доп.)
+    # Кластер C: Индустрия (+25 за первое, +5 за доп.)
     for ind in KEYWORDS_INDUSTRY:
         if contains_keyword(bio, ind):
             breakdown["industry_matched"].append(ind)
     if breakdown["industry_matched"]:
-        score += 30 + min(10, (len(breakdown["industry_matched"]) - 1) * 5)
+        score += 25 + min(10, (len(breakdown["industry_matched"]) - 1) * 5)
+
+    # Кластер D: Архиваторы, создатели процесса и супер-лайкеры (+25 очков)
+    for eng in KEYWORDS_ENGAGEMENT:
+        if contains_keyword(bio, eng):
+            breakdown["engagement_matched"].append(eng)
+    if breakdown["engagement_matched"]:
+        score += 25 + min(15, (len(breakdown["engagement_matched"]) - 1) * 5)
 
     # Портфолио / Ссылки (+15 очков)
     combined_text = f"{bio} {url}"
@@ -117,17 +127,20 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if breakdown["portfolio_matched"]:
         score += 15
 
-    # Ratio scoring: бонус за идеальную готовность к взаимному фолловингу
-    if ratio >= 0.95:
-        score += 15   # Активный взаимщик — максимальная вероятность ответа
-    elif ratio >= 0.60:
-        score += 10   # Здоровое сообщество дизайнеров
+    # Ratio scoring: Супер-бонус за щедрость на лайки и взаимность
+    if ratio >= 1.10 and following >= 150:
+        score += 25   # Супер-лайкер: читает больше, чем его, ставит много реакций
+        breakdown["super_engager_bonus"] = True
+    elif ratio >= 0.85:
+        score += 15   # Отличная взаимность
     elif ratio >= MIN_RATIO:
         score += 5
+    else:
+        score -= 20   # Штраф за низкую взаимность
 
-    # Сегмент "Голодные таланты" (200 - 2000 фолловеров, ratio >= 0.8) - супер-высокая конверсия F4F
-    if 200 <= followers <= 2000 and ratio >= 0.80:
-        score += 15
+    # "Sweet Spot" авторов (100 - 1800 фолловеров, ratio >= 0.80) — максимальная вовлеченность
+    if 100 <= followers <= 1800 and ratio >= 0.80:
+        score += 20
         breakdown["hungry_talent_bonus"] = True
 
     # Итоговый статус
@@ -135,7 +148,7 @@ def evaluate_candidate(profile_data: dict) -> dict:
     status = "queued" if is_qualified else "ignored"
 
     return {
-        "score": score,
+        "score": max(0, score),
         "ratio": ratio,
         "status": status,
         "breakdown": breakdown
