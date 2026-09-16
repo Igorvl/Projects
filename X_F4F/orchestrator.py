@@ -29,9 +29,9 @@ from follower import (
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
 WORK_START_HOUR = 7       # 07:00 утра
 WORK_END_HOUR = 24        # 00:00 (полночь)
-SESSION_MIN_PAUSE_MIN = 35    # Минимум 35 минут между сессиями
-SESSION_MAX_PAUSE_MIN = 65    # Максимум 65 минут между сессиями
-MIN_QUEUE_BUFFER = 15         # Постоянный буфер очереди (чтобы бот никогда не простаивал без лидов)
+SESSION_MIN_PAUSE_MIN = 45    # 45-75 минут между сессиями (равномерно 12-14 микро-сессий за 17 часов)
+SESSION_MAX_PAUSE_MIN = 75    # Исключает всплески и подозрения спам-фильтра
+MIN_QUEUE_BUFFER = 45         # Постоянный буфер очереди (держим 45+ проверенных супер-лайкеров)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
@@ -45,7 +45,7 @@ def print_banner(profile_name: str):
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     print("\n" + "=" * 65)
-    print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR")
+    print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR [HIGH-EFFICIENCY 2.0]")
     print(f"  Profile: @{profile_name}  |  Time: {now_str}")
     print(f"  Follows today: {follows_today}/{DAILY_FOLLOW_LIMIT}  |  Queue: {queue_count} leads ready")
     print(f"  Unfollows today: {unfollows_today}/{DAILY_UNFOLLOW_LIMIT}")
@@ -55,8 +55,8 @@ def run_single_session(profile_name: str):
     """
     Executes one complete human-style session:
     1. Checks daily quota
-    2. Harvests if queue is below buffer target
-    3. Executes micro-batch follows
+    2. Harvests if queue is below buffer target (MIN_QUEUE_BUFFER = 45)
+    3. Executes micro-batch follows (4-6 follows per session for organic pacing)
     4. Runs Ego-List bombing catalyst
     5. Runs evening mutual check / pruning
     6. Syncs mutual followers for up-to-date stats
@@ -69,7 +69,7 @@ def run_single_session(profile_name: str):
         return
         
     remaining_today = DAILY_FOLLOW_LIMIT - follows_today
-    batch_target = min(random.randint(6, 9), remaining_today)
+    batch_target = min(random.randint(4, 6), remaining_today)
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
@@ -160,6 +160,50 @@ def sleep_until(target_dt: datetime.datetime, reason: str = "Break"):
             last_heartbeat = now_ts
         time.sleep(min(15.0, diff))
 
+def run_passive_intelligence_session(profile_name: str):
+    """
+    Режим «Активной разведки»: запускается днем, когда лимит подписок уже исчерпан.
+    Занимается безопасными действиями чтения и удержания аудитории (Read Actions):
+    1. Пополняет очередь до 45+ лидов, чтобы на утро были самые свежие супер-лайкеры.
+    2. Синхронизирует взаимных подписчиков (детекция новых mutuals в реальном времени).
+    3. Запускает дожим через Ego-List или Nudge, если суточные квоты списков еще не исчерпаны.
+    """
+    print("\n" + "=" * 65)
+    print(f"  🔍 ACTIVE INTELLIGENCE & RETENTION MODE")
+    print(f"  Profile: @{profile_name}  |  Daily follow limit reached, but daytime is active!")
+    print("=" * 65)
+    
+    # 1. Пополнение очереди до буфера
+    queue_count = get_queue_count()
+    if queue_count < MIN_QUEUE_BUFFER:
+        target_harvest = min(15, MIN_QUEUE_BUFFER - queue_count)
+        print(f"[Intelligence] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Harvesting +{target_harvest} top creators...")
+        try:
+            run_harvesting_cycle(profile_name=profile_name, target_queued=target_harvest)
+        except Exception as e:
+            print(f"[Intelligence] Harvesting notice: {e}")
+            
+    # 2. Дожим через списки тщеславия (Ego-List), если квота еще свободна
+    now = datetime.datetime.now()
+    if 13 <= now.hour <= 22:
+        try:
+            from follower import run_funnel_list_batch
+            print("[Intelligence] Day 4 Funnel Ego-List review...")
+            run_funnel_list_batch(profile_name=profile_name, batch_size=random.randint(2, 3))
+        except Exception as e:
+            print(f"[Intelligence] Funnel list notice: {e}")
+            
+    # 3. Синхронизация взаимных
+    try:
+        from follower import sync_mutual_followers
+        from browser import get_browser_context
+        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
+        sync_mutual_followers(page)
+        ctx.close()
+        pw.stop()
+    except Exception as e:
+        print(f"[Intelligence] Mutual sync notice: {e}")
+
 def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
     """
     Main autonomous daemon loop.
@@ -184,15 +228,27 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
                 sleep_until(morning, reason="Night Rest")
                 continue
                 
-            # Проверка суточной квоты
+            # Проверка суточной квоты подписок
             follows_today, _ = get_today_counts()
             if follows_today >= DAILY_FOLLOW_LIMIT:
-                tomorrow = (now + datetime.timedelta(days=1)).replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
-                sleep_seconds = max(60, int((tomorrow - now).total_seconds()))
-                print(f"[Daily Limit Reached] Completed {follows_today}/{DAILY_FOLLOW_LIMIT} follows today.")
-                print(f"Resting until next day session ({tomorrow.strftime('%Y-%m-%d %H:%M:%S')})...")
-                sleep_until(tomorrow, reason="Daily Quota Full")
-                continue
+                # Если наступила ночь (00:00 - 07:00) — спим до утра
+                if not is_work_hours():
+                    morning = now.replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
+                    if now.hour >= WORK_START_HOUR:
+                        morning += datetime.timedelta(days=1)
+                    sleep_seconds = max(60, int((morning - now).total_seconds()))
+                    print(f"\n[Daily Limit Reached + Night Mode] Resting until {morning.strftime('%H:%M:%S')} (~{sleep_seconds // 3600}h {(sleep_seconds % 3600) // 60}m)...")
+                    sleep_until(morning, reason="Night Rest")
+                    continue
+                else:
+                    # Дневное активное время (07:00 - 00:00): НЕ засыпаем на полдня!
+                    # Запускаем режим «Активной разведки и удержания» (Passive Intelligence)
+                    run_passive_intelligence_session(profile_name)
+                    pause_minutes = random.randint(SESSION_MIN_PAUSE_MIN, SESSION_MAX_PAUSE_MIN)
+                    next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
+                    print(f"\n[Intelligence Cycle Done] Break for {pause_minutes}m. Next check at: {next_time.strftime('%H:%M:%S')}\n")
+                    sleep_until(next_time, reason="Passive Mode Break")
+                    continue
                 
             # Выполняем дневную сессию
             run_single_session(profile_name)
