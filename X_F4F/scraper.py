@@ -200,33 +200,62 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
 def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -> int:
     """
     Algorithm 1: Fresh Drop Commenters & Engagers
-    Queries live chronological replies/mentions to:donor (e.g. to:readymag, to:framer, to:type01_)
-    Extracts active creators commenting on the studio's newest posts right now.
+    Queries live chronological replies/mentions to:donor (e.g. to:readymag OR @readymag)
+    Extracts active creators interacting with the studio's newest posts right now.
     Returns count of newly queued candidates.
     """
     clean_donor = donor_username.replace("@", "").strip()
     print(f"\n[Scraper] [Algorithm 1] Harvesting live commenters to studio: to:@{clean_donor}")
-    search_url = f"https://x.com/search?q={urllib.parse.quote(f'to:{clean_donor}')}&f=live"
+    search_query = f"to:{clean_donor} OR @{clean_donor}"
+    search_url = f"https://x.com/search?q={urllib.parse.quote(search_query)}&f=live"
     
     try:
         page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(3.0, 5.0)
+        human_delay(3.0, 4.5)
+        
+        # Check if tweets exist at all on the initial screen to avoid blank-screen scroll delays
+        initial_tweets = []
+        try:
+            initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+        except Exception:
+            human_delay(2.0, 3.0)
+            initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+            
+        if not initial_tweets:
+            # 1 gentle scroll check
+            human_scroll(page, steps=1)
+            human_delay(1.5, 2.5)
+            try:
+                initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+            except Exception:
+                pass
+            if not initial_tweets:
+                print(f"  [Scraper] No live replies or mentions found for @{clean_donor}. Skipping.")
+                return 0
         
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
         scroll_attempts = 0
         
         while len(fresh_usernames) < max_users and scroll_attempts < HARVEST_MAX_SCROLLS:
-            tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            try:
+                tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            except Exception:
+                human_delay(1.5, 2.5)
+                continue
+                
             for tw in tweet_elements:
-                user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
-                if user_link:
-                    href = user_link.get_attribute("href") or ""
-                    if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
-                        u = href.replace("/", "").strip()
-                        if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users:
-                                fresh_usernames.add(u)
+                try:
+                    user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                    if user_link:
+                        href = user_link.get_attribute("href") or ""
+                        if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
+                            u = href.replace("/", "").strip()
+                            if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
+                                if u.lower() not in existing_users:
+                                    fresh_usernames.add(u)
+                except Exception:
+                    continue
                                 
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
             human_idle_noise(page)
@@ -388,12 +417,17 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
             print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}{reasons_str}")
             
             # Snowball Discovery: If candidate has high score, check bio mentions for new potential donors
+            IGNORED_BIO_MENTIONS = {
+                'gmail', 'yahoo', 'hotmail', 'outlook', 'protonmail', 'icloud', 'mail',
+                'github', 'instagram', 'linkedin', 'telegram', 'youtube', 'tiktok', 'discord', 'figma'
+            }
             if evaluation['score'] >= SNOWBALL_MIN_SCORE and profile.get("bio"):
-                bio_mentions = re.findall(r"@([a-zA-Z0-9_]{3,25})", profile["bio"])
+                bio_mentions = re.findall(r"(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_]{3,25})", profile["bio"])
                 for bm in bio_mentions:
-                    if bm.lower() not in existing_users and bm.lower() != username.lower():
-                        add_dynamic_donor(bm, discovered_from=username)
-                        print(f"  [Snowball Graph] Discovered new potential donor studio @{bm} from @{username}'s bio!")
+                    clean_bm = bm.lower().strip()
+                    if clean_bm not in existing_users and clean_bm != username.lower() and clean_bm not in IGNORED_BIO_MENTIONS:
+                        add_dynamic_donor(clean_bm, discovered_from=username)
+                        print(f"  [Snowball Graph] Discovered new potential donor studio @{clean_bm} from @{username}'s bio!")
 
             # Algorithm 3: Auto-record verified Super-Engagers as peer_seeds for network discovery
             if evaluation['status'] == 'queued' and (evaluation['score'] >= 90 or evaluation['breakdown'].get('super_engager_bonus', 0) > 0):

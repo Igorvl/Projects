@@ -557,9 +557,8 @@ def get_available_sources() -> list:
     all_candidates = []
     now = datetime.datetime.now()
 
-    # 1. Target Donors: 'donor_followers' and 'donor_replies'
-    combined_donors = list(TARGET_DONORS) + dynamic_donors
-    for d in combined_donors:
+    # 1. Curated Target Donors (Studios & Platforms): both 'donor_followers' and 'donor_replies'
+    for d in TARGET_DONORS:
         clean_d = d.replace("@", "").strip()
 
         # A. Followers (cooldown DONOR_COOLDOWN_HOURS = 48)
@@ -583,7 +582,7 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
             })
 
-        # B. Live Commenters / Replies (cooldown 12h)
+        # B. Live Commenters / Replies (cooldown 12h) - ONLY for large curated studios with active live tweet traffic!
         id_replies = f"donor_replies:{clean_d}"
         info_replies = tracking_map.get(id_replies)
         is_ready_replies = True
@@ -602,6 +601,29 @@ def get_available_sources() -> list:
                 "cooldown": 12,
                 "yield": info_replies["leads_yielded"] if info_replies else 0,
                 "has_scraped": bool(info_replies and info_replies["last_scraped_at"])
+            })
+
+    # 1b. Dynamic Donors (discovered organically): ONLY 'donor_followers' (never live replies)
+    for d in dynamic_donors:
+        clean_d = d.replace("@", "").strip()
+        id_folls = f"donor_followers:{clean_d}"
+        info_folls = tracking_map.get(id_folls)
+        is_ready_folls = True
+        if info_folls and info_folls["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_folls["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < DONOR_COOLDOWN_HOURS * 3600:
+                    is_ready_folls = False
+            except Exception:
+                pass
+        if is_ready_folls:
+            all_candidates.append({
+                "type": "donor_followers",
+                "target": clean_d,
+                "identifier": id_folls,
+                "cooldown": DONOR_COOLDOWN_HOURS,
+                "yield": info_folls["leads_yielded"] if info_folls else 0,
+                "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
             })
 
     # 2. Peer Seeds: 'peer_following' (following of verified super-engagers, cooldown 72h)
