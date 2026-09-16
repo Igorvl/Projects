@@ -26,17 +26,17 @@ from follower import (
     get_today_counts
 )
 
-# Расписание дня
-WORK_START_HOUR = 9      # 09:00 утра
-WORK_END_HOUR = 23       # 23:00 вечера
-SESSION_MIN_PAUSE_MIN = 35    # Минимум 35 минут между сессиями (обеспечивает 6-8 активных сессий в день)
+# Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
+WORK_START_HOUR = 7       # 07:00 утра
+WORK_END_HOUR = 24        # 00:00 (полночь)
+SESSION_MIN_PAUSE_MIN = 35    # Минимум 35 минут между сессиями
 SESSION_MAX_PAUSE_MIN = 65    # Максимум 65 минут между сессиями
 MIN_QUEUE_BUFFER = 15         # Постоянный буфер очереди (чтобы бот никогда не простаивал без лидов)
 
 def is_work_hours() -> bool:
-    """Returns True if current local time is within active daytime hours."""
+    """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
     now = datetime.datetime.now()
-    return WORK_START_HOUR <= now.hour < WORK_END_HOUR
+    return now.hour >= WORK_START_HOUR
 
 def print_banner(profile_name: str):
     """Prints status header."""
@@ -173,10 +173,10 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
         try:
             now = datetime.datetime.now()
             
-            # Проверка ночного сна (23:00 - 09:00)
+            # Проверка ночного сна (00:00 - 07:00)
             if not ignore_work_hours and not is_work_hours():
                 morning = now.replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
-                if now.hour >= WORK_END_HOUR:
+                if now.hour >= WORK_START_HOUR:
                     morning += datetime.timedelta(days=1)
                 sleep_seconds = max(60, int((morning - now).total_seconds()))
                 print(f"\n[Night Mode] Current time {now.strftime('%H:%M')}. Night rest until {morning.strftime('%H:%M:%S')} (~{sleep_seconds // 3600}h {(sleep_seconds % 3600) // 60}m)...")
