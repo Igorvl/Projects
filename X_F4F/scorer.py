@@ -10,6 +10,7 @@ from config import (
     KEYWORDS_STYLE,
     KEYWORDS_INDUSTRY,
     KEYWORDS_ENGAGEMENT,
+    KEYWORDS_CONNECT,
     PORTFOLIO_DOMAINS,
     MIN_FOLLOWERS,
     MAX_FOLLOWERS,
@@ -55,8 +56,10 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "industry_matched": [],
         "engagement_matched": [],
         "portfolio_matched": [],
+        "connect_matched": [],
         "hungry_talent_bonus": False,
         "super_engager_bonus": False,
+        "connect_intent_bonus": False,
         "hard_gates_passed": True,
         "reject_reasons": []
     }
@@ -126,6 +129,17 @@ def evaluate_candidate(profile_data: dict) -> dict:
             breakdown["portfolio_matched"].append(domain)
     if breakdown["portfolio_matched"]:
         score += 15
+
+    # Кластер E: Маркеры взаимности (Connect & Mutuals) (+20 очков за готовность к нетворкингу)
+    # Проверяем как в Bio, так и в закрепленных / свежих твитах
+    recent_tweets = (profile_data.get("recent_tweets") or "").lower()
+    bio_and_tweets = f"{bio} {recent_tweets}"
+    for conn_kw in KEYWORDS_CONNECT:
+        if contains_keyword(bio_and_tweets, conn_kw):
+            breakdown["connect_matched"].append(conn_kw)
+    if breakdown["connect_matched"]:
+        score += 20 + min(10, (len(breakdown["connect_matched"]) - 1) * 5)
+        breakdown["connect_intent_bonus"] = True
 
     # Ratio scoring: Супер-бонус за щедрость на лайки и взаимность
     if ratio >= 1.10 and following >= 150:

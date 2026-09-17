@@ -1262,12 +1262,21 @@ HTML_PAGE = """<!DOCTYPE html>
                     return;
                 }
 
-                tbody.innerHTML = data.candidates.map(c => `
+                tbody.innerHTML = data.candidates.map(c => {
+                    let bd = {};
+                    try {
+                        bd = typeof c.score_breakdown === 'string' ? JSON.parse(c.score_breakdown || '{}') : (c.score_breakdown || {});
+                    } catch(e) {}
+                    const isConnect = bd.connect_intent_bonus || (bd.connect_matched && bd.connect_matched.length > 0);
+                    const connectBadge = isConnect ? `<div style="margin-top:4px;"><span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-size:10px; padding:2px 6px;">🤝 Mutuals</span></div>` : '';
+
+                    return `
                     <tr>
                         <td>
                             <div class="user-col">
                                 <span class="user-name">${esc(c.name || c.username)}</span>
                                 <a class="user-handle" href="https://x.com/${esc(c.username)}" target="_blank" rel="noopener noreferrer">@${esc(c.username)}</a>
+                                ${connectBadge}
                             </div>
                         </td>
                         <td><div class="bio-text">${c.bio ? esc(c.bio) : '<i style="color:#555">Без описания</i>'}</div></td>
@@ -1286,7 +1295,7 @@ HTML_PAGE = """<!DOCTYPE html>
                             ${statusBadge(c.status, c.unfollow_attempts, c.nudge_sent, c.list_add_sent)}
                         </td>
                     </tr>
-                `).join('');
+                `;}).join('');
             } catch (err) {
                 console.error('Error fetching candidates:', err);
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--danger);">Ошибка при загрузке кандидатов.</td></tr>';

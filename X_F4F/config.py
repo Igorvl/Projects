@@ -48,6 +48,15 @@ KEYWORDS_ENGAGEMENT = [
     "blender wip", "design diary", "visual archive", "generative"
 ]
 
+# Кластер E: Маркеры взаимного нетворкинга (Connect, Moots, Mutuals) - Вес: +20
+KEYWORDS_CONNECT = [
+    "looking for mutuals", "design mutuals", "need mutuals", "creative mutuals",
+    "looking to connect", "let's connect", "lets connect", "open to connect",
+    "moots", "design moots", "art moots", "connect with designers",
+    "connect with creators", "mutuals?", "moots?", "mutuals welcome",
+    "looking for moots", "open to collabs and connect"
+]
+
 # Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
 NEGATIVE_KEYWORDS = [
     "crypto", "airdrop", "solana", "memecoin", "forex", "trading",
@@ -187,7 +196,20 @@ SEARCH_QUERIES = [
     'design system figma',
     'to:readymag portfolio',
     'to:framer website',
-    'to:type01_'
+    'to:type01_',
+    # 5. Креативные «Пузыри взаимности» (Design Connect & Mutuals)
+    '#DesignTwitter "let\'s connect"',
+    '#DesignTwitter "mutuals"',
+    '#DesignTwitter "moots"',
+    '#DesignTwitter "connect"',
+    'designer "looking to connect"',
+    'ui/ux "let\'s connect"',
+    '#buildinpublic "connect with designers"',
+    '#artshare "let\'s connect"',
+    '#artshare "mutuals"',
+    'framer "let\'s connect"',
+    'figma "looking to connect"',
+    '"graphic designer" "connect"'
 ]
 
 # Аккаунты-доноры (студии, дизайн-инструменты, инди-типографии, кураторы)

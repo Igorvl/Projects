@@ -128,6 +128,15 @@ def inspect_user_profile(page, username: str) -> dict:
         except Exception:
             pass
 
+        # Extract text from recent tweets (detect mutuals/connect announcements & art shares)
+        recent_tweets_text = ""
+        try:
+            tweet_text_els = page.query_selector_all('article[data-testid="tweet"] div[data-testid="tweetText"]')
+            if tweet_text_els:
+                recent_tweets_text = " ".join([el.inner_text() for el in tweet_text_els[:2]])
+        except Exception:
+            pass
+
         # Human mimicry: glance at recent work/tweets (scroll down 1-2 times)
         if random.random() < 0.65:
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=True)
@@ -141,7 +150,8 @@ def inspect_user_profile(page, username: str) -> dict:
             "followers_count": followers_count,
             "following_count": following_count,
             "days_inactive": days_inactive,
-            "last_active": last_active_str
+            "last_active": last_active_str,
+            "recent_tweets": recent_tweets_text
         }
     except Exception as e:
         print(f"Error inspecting @{clean_user}: {e}")
