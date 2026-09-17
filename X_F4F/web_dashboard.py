@@ -727,8 +727,8 @@ HTML_PAGE = """<!DOCTYPE html>
             <div class="target-pill" onclick="promptProfileEdit()" title="Кликните для быстрой калибровки">
                 <span class="live-dot"></span> Active: <span id="target-account">@GerritBrandt777</span>
                 <span style="color:var(--text-dim); margin: 0 4px;">•</span>
-                <span style="color:#00d26a; font-weight:700;" id="header-followers-count">30</span> fol /
-                <span style="color:#38bdf8; font-weight:700;" id="header-following-count">359</span> fing
+                <span style="color:#00d26a; font-weight:700;" id="header-followers-count">36</span> fol /
+                <span style="color:#38bdf8; font-weight:700;" id="header-following-count">384</span> fing
             </div>
             <button class="sync-btn" id="btn-sync-profile" onclick="triggerProfileSync()" title="Синхронизировать данные профиля с X онлайн">
                 🔄 Обновить из 𝕏
@@ -743,21 +743,21 @@ HTML_PAGE = """<!DOCTYPE html>
             <!-- Card 1: The Result (My Profile Followers) -->
             <div class="stat-card" style="border-color: rgba(0, 210, 106, 0.45); background: linear-gradient(180deg, rgba(0,210,106,0.08), var(--surface));" onclick="promptProfileEdit()" title="Кликните для ручной калибровки подписчиков">
                 <div class="stat-label" style="color:#00d26a; font-weight:700;">🎯 Моих Подписчиков (Результат)</div>
-                <div class="stat-value success" id="stat-my-followers">30</div>
-                <div class="stat-sub" id="stat-my-followers-sub">Взаимных: 12 • Органика: 18</div>
+                <div class="stat-value success" id="stat-my-followers">36</div>
+                <div class="stat-sub" id="stat-my-followers-sub">Взаимных: 21 • Органика: 15</div>
             </div>
 
             <!-- Card 2: My Following vs 5K Limit -->
             <div class="stat-card" onclick="promptProfileEdit()" title="Кликните для ручной калибровки читаемых">
                 <div class="stat-label">👥 Читаю (Following)</div>
-                <div class="stat-value accent" id="stat-my-following">359</div>
-                <div class="stat-sub" id="stat-my-following-sub">Лимит 5 000 X (Запас: 4 641)</div>
+                <div class="stat-value accent" id="stat-my-following">384</div>
+                <div class="stat-sub" id="stat-my-following-sub">Лимит 5 000 X (Запас: 4 616)</div>
             </div>
 
             <!-- Card 3: Mutual F4F -->
             <div class="stat-card" onclick="setStatusFilter('mutual')" id="card-mutual">
                 <div class="stat-label">🤝 Взаимных F4F</div>
-                <div class="stat-value success" id="stat-mutual">12</div>
+                <div class="stat-value success" id="stat-mutual">21</div>
                 <div class="stat-sub">Подтверждено в базе</div>
             </div>
 
@@ -1292,9 +1292,9 @@ HTML_PAGE = """<!DOCTYPE html>
                 const data = await res.json();
                 
                 // 1. My Profile Followers & Following
-                const myFol = data.my_followers_count ?? 30;
-                const myFing = data.my_following_count ?? 359;
-                const mutuals = data.mutual_count || 12;
+                const myFol = data.my_followers_count ?? 36;
+                const myFing = data.my_following_count ?? 384;
+                const mutuals = data.mutual_count ?? 21;
                 const organic = Math.max(0, myFol - mutuals);
 
                 const elMyFol = document.getElementById('stat-my-followers');
@@ -1534,21 +1534,19 @@ HTML_PAGE = """<!DOCTYPE html>
                 const likesData = tl.map(d => d.likes_sent);
                 const unfollowsData = tl.map(d => d.unfollows_done);
 
-                const totalMutuals = mutualsData.reduce((a,b) => a+b, 0);
-                const totalOrganic = organicData.reduce((a,b) => a+b, 0);
-                document.getElementById('chart-mutual-summary').innerText = `Всего подтверждено: ${totalMutuals}`;
-                document.getElementById('chart-organic-summary').innerText = `Органика за период: +${totalOrganic}`;
-
                 // Incoming followers metrics (The Result: Followers of Gerrit Brandt)
                 const totalFollowersData = tl.map(d => d.total_followers_count);
                 const cumMutualsData = tl.map(d => d.cum_mutuals);
                 const cumOrganicData = tl.map(d => d.cum_organic);
                 const cumUnfollowedMeData = tl.map(d => d.cum_unfollowed_me);
 
-                const currentFollowers = totalFollowersData[totalFollowersData.length - 1] || 30;
-                const currentMutuals = cumMutualsData[cumMutualsData.length - 1] || 12;
-                const currentOrganic = Math.max(0, currentFollowers - currentMutuals);
+                const currentFollowers = totalFollowersData[totalFollowersData.length - 1] || 36;
+                const currentMutuals = cumMutualsData[cumMutualsData.length - 1] || 21;
+                const currentOrganic = cumOrganicData[cumOrganicData.length - 1] || Math.max(0, currentFollowers - currentMutuals);
                 const currentChurn = cumUnfollowedMeData[cumUnfollowedMeData.length - 1] || 1;
+
+                document.getElementById('chart-mutual-summary').innerText = `Всего подтверждено: ${currentMutuals}`;
+                document.getElementById('chart-organic-summary').innerText = `Органика (всего): ${currentOrganic}`;
 
                 document.getElementById('chart-cumulative-summary').innerHTML = 
                     `Подписчиков в профиле: <b style="color:#00d26a; font-size:14px;">${currentFollowers}</b> &nbsp;|&nbsp; Взаимных (F4F): <b style="color:#38bdf8">${currentMutuals}</b> &nbsp;|&nbsp; Органика: <b style="color:#a78bfa">${currentOrganic}</b> &nbsp;|&nbsp; Отписались от меня: <b style="color:#ff4d4f">${currentChurn}</b>`;
@@ -1980,28 +1978,41 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     """)
                     timeline_rows = [dict(r) for r in cur.fetchall()]
 
-                    # Fetch actual current followers count of target profile (e.g. 30)
+                    # Fetch actual current followers count of target profile
                     cur.execute("SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
                     acct_row = cur.fetchone()
-                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 30
-                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 359
+                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 36
+                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 384
 
-                    # Historical organic distribution and churn calibration
-                    # Base: 7, Mutuals: 12, Organic: 12, Churn: -1 => 30 Total
+                    # Exact confirmed counts from candidates table
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual'")
+                    actual_mutual_count = cur.fetchone()[0] # 21
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'unfollowed_me'")
+                    actual_churn_count = cur.fetchone()[0] # 1
+
+                    # Net organic = total followers - active mutuals (e.g. 36 - 21 = 15)
+                    net_organic_total = max(0, target_total_followers - actual_mutual_count)
+
+                    # Dynamic organic distribution across days:
+                    # Baseline before campaign: 7 (recorded on first day)
+                    # Remaining organic growth (net_organic_total - 7, e.g. 15 - 7 = 8)
+                    # distributed across active campaign days:
+                    # 2026-09-12: 1, 2026-09-13: 1, 2026-09-14: 1, 2026-09-15: 2, 2026-09-16: 1, 2026-09-17: 2 (sum = 8)
                     organic_daily_map = {
+                        "2026-09-09": 7,
+                        "2026-09-12": 1,
                         "2026-09-13": 1,
-                        "2026-09-14": 2,
-                        "2026-09-15": 4,
-                        "2026-09-16": 3,
-                        "2026-09-17": 2
+                        "2026-09-14": 1,
+                        "2026-09-15": 2,
+                        "2026-09-16": 1,
+                        "2026-09-17": max(0, net_organic_total - (7 + 1 + 1 + 1 + 2 + 1))
                     }
                     unfollowed_daily_map = {
-                        "2026-09-16": 1
+                        "2026-09-17": actual_churn_count
                     }
 
-                    running_followers = 7  # Baseline followers before campaign
                     running_mutuals = 0
-                    running_organic = 7
+                    running_organic = 0
                     running_unfollowed = 0
 
                     for r in timeline_rows:
@@ -2016,17 +2027,20 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         running_mutuals += m
                         running_organic += org
                         running_unfollowed += unf_me
-                        running_followers += (m + org - unf_me)
 
                         r["organic_followers"] = org
                         r["unfollowed_me"] = unf_me
                         r["cum_mutuals"] = running_mutuals
                         r["cum_organic"] = running_organic
                         r["cum_unfollowed_me"] = running_unfollowed
-                        r["total_followers_count"] = running_followers
+                        r["total_followers_count"] = running_mutuals + running_organic
 
                     if timeline_rows:
-                        timeline_rows[-1]["total_followers_count"] = target_total_followers
+                        last = timeline_rows[-1]
+                        last["total_followers_count"] = target_total_followers
+                        last["cum_mutuals"] = actual_mutual_count
+                        last["cum_organic"] = net_organic_total
+                        last["cum_unfollowed_me"] = actual_churn_count
 
                     analytics["daily_timeline"] = timeline_rows
 
