@@ -442,6 +442,99 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
         pw.stop()
         print("\n[Follower] Follow batch finished.")
 
+def sync_target_profile_stats(page=None, profile_name="test_igorvl777", account=None) -> dict:
+    """
+    Directly navigates to x.com/{account}, extracts live followers and following counts,
+    and updates the database. Fast, robust, and headless-friendly.
+    """
+    import re
+    from scraper import parse_stat_number
+
+    if not account:
+        account = TARGET_ACCOUNT
+
+    should_close = False
+    pw = ctx = None
+    if page is None:
+        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
+        should_close = True
+
+    res = {
+        "success": False,
+        "account": account,
+        "followers_count": 0,
+        "following_count": 0
+    }
+
+    try:
+        url = f"https://x.com/{account}"
+        print(f"[Profile Sync] Fetching live stats for @{account} from {url}...")
+        page.goto(url, wait_until="domcontentloaded", timeout=25000)
+
+        # Wait up to 8s for links to appear
+        try:
+            page.wait_for_selector('a[href*="/following" i]', timeout=8000)
+        except Exception:
+            time.sleep(3.0)
+
+        # 1. Following count
+        following_link = (
+            page.query_selector(f'a[href="/{account}/following" i]') or
+            page.query_selector('a[href$="/following" i]') or
+            page.query_selector('a[href*="/following" i]')
+        )
+        following_text = following_link.inner_text() if following_link else ""
+
+        # 2. Followers count
+        followers_link = (
+            page.query_selector(f'a[href="/{account}/verified_followers" i]') or
+            page.query_selector(f'a[href="/{account}/followers" i]') or
+            page.query_selector('a[href$="/verified_followers" i]') or
+            page.query_selector('a[href$="/followers" i]') or
+            page.query_selector('a[href*="/followers" i]')
+        )
+        followers_text = followers_link.inner_text() if followers_link else ""
+
+        following_cnt = parse_stat_number(following_text)
+        followers_cnt = parse_stat_number(followers_text)
+
+        if following_cnt > 0 or followers_cnt > 0:
+            res["followers_count"] = followers_cnt
+            res["following_count"] = following_cnt
+            res["success"] = True
+
+            conn = get_connection()
+            cur = conn.cursor()
+            ph = "?" if DB_TYPE == "sqlite" else "%s"
+
+            cur.execute(f"SELECT id FROM candidates WHERE LOWER(username) = LOWER({ph})", (account,))
+            existing = cur.fetchone()
+            if existing:
+                cur.execute(f"""
+                    UPDATE candidates 
+                    SET followers_count = {ph}, following_count = {ph}, updated_at = CURRENT_TIMESTAMP 
+                    WHERE LOWER(username) = LOWER({ph})
+                """, (followers_cnt, following_cnt, account))
+            else:
+                cur.execute(f"""
+                    INSERT INTO candidates (username, name, followers_count, following_count, status)
+                    VALUES ({ph}, {ph}, {ph}, {ph}, 'target_profile')
+                """, (account, account, followers_cnt, following_cnt))
+
+            conn.commit()
+            conn.close()
+            print(f"[Profile Sync] Successfully updated @{account}: {followers_cnt} followers, {following_cnt} following ✅")
+    except Exception as e:
+        print(f"[Profile Sync] Error updating stats for @{account}: {e}")
+        res["error"] = str(e)
+    finally:
+        if should_close and ctx:
+            ctx.close()
+            if pw:
+                pw.stop()
+
+    return res
+
 def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
     """
     Scans our followers page (x.com/{TARGET_ACCOUNT}/followers) in 1 quick operation,
@@ -457,6 +550,12 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
 
     mutual_found = 0
     try:
+        # Also sync target profile stats
+        try:
+            sync_target_profile_stats(page=page, account=TARGET_ACCOUNT)
+        except Exception as se:
+            print(f"[Follower Sync] Profile stats sub-sync notice: {se}")
+
         url = f"https://x.com/{TARGET_ACCOUNT}/followers"
         print(f"[Follower Sync] Checking {url} for mutual follow-backs...")
         page.goto(url, wait_until="domcontentloaded", timeout=25000)
@@ -501,6 +600,7 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
                 pw.stop()
 
     return mutual_found
+
 
 def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
     """

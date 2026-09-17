@@ -273,4 +273,4 @@ DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", 8085))
 NTFY_URL = os.getenv("NTFY_URL", "")  # e.g. http://inux-job:9080/x-growth-alerts
 
 # Целевой аккаунт (тестовый или продовый)
-TARGET_ACCOUNT = os.getenv("TARGET_ACCOUNT", "Igorvl777")
+TARGET_ACCOUNT = os.getenv("TARGET_ACCOUNT", "GerritBrandt777")
