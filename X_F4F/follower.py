@@ -228,28 +228,78 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
         human_delay(2.5, 4.0)
         
+        # 0. Check if X temporarily threw "Try again / Повторить" glitch
+        try_again_btn = page.query_selector('button:has-text("Try again"), button:has-text("Повторить"), button:has-text("Попробовать снова")')
+        if try_again_btn:
+            print(f"  [Follower] ⚠️ X displayed 'Try again' glitch for @{clean_user}. Clicking reload...")
+            human_click(page, try_again_btn)
+            human_delay(3.0, 4.5)
+
+        # Wait up to 5s for follow/unfollow buttons to mount in DOM
+        try:
+            page.wait_for_selector(
+                'button[data-testid$="-follow"], button[data-testid$="-unfollow"], '
+                'button:has-text("Follow"), button:has-text("Following"), '
+                'button:has-text("Читать"), button:has-text("Читаю"), button:has-text("Подписаться")',
+                timeout=5000
+            )
+        except Exception:
+            pass
+
         # Check if already following
-        unfollow_btn = page.query_selector('button[data-testid$="-unfollow"]') or page.query_selector('button:has-text("Following")')
+        unfollow_btn = (
+            page.query_selector('button[data-testid$="-unfollow"]') or 
+            page.query_selector('button:has-text("Following")') or
+            page.query_selector('button:has-text("Читаю")')
+        )
         if unfollow_btn:
             print(f"  [Follower] Already following @{clean_user}, skipping.")
             log_action(clean_user, "follow", success=True, error="already_following")
             return False
             
-        follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+        follow_btn = (
+            page.query_selector('button[data-testid$="-follow"]') or 
+            page.query_selector('button:has-text("Follow")') or
+            page.query_selector('button:has-text("Читать")') or
+            page.query_selector('button:has-text("Подписаться")')
+        )
         if not follow_btn:
-            print(f"  [Follower] Follow button not found for @{clean_user}")
-            log_action(clean_user, "follow", success=False, error="button_not_found")
+            # Diagnostic check: suspended, protected, or temporary glitch
+            body_text = page.inner_text("body") if page else ""
+            if "Account suspended" in body_text or "Учетная запись приостановлена" in body_text:
+                print(f"  [Follower] ⚠️ Account @{clean_user} is suspended by X. Marking ignored.")
+                log_action(clean_user, "follow", success=False, error="account_suspended")
+            elif "These posts are protected" in body_text or "Этот аккаунт защищен" in body_text:
+                print(f"  [Follower] ℹ️ Account @{clean_user} is private/protected. Skipping.")
+                log_action(clean_user, "follow", success=False, error="account_protected")
+            elif "Try again" in body_text or "Something went wrong" in body_text:
+                print(f"  [Follower] ⚠️ Temporary X server glitch ('Try again') for @{clean_user}.")
+                log_action(clean_user, "follow", success=False, error="x_glitch_try_again")
+            else:
+                print(f"  [Follower] Follow button not found for @{clean_user}")
+                log_action(clean_user, "follow", success=False, error="button_not_found")
             return False
 
         # 1. Execute Engagement Cascade (Tri-Touch: 2 likes + Dwell Time or single warm touch)
         execute_engagement_cascade(page, clean_user, candidate_score=candidate_score, is_hungry_talent=is_hungry_talent)
         
         # 2. Scroll back to top if needed and locate Follow button
-        follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+        follow_btn = (
+            page.query_selector('button[data-testid$="-follow"]') or 
+            page.query_selector('button:has-text("Follow")') or
+            page.query_selector('button:has-text("Читать")') or
+            page.query_selector('button:has-text("Подписаться")')
+        )
         if not follow_btn:
             page.evaluate("window.scrollTo(0, 0)")
             human_delay(1.2, 2.0)
-            follow_btn = page.query_selector('button[data-testid$="-follow"]') or page.query_selector('button:has-text("Follow")')
+            follow_btn = (
+                page.query_selector('button[data-testid$="-follow"]') or 
+                page.query_selector('button:has-text("Follow")') or
+                page.query_selector('button:has-text("Читать")') or
+                page.query_selector('button:has-text("Подписаться")')
+            )
+
 
         if follow_btn:
             # Human smooth click with Bezier trajectory

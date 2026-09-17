@@ -167,7 +167,7 @@ def human_click(page, target) -> bool:
         except Exception:
             return False
 
-def human_scroll(page, steps=3, allow_backtrack=True):
+def human_scroll(page, steps=3, allow_backtrack=True, min_scroll=320, max_scroll=680):
     """
     Organic human scrolling:
     - Multi-tick deceleration
@@ -183,7 +183,9 @@ def human_scroll(page, steps=3, allow_backtrack=True):
                 time.sleep(random.uniform(0.015, 0.035))
             time.sleep(random.uniform(1.2, 2.5))
             
-        total_scroll = random.randint(320, 680)
+        low = min(min_scroll, max_scroll)
+        high = max(min_scroll, max_scroll)
+        total_scroll = random.randint(low, high)
         ticks = random.randint(6, 11)
         for _ in range(ticks):
             tick_amount = (total_scroll / ticks) * random.uniform(0.8, 1.2)
@@ -191,6 +193,28 @@ def human_scroll(page, steps=3, allow_backtrack=True):
             time.sleep(random.uniform(0.02, 0.05))
             
         human_delay(1.0, 2.8)
+
+def human_type(page, target, text: str, delay_range=(0.04, 0.12)):
+    """
+    Types text with natural human keystroke timing and organic pauses between words.
+    """
+    element = page.query_selector(target) if isinstance(target, str) else target
+    if not element:
+        return False
+    try:
+        element.click()
+        time.sleep(random.uniform(0.2, 0.5))
+        for ch in text:
+            element.type(ch, delay=random.uniform(delay_range[0] * 1000, delay_range[1] * 1000))
+            if ch in (' ', ',', '.'):
+                time.sleep(random.uniform(0.08, 0.22))
+        return True
+    except Exception:
+        try:
+            element.fill(text)
+            return True
+        except Exception:
+            return False
 
 def human_idle_noise(page):
     """Occasional idle micro-movements to mimic active user presence."""
@@ -201,6 +225,7 @@ def human_idle_noise(page):
         time.sleep(random.uniform(0.3, 0.8))
     except Exception:
         pass
+
 
 if __name__ == "__main__":
     print("Testing browser context launch with human mimicry...")
