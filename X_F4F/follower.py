@@ -573,7 +573,7 @@ def sync_target_profile_stats(page=None, profile_name="test_igorvl777", account=
 
             conn.commit()
             conn.close()
-            print(f"[Profile Sync] Successfully updated @{account}: {followers_cnt} followers, {following_cnt} following ✅")
+            print(f"[Profile Sync] Successfully updated @{account}: {followers_cnt} followers, {following_cnt} following [OK]")
     except Exception as e:
         print(f"[Profile Sync] Error updating stats for @{account}: {e}")
         res["error"] = str(e)
@@ -587,7 +587,8 @@ def sync_target_profile_stats(page=None, profile_name="test_igorvl777", account=
 
 def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
     """
-    Scans our followers page (x.com/{TARGET_ACCOUNT}/followers) in 1 quick operation,
+    Scans our followers page (x.com/{TARGET_ACCOUNT}/followers),
+    dynamically scrolling to capture all current followers,
     detects who followed us back, and updates their status in candidates DB to 'mutual'.
     Fast, lightweight, and 100% accurate.
     """
@@ -609,38 +610,80 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
         url = f"https://x.com/{TARGET_ACCOUNT}/followers"
         print(f"[Follower Sync] Checking {url} for mutual follow-backs...")
         page.goto(url, wait_until="domcontentloaded", timeout=25000)
-        human_delay(2.5, 4.0)
+        try:
+            page.wait_for_selector('[data-testid="UserCell"]', timeout=10000)
+        except Exception:
+            pass
+        human_delay(2.0, 3.5)
 
-        # Light scroll to load top 15-20 followers
-        for _ in range(2):
-            page.mouse.wheel(0, 400)
-            time.sleep(1.0)
+        # Dynamic scroll to load all followers (up to 12 scrolls or until list stops growing)
+        all_handles = set()
+        last_count = 0
+        consecutive_same = 0
 
-        cells = page.locator('[data-testid="UserCell"]')
-        count = cells.count()
+        for _ in range(12):
+            cells = page.locator('[data-testid="UserCell"]')
+            count = cells.count()
+            for i in range(count):
+                try:
+                    cell_text = cells.nth(i).inner_text()
+                    handles = re.findall(r'@([A-Za-z0-9_]+)', cell_text)
+                    if handles:
+                        all_handles.add(handles[0].lower())
+                except Exception:
+                    pass
+
+            if len(all_handles) == last_count and len(all_handles) > 0:
+                consecutive_same += 1
+                if consecutive_same >= 2:
+                    break
+            else:
+                consecutive_same = 0
+
+            last_count = len(all_handles)
+            page.mouse.wheel(0, 700)
+            time.sleep(1.2)
+
+        print(f"[Follower Sync] Scanned {len(all_handles)} unique followers on X.")
         
         conn = get_connection()
         cur = conn.cursor()
         ph = "?" if DB_TYPE == "sqlite" else "%s"
 
-        for i in range(count):
-            cell = cells.nth(i)
-            cell_text = cell.inner_text()
-            handles = re.findall(r'@([A-Za-z0-9_]+)', cell_text)
-            if not handles:
-                continue
-            handle = handles[0]
-
+        # 1. Update any 'followed' candidate who is in all_handles -> 'mutual'
+        for handle in all_handles:
             cur.execute(f"SELECT username, status FROM candidates WHERE LOWER(username) = LOWER({ph})", (handle,))
             row = cur.fetchone()
             if row and row[1] == "followed":
                 actual_user = row[0]
-                print(f"  [Follower Sync] Found follow-back from @{actual_user}! Marking MUTUAL ✅")
+                print(f"  [Follower Sync] Found follow-back from @{actual_user}! Marking MUTUAL [OK]")
                 log_action(actual_user, "mutual", success=True)
                 mutual_found += 1
 
+        # Only proceed with stale cleanup and churn if page rendered full follower list (>= 5 users)
+        if len(all_handles) >= 5:
+            # 2. Cleanup stale test mutuals from old accounts (where followed_at was NULL and user is not in all_handles)
+            cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NULL")
+            stale_rows = cur.fetchall()
+            for s_row in stale_rows:
+                u_name = s_row[0]
+                if u_name.lower() not in all_handles:
+                    print(f"  [Follower Sync] Reclassifying legacy test profile @{u_name} from previous test account to ignored.")
+                    cur.execute(f"UPDATE candidates SET status = 'ignored', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
+            conn.commit()
+
+            # 3. Detect churn: Candidates marked mutual with followed_at set who are no longer following us
+            cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NOT NULL")
+            active_mutual_rows = cur.fetchall()
+            for m_row in active_mutual_rows:
+                u_name = m_row[0]
+                if u_name.lower() not in all_handles:
+                    print(f"  [Follower Sync] [CHURN] Candidate @{u_name} previously mutual is no longer in followers list.")
+                    cur.execute(f"UPDATE candidates SET status = 'unfollowed_me', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
+            conn.commit()
+
         conn.close()
-        print(f"[Follower Sync] Sync complete. New mutuals detected: {mutual_found}")
+        print(f"[Follower Sync] Sync complete. Newly promoted mutuals: {mutual_found}")
     except Exception as e:
         print(f"[Follower Sync] Warning during mutual sync: {e}")
     finally:
