@@ -604,11 +604,22 @@ HTML_PAGE = """<!DOCTYPE html>
         .analytics-view { display: none; }
         .analytics-view.active { display: block; }
 
-        .charts-grid {
+        .chart-card-full {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .charts-grid-2x2 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid-2x2 {
+                grid-template-columns: 1fr;
+            }
         }
 
         .chart-card {
@@ -921,8 +932,21 @@ HTML_PAGE = """<!DOCTYPE html>
             <div style="font-size:12px; color:var(--text-dim); font-family:'JetBrains Mono', monospace;">Посуточный трекинг конверсии и органики</div>
         </div>
 
-        <!-- Charts Grid (4 Interactive Charts) -->
-        <div class="charts-grid">
+        <!-- Full-Width Linear Chart: Cumulative Followed vs Unfollowed -->
+        <div class="chart-card chart-card-full">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <span style="color:#38bdf8">📈</span> Общее число подписавшихся / отписанных (Динамика охвата)
+                </div>
+                <div class="chart-desc" id="chart-cumulative-summary">Подписано: -- | Отписано: -- | Чистый баланс: --</div>
+            </div>
+            <div class="chart-canvas-container" style="height: 280px;">
+                <canvas id="chartCumulative"></canvas>
+            </div>
+        </div>
+
+        <!-- 2x2 Half-Page Charts Grid -->
+        <div class="charts-grid-2x2">
             <!-- Chart 1: Mutuals by day -->
             <div class="chart-card">
                 <div class="chart-header">
@@ -1004,6 +1028,7 @@ HTML_PAGE = """<!DOCTYPE html>
         let activeMainTab = 'overview';
 
         // Chart instances
+        let chartCumulativeInst = null;
         let chartMutualsInst = null;
         let chartOrganicInst = null;
         let chartConversionInst = null;
@@ -1325,9 +1350,28 @@ HTML_PAGE = """<!DOCTYPE html>
                 document.getElementById('chart-mutual-summary').innerText = `Всего подтверждено: ${totalMutuals}`;
                 document.getElementById('chart-organic-summary').innerText = `Органика за период: +${totalOrganic}`;
 
+                // Calculate cumulative values
+                let cumFollows = 0;
+                const cumFollowsData = followsData.map(v => { cumFollows += (v || 0); return cumFollows; });
+
+                let cumUnfollows = 0;
+                const cumUnfollowsData = unfollowsData.map(v => { cumUnfollows += (v || 0); return cumUnfollows; });
+
+                const netGrowthData = cumFollowsData.map((f, i) => f - cumUnfollowsData[i]);
+
+                const lastCumFollows = cumFollowsData[cumFollowsData.length - 1] || 0;
+                const lastCumUnfollows = cumUnfollowsData[cumUnfollowsData.length - 1] || 0;
+                const netBalance = lastCumFollows - lastCumUnfollows;
+
+                document.getElementById('chart-cumulative-summary').innerHTML = 
+                    `Всего подписано: <b style="color:#38bdf8">${lastCumFollows}</b> &nbsp;|&nbsp; Всего отписано: <b style="color:#ff4d4f">${lastCumUnfollows}</b> &nbsp;|&nbsp; Чистый баланс: <b style="color:#00d26a">+${netBalance}</b>`;
+
                 // Chart.js global dark theme defaults
                 Chart.defaults.color = '#8b949e';
                 Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+                // 0. Top Full-Width Chart: Cumulative Followed vs Unfollowed
+                renderCumulativeChart(labels, cumFollowsData, cumUnfollowsData, netGrowthData);
 
                 // 1. Chart Mutuals
                 renderMutualsChart(labels, mutualsData);
@@ -1347,6 +1391,102 @@ HTML_PAGE = """<!DOCTYPE html>
             } catch (e) {
                 console.error('Error loading analytics:', e);
             }
+        }
+
+        function renderCumulativeChart(labels, followsData, unfollowsData, netData) {
+            const ctx = document.getElementById('chartCumulative').getContext('2d');
+            if (chartCumulativeInst) chartCumulativeInst.destroy();
+
+            chartCumulativeInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Общее число подписавшихся (Followed)',
+                            data: followsData,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#38bdf8',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Общее число отписанных (Unfollowed)',
+                            data: unfollowsData,
+                            borderColor: '#ff4d4f',
+                            backgroundColor: 'rgba(255, 77, 79, 0.08)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: '#ff4d4f',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Чистый охват базы (Net Growth)',
+                            data: netData,
+                            borderColor: '#00d26a',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            pointBackgroundColor: '#00d26a',
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: '#8b949e',
+                                font: { family: "'JetBrains Mono', monospace" }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#8b949e',
+                                font: { family: "'JetBrains Mono', monospace" }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                boxWidth: 12,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11 },
+                                padding: 16
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#161922',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            titleFont: { family: "'JetBrains Mono', monospace" },
+                            bodyFont: { family: "'Space Grotesk', sans-serif" }
+                        }
+                    }
+                }
+            });
         }
 
         function renderMutualsChart(labels, data) {
