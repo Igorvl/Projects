@@ -132,15 +132,25 @@ def run_single_session(profile_name: str):
             print(f"[Orchestrator] Mutual check error: {e}")
 
     # 6. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
+    pw = ctx = None
     try:
         from follower import sync_mutual_followers
         from browser import get_browser_context
         pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
         sync_mutual_followers(page)
-        ctx.close()
-        pw.stop()
     except Exception as e:
         print(f"[Orchestrator] Quick mutual sync notice: {e}")
+    finally:
+        if ctx:
+            try:
+                ctx.close()
+            except Exception:
+                pass
+        if pw:
+            try:
+                pw.stop()
+            except Exception:
+                pass
 
 def sleep_until(target_dt: datetime.datetime, reason: str = "Break"):
     """
@@ -198,15 +208,25 @@ def run_passive_intelligence_session(profile_name: str):
             print(f"[Intelligence] Funnel list notice: {e}")
             
     # 3. Синхронизация взаимных
+    pw = ctx = None
     try:
         from follower import sync_mutual_followers
         from browser import get_browser_context
         pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
         sync_mutual_followers(page)
-        ctx.close()
-        pw.stop()
     except Exception as e:
         print(f"[Intelligence] Mutual sync notice: {e}")
+    finally:
+        if ctx:
+            try:
+                ctx.close()
+            except Exception:
+                pass
+        if pw:
+            try:
+                pw.stop()
+            except Exception:
+                pass
 
 def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
     """

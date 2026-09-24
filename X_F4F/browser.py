@@ -10,14 +10,49 @@ import time
 from playwright.sync_api import sync_playwright
 from config import PROFILES_DIR
 
+_active_playwright = None
+
 def get_browser_context(profile_name="test_igorvl777", headless=False):
     """
     Launches browser with persistent context to keep login cookies and sessions.
+    Self-healing: automatically closes any leaked prior Playwright instance.
     """
+    global _active_playwright
+    if _active_playwright is not None:
+        try:
+            _active_playwright.stop()
+        except Exception:
+            pass
+        _active_playwright = None
+
     user_data_dir = os.path.join(PROFILES_DIR, profile_name)
     os.makedirs(user_data_dir, exist_ok=True)
     
-    playwright = sync_playwright().start()
+    try:
+        playwright = sync_playwright().start()
+    except Exception as e:
+        if "asyncio loop" in str(e).lower() and _active_playwright is not None:
+            try:
+                _active_playwright.stop()
+            except Exception:
+                pass
+            _active_playwright = None
+            playwright = sync_playwright().start()
+        else:
+            raise e
+
+    _active_playwright = playwright
+    
+    # Wrap playwright.stop to clear active tracker
+    orig_stop = playwright.stop
+    def safe_stop():
+        global _active_playwright
+        _active_playwright = None
+        try:
+            orig_stop()
+        except Exception:
+            pass
+    playwright.stop = safe_stop
     
     # Check if real Chrome is requested or fallback to Chromium
     browser_channel = os.getenv("BROWSER_CHANNEL", "chrome")
@@ -51,8 +86,12 @@ def get_browser_context(profile_name="test_igorvl777", headless=False):
         else:
             context = playwright.chromium.launch_persistent_context(**launch_kwargs)
     except Exception as e:
-        # Fallback to default chromium if specific channel (e.g. chrome) is not found
-        context = playwright.chromium.launch_persistent_context(**launch_kwargs)
+        try:
+            # Fallback to default chromium if specific channel (e.g. chrome) is not found
+            context = playwright.chromium.launch_persistent_context(**launch_kwargs)
+        except Exception as inner_e:
+            playwright.stop()
+            raise inner_e
     
     # Apply anti-detection script to all pages and popups in context
     context.add_init_script("""
