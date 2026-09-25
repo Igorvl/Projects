@@ -13,7 +13,9 @@ from browser import (
     human_delay,
     human_click,
     human_scroll,
-    human_idle_noise
+    human_idle_noise,
+    handle_x_retry_button,
+    wait_for_x_page_load
 )
 from config import (
     DAILY_FOLLOW_LIMIT,
@@ -226,14 +228,14 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.5, 4.0)
-        
-        # 0. Check if X temporarily threw "Try again / Повторить" glitch
-        try_again_btn = page.query_selector('button:has-text("Try again"), button:has-text("Повторить"), button:has-text("Попробовать снова")')
-        if try_again_btn:
-            print(f"  [Follower] ⚠️ X displayed 'Try again' glitch for @{clean_user}. Clicking reload...")
-            human_click(page, try_again_btn)
-            human_delay(3.0, 4.5)
+        wait_for_x_page_load(
+            page, 
+            ready_selector='button[data-testid$="-follow"], button[data-testid$="-unfollow"], button:has-text("Follow"), button:has-text("Following")',
+            max_wait_sec=8.0,
+            max_retries=2
+        )
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
 
         # Wait up to 5s for follow/unfollow buttons to mount in DOM
         try:
@@ -335,7 +337,9 @@ def check_is_mutual(page, username: str) -> bool:
     clean_user = username.replace("@", "").strip()
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        human_delay(1.8, 3.5)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=6.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
         
         # 1. Check official data-testid selector
         indicator = page.locator('[data-testid="userFollowIndicator"]')
@@ -354,7 +358,9 @@ def unfollow_user(page, username: str) -> bool:
     clean_user = username.replace("@", "").strip()
     try:
         page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 4.0)
+        wait_for_x_page_load(page, ready_selector='button[data-testid$="-unfollow"], button:has-text("Following"), button:has-text("Читаю")', max_wait_sec=6.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
 
         # 1. Проверяем, существует ли аккаунт или он заблокирован
         page_text = ""
@@ -520,12 +526,8 @@ def sync_target_profile_stats(page=None, profile_name="test_igorvl777", account=
         url = f"https://x.com/{account}"
         print(f"[Profile Sync] Fetching live stats for @{account} from {url}...")
         page.goto(url, wait_until="domcontentloaded", timeout=25000)
-
-        # Wait up to 8s for links to appear
-        try:
-            page.wait_for_selector('a[href*="/following" i]', timeout=8000)
-        except Exception:
-            time.sleep(3.0)
+        wait_for_x_page_load(page, ready_selector='a[href*="/followers" i]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
 
         # 1. Following count
         following_link = (
@@ -610,11 +612,9 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
         url = f"https://x.com/{TARGET_ACCOUNT}/followers"
         print(f"[Follower Sync] Checking {url} for mutual follow-backs...")
         page.goto(url, wait_until="domcontentloaded", timeout=25000)
-        try:
-            page.wait_for_selector('[data-testid="UserCell"]', timeout=10000)
-        except Exception:
-            pass
-        human_delay(2.0, 3.5)
+        wait_for_x_page_load(page, ready_selector='[data-testid="UserCell"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
 
         # Dynamic scroll to load all followers (up to 12 scrolls or until list stops growing)
         all_handles = set()

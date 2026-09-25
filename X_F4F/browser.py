@@ -266,6 +266,111 @@ def human_idle_noise(page):
         pass
 
 
+RETRY_BUTTON_SELECTOR = (
+    'button:has-text("Retry"), '
+    'button:has-text("Try again"), '
+    'button:has-text("Попробовать снова"), '
+    'button:has-text("Повторить"), '
+    'div[role="button"]:has-text("Retry"), '
+    'div[role="button"]:has-text("Try again"), '
+    'div[role="button"]:has-text("Попробовать снова"), '
+    'div[role="button"]:has-text("Повторить"), '
+    '[aria-label*="Retry" i], '
+    '[aria-label*="Try again" i]'
+)
+
+def handle_x_retry_button(page, delay_after_click: bool = True) -> bool:
+    """
+    Detects if X displayed a 'Retry' / 'Try again' / 'Попробовать снова' button
+    due to temporary network lag, timeout, or client-side GraphQL glitch,
+    and clicks it with organic timing.
+    Returns True if a retry button was found and clicked, False otherwise.
+    """
+    try:
+        retry_btn = page.query_selector(RETRY_BUTTON_SELECTOR)
+        if retry_btn and retry_btn.is_visible():
+            print("  [Browser] 🔄 Detected X 'Retry' / 'Try again' prompt. Clicking to recover...")
+            try:
+                human_click(page, retry_btn)
+            except Exception:
+                try:
+                    retry_btn.click()
+                except Exception:
+                    pass
+            if delay_after_click:
+                human_delay(2.5, 4.0)
+            return True
+    except Exception:
+        pass
+    return False
+
+def wait_for_x_page_load(page, ready_selector=None, max_wait_sec=8.0, max_retries=2) -> bool:
+    """
+    Smart waiting for X pages to finish client-side React hydration:
+    1. Checks and handles 'Retry' / 'Try again' glitch buttons.
+    2. Waits for loading spinners (div[role="progressbar"], SVG spinner) to settle.
+    3. Checks for ready_selector (or standard X containers).
+    4. Automatically retries if X is stuck on a reload prompt.
+    Returns True if page is loaded and ready, False if timed out / failed.
+    """
+    start_time = time.time()
+    retries_done = 0
+    
+    while time.time() - start_time < (max_wait_sec * (retries_done + 1)):
+        # 1. Check for terminal account error states
+        try:
+            body_text = page.inner_text("body")
+            if any(term in body_text for term in [
+                "This account doesn’t exist", 
+                "Account suspended", 
+                "These posts are protected", 
+                "Caution: This account is temporarily restricted"
+            ]):
+                return True
+        except Exception:
+            pass
+
+        # 2. Check and click Retry button if X hit a loading glitch
+        if handle_x_retry_button(page):
+            retries_done += 1
+            if retries_done >= max_retries:
+                break
+            time.sleep(1.0)
+            continue
+
+        # 3. Check if ready_selector has mounted
+        if ready_selector:
+            try:
+                el = page.query_selector(ready_selector)
+                if el and el.is_visible():
+                    return True
+            except Exception:
+                pass
+        else:
+            # If no specific selector, check if any major X container is mounted and spinner is gone
+            spinner = page.query_selector('div[role="progressbar"], div[aria-label*="Loading" i], div[aria-label*="Загрузка" i]')
+            if not spinner:
+                main_col = page.query_selector('div[data-testid="primaryColumn"], main[role="main"]')
+                if main_col:
+                    return True
+
+        time.sleep(0.4)
+
+    # Final check for retry button if still not ready
+    if retries_done < max_retries and handle_x_retry_button(page):
+        time.sleep(2.0)
+        if ready_selector:
+            try:
+                el = page.query_selector(ready_selector)
+                if el and el.is_visible():
+                    return True
+            except Exception:
+                pass
+
+    return False
+
+
+
 if __name__ == "__main__":
     print("Testing browser context launch with human mimicry...")
     pw, ctx, page = get_browser_context(headless=True)

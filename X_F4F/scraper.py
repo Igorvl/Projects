@@ -10,7 +10,15 @@ import time
 import random
 import datetime
 import urllib.parse
-from browser import get_browser_context, human_delay, human_scroll, human_click, human_idle_noise
+from browser import (
+    get_browser_context,
+    human_delay,
+    human_scroll,
+    human_click,
+    human_idle_noise,
+    handle_x_retry_button,
+    wait_for_x_page_load
+)
 from config import SEARCH_QUERIES, TARGET_DONORS, HARVEST_MAX_SCROLLS, SNOWBALL_MIN_SCORE
 from scorer import evaluate_candidate
 from database import (
@@ -59,8 +67,15 @@ def inspect_user_profile(page, username: str) -> dict:
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        # Natural reading delay upon landing
-        human_delay(2.0, 4.0)
+        
+        # Smart wait for profile components to hydrate & handle "Retry" glitches
+        wait_for_x_page_load(
+            page, 
+            ready_selector='div[data-testid="UserName"], a[href*="/followers" i]', 
+            max_wait_sec=8.0, 
+            max_retries=2
+        )
+        human_delay(1.5, 3.0)
         
         # Check if user exists or suspended
         page_text = page.inner_text("body")
@@ -92,9 +107,6 @@ def inspect_user_profile(page, username: str) -> dict:
             page.query_selector('a[href$="/following" i]') or
             page.query_selector('a[href*="/following" i]')
         )
-        if following_link:
-            following_count = parse_stat_number(following_link.inner_text())
-            
         followers_link = (
             page.query_selector(f'a[href="/{clean_user}/followers" i]') or
             page.query_selector(f'a[href="/{clean_user}/verified_followers" i]') or
@@ -102,6 +114,35 @@ def inspect_user_profile(page, username: str) -> dict:
             page.query_selector('a[href$="/followers" i]') or
             page.query_selector('a[href*="/followers" i]')
         )
+
+        # If stats links haven't mounted yet, check if Retry button or spinner is active
+        if not following_link and not followers_link:
+            if handle_x_retry_button(page):
+                time.sleep(2.0)
+            try:
+                page.wait_for_selector('a[href*="/followers" i], a[href*="/following" i]', timeout=4000)
+            except Exception:
+                pass
+            following_link = (
+                page.query_selector(f'a[href="/{clean_user}/following" i]') or
+                page.query_selector('a[href$="/following" i]') or
+                page.query_selector('a[href*="/following" i]')
+            )
+            followers_link = (
+                page.query_selector(f'a[href="/{clean_user}/followers" i]') or
+                page.query_selector(f'a[href="/{clean_user}/verified_followers" i]') or
+                page.query_selector('a[href$="/verified_followers" i]') or
+                page.query_selector('a[href$="/followers" i]') or
+                page.query_selector('a[href*="/followers" i]')
+            )
+
+        # Guard: If profile completely failed to render (network glitch / spinner stuck / Retry loop)
+        if not following_link and not followers_link and not name_el:
+            print(f"  [Scraper] ⚠️ Profile @{clean_user} did not finish loading in time (spinner/network lag). Skipping without penalizing candidate.")
+            return None
+
+        if following_link:
+            following_count = parse_stat_number(following_link.inner_text())
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text())
             
@@ -169,7 +210,9 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
     
     try:
         page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.5, 4.5)
+        wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.0, 3.5)
         
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
@@ -177,6 +220,10 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
         
         while len(fresh_usernames) < max_users and scroll_attempts < HARVEST_MAX_SCROLLS:
             tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            if not tweet_elements:
+                if handle_x_retry_button(page):
+                    tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+
             for tw in tweet_elements:
                 user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
                 if user_link:
@@ -221,7 +268,9 @@ def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -
     
     try:
         page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(3.0, 4.5)
+        wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.5, 4.0)
         
         # Check if tweets exist at all on the initial screen to avoid blank-screen scroll delays
         initial_tweets = []
@@ -231,6 +280,10 @@ def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -
             human_delay(2.0, 3.0)
             initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
             
+        if not initial_tweets:
+            if handle_x_retry_button(page):
+                initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+                
         if not initial_tweets:
             # 1 gentle scroll check
             human_scroll(page, steps=1)
@@ -292,9 +345,11 @@ def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15)
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.5, 4.0)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"], a[href^="/"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.0, 3.5)
         page.mouse.wheel(0, 350)
-        time.sleep(2.5)
+        time.sleep(2.0)
         
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
@@ -305,6 +360,9 @@ def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15)
             prev_count = len(fresh_usernames)
             col = page.query_selector('div[data-testid="primaryColumn"]')
             user_links = col.query_selector_all('a[href^="/"]') if col else []
+            if not user_links:
+                if handle_x_retry_button(page):
+                    user_links = col.query_selector_all('a[href^="/"]') if col else []
             if not user_links:
                 user_cells = page.query_selector_all('div[data-testid="UserCell"]')
                 for cell in user_cells:
@@ -352,7 +410,9 @@ def harvest_from_peer_following(page, seed_username: str, max_users: int = 15) -
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(3.0, 5.0)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.5, 4.0)
         
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
@@ -360,6 +420,9 @@ def harvest_from_peer_following(page, seed_username: str, max_users: int = 15) -
         
         while len(fresh_usernames) < max_users and scroll_attempts < 12:
             user_cells = page.query_selector_all('div[data-testid="UserCell"]')
+            if not user_cells:
+                if handle_x_retry_button(page):
+                    user_cells = page.query_selector_all('div[data-testid="UserCell"]')
             for cell in user_cells:
                 user_links = cell.query_selector_all('a[href^="/"]')
                 for ul in user_links:
