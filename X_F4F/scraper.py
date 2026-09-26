@@ -323,6 +323,10 @@ def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
             human_idle_noise(page)
             scroll_attempts += 1
+
+            if scroll_attempts >= 2 and len(fresh_usernames) == 0:
+                print(f"  [Early Exit] Top replies for @{clean_donor} already known. Skipping.")
+                break
             
         print(f"[Scraper] Found {len(fresh_usernames)} active commenters to @{clean_donor}. Starting evaluation...")
         return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_replies:@{clean_donor}")
@@ -404,6 +408,11 @@ def harvest_from_donor_likes(page, donor_username: str, max_users: int = 15) -> 
                 human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
                 human_idle_noise(page)
                 scrolls += 1
+
+                # Early exit on post likers
+                if scrolls >= 2 and len(fresh_usernames) == 0:
+                    print(f"    [Early Exit] Top likers for this post already known. Next post.")
+                    break
                 
         print(f"[Scraper] Found {len(fresh_usernames)} active likers from @{clean_donor}'s posts. Starting evaluation...")
         return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_likes:@{clean_donor}")
@@ -462,8 +471,13 @@ def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15)
             else:
                 consecutive_stagnant = 0
 
+            # Early exit: if top 2 screens contain 0 fresh users, top of list is already scraped
+            if scroll_attempts >= 2 and len(fresh_usernames) == 0:
+                print(f"  [Early Exit] Top {scroll_attempts} screens of @{clean_donor}'s followers are already known. Skipping.")
+                break
+
             # Stop if feed genuinely ran out of new followers after sufficient scrolling
-            if consecutive_stagnant >= 4 and scroll_attempts >= 8:
+            if consecutive_stagnant >= 3 and scroll_attempts >= 5:
                 break
 
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
@@ -517,6 +531,11 @@ def harvest_from_peer_following(page, seed_username: str, max_users: int = 15) -
             human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
             human_idle_noise(page)
             scroll_attempts += 1
+
+            # Early exit: if after 2 screens 0 fresh users were discovered, the top of this network is stale
+            if scroll_attempts >= 2 and len(fresh_usernames) == 0:
+                print(f"  [Early Exit] Top {scroll_attempts} screens of @{clean_seed}'s following are all already known. Skipping.")
+                break
             
         print(f"[Scraper] Found {len(fresh_usernames)} active peers from @{clean_seed}'s network. Starting evaluation...")
         return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"peer_following:@{clean_seed}")
@@ -669,16 +688,22 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
                 print(f"\n🎉 [Goal Reached] Target of +{target_queued} qualified leads achieved! (Total in DB queue: {current_total_queue})")
                 break
                 
-            # Inter-source human cooldown
-            inter_pause = random.randint(15, 26)
-            print(f"\n[Source Exhausted/Rotated] Taking a {inter_pause}s human break before rotating to next source...")
-            try:
-                page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=20000)
-                human_delay(2.0, 3.5)
-                human_scroll(page, steps=1)
-            except Exception:
-                pass
-            time.sleep(inter_pause)
+            if queued_this_source == 0:
+                # Fast rotation: don't waste 25s wandering through home feed on empty sources!
+                fast_pause = round(random.uniform(2.5, 4.0), 1)
+                print(f"[Fast Rotation] Source yielded 0 leads. Rotating to next source immediately ({fast_pause}s)...")
+                time.sleep(fast_pause)
+            else:
+                # Inter-source human cooldown when work was actually performed
+                inter_pause = random.randint(14, 22)
+                print(f"\n[Source Completed] Added +{queued_this_source} leads. Taking a {inter_pause}s human break before rotating...")
+                try:
+                    page.goto("https://x.com/home", wait_until="domcontentloaded", timeout=20000)
+                    human_delay(2.0, 3.5)
+                    human_scroll(page, steps=1)
+                except Exception:
+                    pass
+                time.sleep(inter_pause)
             
     finally:
         ctx.close()

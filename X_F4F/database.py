@@ -472,6 +472,10 @@ def get_candidates_for_list_bombing(limit: int = 10, min_score: int = 50) -> lis
     conn.close()
 def record_source_scrape(source_identifier: str, source_type: str, evaluated_count: int, leads_yielded: int, cooldown_hours: int = 48):
     """Records that a source was scraped, updates historical lead yield and resets cooldown timer."""
+    # Adaptive quarantine: if source yielded 0 new leads, quarantine it for at least 7 days (168h) to avoid repeated dead-end visits
+    if leads_yielded == 0:
+        cooldown_hours = max(cooldown_hours * 3, 168)
+
     conn = get_connection()
     cur = conn.cursor()
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -660,11 +664,15 @@ def get_available_sources() -> list:
         is_ready_peer = True
         if info_peer and info_peer["last_scraped_at"]:
             try:
+                eff_cooldown = info_peer.get("cooldown_hours") or 72
                 last_dt = datetime.datetime.fromisoformat(str(info_peer["last_scraped_at"]).replace("Z", ""))
-                if (now - last_dt).total_seconds() < 72 * 3600:
+                if (now - last_dt).total_seconds() < eff_cooldown * 3600:
                     is_ready_peer = False
             except Exception:
                 pass
+        # Skip dead peer sources (evaluated > 20 and yield == 0)
+        if info_peer and info_peer.get("total_evaluated", 0) > 20 and info_peer.get("leads_yielded", 0) == 0:
+            is_ready_peer = False
         if is_ready_peer:
             all_candidates.append({
                 "type": "peer_following",
@@ -702,7 +710,7 @@ def get_available_sources() -> list:
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
-        "search": 45,
+        "search": 60,
         "donor_likes": 40,
         "donor_replies": 30,
         "peer_following": 25,
