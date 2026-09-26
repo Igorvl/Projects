@@ -82,10 +82,10 @@ MIN_SCORE_THRESHOLD = 40
 # ==========================================
 # 2. ЖЕСТКИЕ КРИТЕРИИ ОТБОРА: СУПЕР-ЛАЙКЕРЫ (HARD GATES)
 # ==========================================
-MIN_FOLLOWERS = 80         # Отсекаем пустые аккаунты, берем реальных авторов от 80
-MAX_FOLLOWERS = 2200       # "Sweet Spot": авторы до 2200 читают каждое уведомление и лично взаимят
-MIN_RATIO = 0.65           # Только щедрые на взаимные действия пользователи (Following / Followers >= 0.65)
-MAX_DAYS_INACTIVE = 4      # Гипер-активность: последний твит не старше 4 дней (постоянно онлайн)
+MIN_FOLLOWERS = 40         # Отсекаем пустые аккаунты, берем реальных авторов от 40 (высокая взаимность)
+MAX_FOLLOWERS = 3500       # "Sweet Spot": авторы до 3500 лично читают уведомления и взаимят
+MIN_RATIO = 0.50           # Живые авторы с балансом подписок (Following / Followers >= 0.50)
+MAX_DAYS_INACTIVE = 14     # Активность: последний твит не старше 14 дней (дизайнеры постят кейсы 1-2 раза в месяц)
 
 # ==========================================
 # 3. СТУПЕНЧАТЫЙ РАЗГОН: 4 ЭТАПА ПО 2 ДНЯ (SMART RAMP-UP)
@@ -165,8 +165,9 @@ EGO_LIST_MIN_SCORE = 50        # Минимальный скор кандида�
 LIST_ADD_DELAY_SECONDS = (30, 60) # Случайная пауза между добавлениями в список
 
 # Настройки Discovery Engine 2.0 (Кулдауны источников и Snowball Graph)
-DONOR_COOLDOWN_HOURS = 48      # Кулдаун для повторного парсинга донора
-SEARCH_COOLDOWN_HOURS = 12     # Кулдаун для повторного запуска поискового запроса
+DONOR_COOLDOWN_HOURS = 48      # Кулдаун для повторного парсинга подписчиков донора
+DONOR_LIKES_COOLDOWN_HOURS = 24 # Кулдаун для парсинга лайкеров свежих твитов донора
+SEARCH_COOLDOWN_HOURS = 10     # Кулдаун для повторного запуска поискового запроса
 HARVEST_MAX_SCROLLS = 20       # Глубокий скролл для пробития слоя уже собранных подписчиков
 SNOWBALL_MIN_SCORE = 65        # Порог скора кандидата для парсинга его подписок в базу доноров
 SNOWBALL_DONOR_MIN_FOLLOWERS = 1500  # Мин. подписчиков у аккаунта, чтобы стать новым донором
@@ -197,19 +198,32 @@ SEARCH_QUERIES = [
     'to:readymag portfolio',
     'to:framer website',
     'to:type01_',
-    # 5. Креативные «Пузыри взаимности» (Design Connect & Mutuals)
+    # Креативные «Пузыри взаимности» (Design Connect & Mutuals) - ТОП КОНВЕРСИЯ
     '#DesignTwitter "let\'s connect"',
     '#DesignTwitter "mutuals"',
     '#DesignTwitter "moots"',
     '#DesignTwitter "connect"',
+    '#designmoots',
     'designer "looking to connect"',
     'ui/ux "let\'s connect"',
+    'ui designer "looking to connect"',
     '#buildinpublic "connect with designers"',
     '#artshare "let\'s connect"',
     '#artshare "mutuals"',
     'framer "let\'s connect"',
     'figma "looking to connect"',
-    '"graphic designer" "connect"'
+    '"graphic designer" "connect"',
+    '"mutuals?" design',
+    '"open to connect" designer',
+    # Свежие портфолио, запуски и поиск проектов
+    '"my new portfolio" framer',
+    '"my portfolio" behance',
+    '"my portfolio" layers.to',
+    '"just launched" site framer',
+    '"just launched" site readymag',
+    '"redesign" wip figma',
+    '"available for freelance" designer',
+    '"available for freelance" brand'
 ]
 
 # Аккаунты-доноры (студии, дизайн-инструменты, инди-типографии, кураторы)

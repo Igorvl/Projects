@@ -533,18 +533,19 @@ def get_available_sources() -> list:
     """
     from config import (
         TARGET_DONORS, SEARCH_QUERIES,
-        DONOR_COOLDOWN_HOURS, SEARCH_COOLDOWN_HOURS
+        DONOR_COOLDOWN_HOURS, DONOR_LIKES_COOLDOWN_HOURS, SEARCH_COOLDOWN_HOURS
     )
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT source_identifier, last_scraped_at, leads_yielded, cooldown_hours FROM sources_tracking")
+    cur.execute("SELECT source_identifier, last_scraped_at, leads_yielded, cooldown_hours, total_evaluated FROM sources_tracking")
     tracking_map = {}
     for r in cur.fetchall():
         tracking_map[r[0]] = {
             "last_scraped_at": r[1],
             "leads_yielded": r[2] or 0,
-            "cooldown_hours": r[3] or 48
+            "cooldown_hours": r[3] or 48,
+            "total_evaluated": r[4] or 0
         }
 
     # Fetch active dynamic donors and peer seeds
@@ -557,32 +558,32 @@ def get_available_sources() -> list:
     all_candidates = []
     now = datetime.datetime.now()
 
-    # 1. Curated Target Donors (Studios & Platforms): both 'donor_followers' and 'donor_replies'
+    # 1. Curated Target Donors (Studios & Platforms)
     for d in TARGET_DONORS:
         clean_d = d.replace("@", "").strip()
 
-        # A. Followers (cooldown DONOR_COOLDOWN_HOURS = 48)
-        id_folls = f"donor_followers:{clean_d}"
-        info_folls = tracking_map.get(id_folls)
-        is_ready_folls = True
-        if info_folls and info_folls["last_scraped_at"]:
+        # A. Fresh Post Likers (cooldown DONOR_LIKES_COOLDOWN_HOURS = 24h) - HIGHEST ROI
+        id_likes = f"donor_likes:{clean_d}"
+        info_likes = tracking_map.get(id_likes)
+        is_ready_likes = True
+        if info_likes and info_likes["last_scraped_at"]:
             try:
-                last_dt = datetime.datetime.fromisoformat(str(info_folls["last_scraped_at"]).replace("Z", ""))
-                if (now - last_dt).total_seconds() < DONOR_COOLDOWN_HOURS * 3600:
-                    is_ready_folls = False
+                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < DONOR_LIKES_COOLDOWN_HOURS * 3600:
+                    is_ready_likes = False
             except Exception:
                 pass
-        if is_ready_folls:
+        if is_ready_likes:
             all_candidates.append({
-                "type": "donor_followers",
+                "type": "donor_likes",
                 "target": clean_d,
-                "identifier": id_folls,
-                "cooldown": DONOR_COOLDOWN_HOURS,
-                "yield": info_folls["leads_yielded"] if info_folls else 0,
-                "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
+                "identifier": id_likes,
+                "cooldown": DONOR_LIKES_COOLDOWN_HOURS,
+                "yield": info_likes["leads_yielded"] if info_likes else 0,
+                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
             })
 
-        # B. Live Commenters / Replies (cooldown 12h) - ONLY for large curated studios with active live tweet traffic!
+        # B. Live Commenters / Replies (cooldown 12h) - HIGH ROI
         id_replies = f"donor_replies:{clean_d}"
         info_replies = tracking_map.get(id_replies)
         is_ready_replies = True
@@ -603,9 +604,7 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_replies and info_replies["last_scraped_at"])
             })
 
-    # 1b. Dynamic Donors (discovered organically): ONLY 'donor_followers' (never live replies)
-    for d in dynamic_donors:
-        clean_d = d.replace("@", "").strip()
+        # C. Followers (cooldown DONOR_COOLDOWN_HOURS = 48) - Low ROI fallback
         id_folls = f"donor_followers:{clean_d}"
         info_folls = tracking_map.get(id_folls)
         is_ready_folls = True
@@ -616,6 +615,10 @@ def get_available_sources() -> list:
                     is_ready_folls = False
             except Exception:
                 pass
+        # Skip dead follower sources (evaluated > 25 and yield == 0)
+        if info_folls and info_folls.get("total_evaluated", 0) > 25 and info_folls.get("leads_yielded", 0) == 0:
+            is_ready_folls = False
+
         if is_ready_folls:
             all_candidates.append({
                 "type": "donor_followers",
@@ -626,7 +629,30 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
             })
 
-    # 2. Peer Seeds: 'peer_following' (following of verified super-engagers, cooldown 72h)
+    # 2. Dynamic Donors (discovered organically): try donor_likes first
+    for d in dynamic_donors:
+        clean_d = d.replace("@", "").strip()
+        id_likes = f"donor_likes:{clean_d}"
+        info_likes = tracking_map.get(id_likes)
+        is_ready_likes = True
+        if info_likes and info_likes["last_scraped_at"]:
+            try:
+                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < DONOR_LIKES_COOLDOWN_HOURS * 3600:
+                    is_ready_likes = False
+            except Exception:
+                pass
+        if is_ready_likes:
+            all_candidates.append({
+                "type": "donor_likes",
+                "target": clean_d,
+                "identifier": id_likes,
+                "cooldown": DONOR_LIKES_COOLDOWN_HOURS,
+                "yield": info_likes["leads_yielded"] if info_likes else 0,
+                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
+            })
+
+    # 3. Peer Seeds: 'peer_following' (following of verified super-engagers, cooldown 72h)
     for p in peer_seeds:
         clean_p = p.replace("@", "").strip()
         id_peer = f"peer_following:{clean_p}"
@@ -649,7 +675,7 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_peer and info_peer["last_scraped_at"])
             })
 
-    # 3. Live Search Queries (cooldown SEARCH_COOLDOWN_HOURS = 12)
+    # 4. Live Search Queries (cooldown SEARCH_COOLDOWN_HOURS = 10) - HIGHEST ROI
     for q in SEARCH_QUERIES:
         id_search = f"search:{q}"
         info_search = tracking_map.get(id_search)
@@ -671,11 +697,24 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_search and info_search["last_scraped_at"])
             })
 
-    # Prioritization:
-    # Priority 1: Unscraped sources first
-    # Priority 2: High historical yield
+    # Smart Prioritization:
+    # 1. Base weight by source ROI type (search & donor_likes lead)
+    # 2. Historical yield bonus
+    # 3. Fresh unscraped bonus
+    TYPE_WEIGHT = {
+        "search": 45,
+        "donor_likes": 40,
+        "donor_replies": 30,
+        "peer_following": 25,
+        "donor_followers": 5
+    }
     random.shuffle(all_candidates)
-    all_candidates.sort(key=lambda s: (not s["has_scraped"], s["yield"]), reverse=True)
+    all_candidates.sort(
+        key=lambda s: (
+            TYPE_WEIGHT.get(s["type"], 10) + min(35, s["yield"] * 2) + (10 if not s["has_scraped"] else 0)
+        ),
+        reverse=True
+    )
     return all_candidates
 
 if __name__ == "__main__":

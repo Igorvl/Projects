@@ -331,6 +331,87 @@ def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -
         print(f"Error harvesting commenters to donor @{clean_donor}: {e}")
         return 0
 
+def harvest_from_donor_likes(page, donor_username: str, max_users: int = 15) -> int:
+    """
+    Algorithm 4: Fresh Post Likers Harvesting
+    Visits the donor profile, discovers recent posts (tweets), extracts status links,
+    navigates to each tweet's likes page (https://x.com/{donor}/status/{tweet_id}/likes),
+    and harvests real-time active designers/creators who liked the work.
+    Likers represent 100% active, awake users with proven positive engagement habits.
+    Returns count of newly queued candidates.
+    """
+    clean_donor = donor_username.replace("@", "").strip()
+    print(f"\n[Scraper] [Algorithm 4] Harvesting fresh post likers from donor: @{clean_donor}")
+    profile_url = f"https://x.com/{clean_donor}"
+    
+    try:
+        page.goto(profile_url, wait_until="domcontentloaded", timeout=20000)
+        wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.0, 3.5)
+        
+        # Collect recent tweet links from donor's profile
+        tweet_urls = []
+        tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+        for tw in tweet_elements[:6]:
+            status_links = tw.query_selector_all('a[href*="/status/"]')
+            for sl in status_links:
+                href = sl.get_attribute("href") or ""
+                m = re.search(rf"/{clean_donor}/status/(\d+)", href, re.IGNORECASE)
+                if m:
+                    tweet_id = m.group(1)
+                    full_likes_url = f"https://x.com/{clean_donor}/status/{tweet_id}/likes"
+                    if full_likes_url not in tweet_urls:
+                        tweet_urls.append(full_likes_url)
+                        break
+                        
+        if not tweet_urls:
+            print(f"  [Scraper] No recent tweets found for @{clean_donor}. Skipping.")
+            return 0
+            
+        print(f"  [Scraper] Discovered {len(tweet_urls)} recent posts from @{clean_donor} to harvest likers from.")
+        
+        existing_users = get_existing_candidate_usernames()
+        fresh_usernames = set()
+        
+        for t_idx, likes_url in enumerate(tweet_urls[:3], 1):
+            if len(fresh_usernames) >= max_users:
+                break
+                
+            print(f"  [Scraper] Visiting post likers ({t_idx}/{len(tweet_urls)}): {likes_url}")
+            page.goto(likes_url, wait_until="domcontentloaded", timeout=20000)
+            wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=8.0, max_retries=2)
+            handle_x_retry_button(page)
+            human_delay(2.0, 3.5)
+            
+            scrolls = 0
+            while len(fresh_usernames) < max_users and scrolls < 5:
+                user_cells = page.query_selector_all('div[data-testid="UserCell"]')
+                if not user_cells:
+                    if handle_x_retry_button(page):
+                        user_cells = page.query_selector_all('div[data-testid="UserCell"]')
+                        
+                for cell in user_cells:
+                    user_links = cell.query_selector_all('a[href^="/"]')
+                    for ul in user_links:
+                        href = ul.get_attribute("href") or ""
+                        if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/", "/search"]):
+                            u = href.replace("/", "").strip()
+                            if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
+                                if u.lower() not in existing_users:
+                                    fresh_usernames.add(u)
+                                    
+                human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
+                human_idle_noise(page)
+                scrolls += 1
+                
+        print(f"[Scraper] Found {len(fresh_usernames)} active likers from @{clean_donor}'s posts. Starting evaluation...")
+        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_likes:@{clean_donor}")
+        
+    except Exception as e:
+        print(f"Error harvesting post likers from @{clean_donor}: {e}")
+        return 0
+
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
     """
     Visits a high-tier or mid-tier design creator/platform's followers list:
@@ -494,13 +575,20 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                 'gmail', 'yahoo', 'hotmail', 'outlook', 'protonmail', 'icloud', 'mail',
                 'github', 'instagram', 'linkedin', 'telegram', 'youtube', 'tiktok', 'discord', 'figma'
             }
+            DESIGN_DOMAIN_KEYWORDS = [
+                'design', 'studio', 'type', 'foundry', 'art', 'brand', 'creative', 'visual', 'ui', 'ux',
+                'typography', 'graphics', 'motion', 'editorial', 'agency', 'lab'
+            ]
             if evaluation['score'] >= SNOWBALL_MIN_SCORE and profile.get("bio"):
-                bio_mentions = re.findall(r"(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_]{3,25})", profile["bio"])
-                for bm in bio_mentions:
-                    clean_bm = bm.lower().strip()
-                    if clean_bm not in existing_users and clean_bm != username.lower() and clean_bm not in IGNORED_BIO_MENTIONS:
-                        add_dynamic_donor(clean_bm, discovered_from=username)
-                        print(f"  [Snowball Graph] Discovered new potential donor studio @{clean_bm} from @{username}'s bio!")
+                bio_text_lower = profile["bio"].lower()
+                # Strict domain verification: only accept studios if bio is design-focused
+                if any(dk in bio_text_lower for dk in DESIGN_DOMAIN_KEYWORDS):
+                    bio_mentions = re.findall(r"(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_]{3,25})", profile["bio"])
+                    for bm in bio_mentions:
+                        clean_bm = bm.lower().strip()
+                        if clean_bm not in existing_users and clean_bm != username.lower() and clean_bm not in IGNORED_BIO_MENTIONS:
+                            add_dynamic_donor(clean_bm, discovered_from=username)
+                            print(f"  [Snowball Graph] Discovered new potential donor studio @{clean_bm} from @{username}'s bio!")
 
             # Algorithm 3: Auto-record verified Super-Engagers as peer_seeds for network discovery
             if evaluation['status'] == 'queued' and (evaluation['score'] >= 90 or evaluation['breakdown'].get('super_engager_bonus', 0) > 0):
@@ -556,16 +644,18 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             print(f"\n--- [Source #{sources_processed}/{max_sources}] Type: {stype} | Target: {target} ---")
             
             queued_this_source = 0
-            if stype == "donor_replies":
+            if stype == "donor_likes":
+                queued_this_source = harvest_from_donor_likes(page, target, max_users=15)
+            elif stype == "donor_replies":
                 queued_this_source = harvest_from_donor_replies(page, target, max_users=15)
+            elif stype == "search":
+                queued_this_source = harvest_from_search(page, target, max_users=15)
             elif stype == "peer_following":
                 queued_this_source = harvest_from_peer_following(page, target, max_users=15)
             elif stype == "donor_followers":
-                queued_this_source = harvest_from_donor_followers(page, target, max_users=18)
-            elif stype == "search":
-                queued_this_source = harvest_from_search(page, target, max_users=15)
+                queued_this_source = harvest_from_donor_followers(page, target, max_users=15)
             else:
-                queued_this_source = harvest_from_donor_followers(page, target, max_users=12)
+                queued_this_source = harvest_from_donor_likes(page, target, max_users=12)
                 
             total_queued_added += queued_this_source
             

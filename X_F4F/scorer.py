@@ -73,20 +73,30 @@ def evaluate_candidate(profile_data: dict) -> dict:
             breakdown["reject_reasons"].append(f"Spam filter: '{neg}'")
             break
 
-    if followers < MIN_FOLLOWERS:
-        breakdown["hard_gates_passed"] = False
-        breakdown["reject_reasons"].append(f"Followers ({followers}) < {MIN_FOLLOWERS}")
+    # Проверка наличия ссылки на портфолио
+    combined_text = f"{bio} {url}"
+    has_portfolio = any(domain in combined_text for domain in PORTFOLIO_DOMAINS)
 
-    if followers > MAX_FOLLOWERS:
+    # Гибкий нижний порог подписчиков:
+    # Обычный порог MIN_FOLLOWERS (40), но если есть подтвержденное дизайнерское портфолио — допускаем от 25
+    effective_min_followers = 25 if has_portfolio else MIN_FOLLOWERS
+    if followers < effective_min_followers:
         breakdown["hard_gates_passed"] = False
-        breakdown["reject_reasons"].append(f"Followers ({followers}) > {MAX_FOLLOWERS}")
+        breakdown["reject_reasons"].append(f"Followers ({followers}) < {effective_min_followers}")
+
+    # Гибкий верхний порог подписчиков:
+    # Обычный порог MAX_FOLLOWERS (3500), но для авторов с высокой взаимностью (ratio >= 0.80) допускаем до 5000
+    effective_max_followers = 5000 if ratio >= 0.80 else MAX_FOLLOWERS
+    if followers > effective_max_followers:
+        breakdown["hard_gates_passed"] = False
+        breakdown["reject_reasons"].append(f"Followers ({followers}) > {effective_max_followers}")
 
     # B. Проверка F4F Ratio (взаимность и щедрость на лайки)
     if ratio < MIN_RATIO:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Ratio ({ratio}) < {MIN_RATIO} (low reciprocity)")
 
-    # C. Проверка активности (только гипер-активные авторы)
+    # C. Проверка активности (дизайнеры постят кейсы 1-2 раза в месяц)
     if days_inactive is not None and days_inactive > MAX_DAYS_INACTIVE:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Inactive ({days_inactive}d > {MAX_DAYS_INACTIVE}d)")
