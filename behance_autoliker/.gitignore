@@ -1,0 +1,21 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Secrets & Sessions
+.env
+*.session
+*.session-journal
+session/
+behance_cookies_export.json
+
+# Logs & Debug
+*.log
+autoliker.log
+debug/
+__pycache__/
+*.pyc
+
+# Local data
+likes_log.csv

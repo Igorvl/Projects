@@ -1,0 +1,14 @@
+﻿# ==============================================================
+# Список проектов-исключений - НЕ лайкаем ни при каких условиях
+# При получении такого задания скрипт нажимает Пропустить
+#
+# Формат: одна ссылка на строку
+# Строки начинающиеся с # - комментарии (игнорируются)
+# ==============================================================
+
+# --- Проекты аккаунта Ксении (cross-like = риск бана) ---
+https://www.behance.net/gallery/247026671/SL24-Brutalist-Data-Logistics-Cyber-Typography
+https://www.behance.net/gallery/254309333/AELAB-Health-Tech-UI-Brutalist-Medical-Identity
+
+# --- Другие исключения ---
+https://www.behance.net/gallery/254433391/SAMURAI-Mascot-Logo-Design-Sport-brand-Identity
