@@ -85,7 +85,7 @@ def run_single_session(profile_name: str):
         target_to_harvest = max(5, min(needed, MAX_HARVEST_PER_CYCLE))
         print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting fast on-demand harvesting (+{target_to_harvest})...")
         try:
-            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest, max_sources=6)
+            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest, max_sources=12)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             

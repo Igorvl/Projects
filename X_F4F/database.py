@@ -566,28 +566,7 @@ def get_available_sources() -> list:
     for d in TARGET_DONORS:
         clean_d = d.replace("@", "").strip()
 
-        # A. Fresh Post Likers (cooldown DONOR_LIKES_COOLDOWN_HOURS = 24h) - HIGHEST ROI
-        id_likes = f"donor_likes:{clean_d}"
-        info_likes = tracking_map.get(id_likes)
-        is_ready_likes = True
-        if info_likes and info_likes["last_scraped_at"]:
-            try:
-                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
-                if (now - last_dt).total_seconds() < DONOR_LIKES_COOLDOWN_HOURS * 3600:
-                    is_ready_likes = False
-            except Exception:
-                pass
-        if is_ready_likes:
-            all_candidates.append({
-                "type": "donor_likes",
-                "target": clean_d,
-                "identifier": id_likes,
-                "cooldown": DONOR_LIKES_COOLDOWN_HOURS,
-                "yield": info_likes["leads_yielded"] if info_likes else 0,
-                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
-            })
-
-        # B. Live Commenters / Replies (cooldown 12h) - HIGH ROI
+        # A. Live Commenters / Replies (cooldown 12h) - HIGH ROI
         id_replies = f"donor_replies:{clean_d}"
         info_replies = tracking_map.get(id_replies)
         is_ready_replies = True
@@ -608,7 +587,7 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_replies and info_replies["last_scraped_at"])
             })
 
-        # C. Followers (cooldown DONOR_COOLDOWN_HOURS = 48) - Low ROI fallback
+        # B. Followers (cooldown DONOR_COOLDOWN_HOURS = 48) - Low ROI fallback
         id_folls = f"donor_followers:{clean_d}"
         info_folls = tracking_map.get(id_folls)
         is_ready_folls = True
@@ -633,27 +612,27 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_folls and info_folls["last_scraped_at"])
             })
 
-    # 2. Dynamic Donors (discovered organically): try donor_likes first
+    # 2. Dynamic Donors (discovered organically): harvest live replies/mentions
     for d in dynamic_donors:
         clean_d = d.replace("@", "").strip()
-        id_likes = f"donor_likes:{clean_d}"
-        info_likes = tracking_map.get(id_likes)
-        is_ready_likes = True
-        if info_likes and info_likes["last_scraped_at"]:
+        id_replies = f"donor_replies:{clean_d}"
+        info_replies = tracking_map.get(id_replies)
+        is_ready_replies = True
+        if info_replies and info_replies["last_scraped_at"]:
             try:
-                last_dt = datetime.datetime.fromisoformat(str(info_likes["last_scraped_at"]).replace("Z", ""))
-                if (now - last_dt).total_seconds() < DONOR_LIKES_COOLDOWN_HOURS * 3600:
-                    is_ready_likes = False
+                last_dt = datetime.datetime.fromisoformat(str(info_replies["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < 12 * 3600:
+                    is_ready_replies = False
             except Exception:
                 pass
-        if is_ready_likes:
+        if is_ready_replies:
             all_candidates.append({
-                "type": "donor_likes",
+                "type": "donor_replies",
                 "target": clean_d,
-                "identifier": id_likes,
-                "cooldown": DONOR_LIKES_COOLDOWN_HOURS,
-                "yield": info_likes["leads_yielded"] if info_likes else 0,
-                "has_scraped": bool(info_likes and info_likes["last_scraped_at"])
+                "identifier": id_replies,
+                "cooldown": 12,
+                "yield": info_replies["leads_yielded"] if info_replies else 0,
+                "has_scraped": bool(info_replies and info_replies["last_scraped_at"])
             })
 
     # 3. Peer Seeds: 'peer_following' (following of verified super-engagers, cooldown 72h)
@@ -710,11 +689,10 @@ def get_available_sources() -> list:
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
-        "donor_likes": 80,
-        "donor_replies": 60,
-        "search": 45,
-        "peer_following": 35,
-        "donor_followers": 5
+        "search": 75,
+        "donor_replies": 70,
+        "peer_following": 55,
+        "donor_followers": 25
     }
     random.shuffle(all_candidates)
     all_candidates.sort(
