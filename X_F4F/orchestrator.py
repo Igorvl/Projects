@@ -30,7 +30,8 @@ from follower import (
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
 WORK_START_HOUR = 7       # 07:00 утра
 WORK_END_HOUR = 24        # 00:00 (полночь)
-MIN_QUEUE_BUFFER = 75     # Постоянный буфер очереди (держим 75+ проверенных супер-лайкеров)
+MIN_QUEUE_BUFFER = 35     # Здоровый буфер очереди (держим 30-35+ проверенных супер-лайкеров)
+MAX_HARVEST_PER_CYCLE = 15 # Максимум лидов за 1 цикл сбора (укладываемся в 5-10 минут)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
@@ -80,15 +81,16 @@ def run_single_session(profile_name: str):
     # 1. Проверяем очередь кандидатов. Держим здоровый буфер (минимум MIN_QUEUE_BUFFER лидов)
     queue_count = get_queue_count()
     if queue_count < MIN_QUEUE_BUFFER:
-        target_to_harvest = max(10, MIN_QUEUE_BUFFER - queue_count + batch_target)
-        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting on-demand harvesting (+{target_to_harvest})...")
+        needed = MIN_QUEUE_BUFFER - queue_count + batch_target
+        target_to_harvest = max(5, min(needed, MAX_HARVEST_PER_CYCLE))
+        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting fast on-demand harvesting (+{target_to_harvest})...")
         try:
-            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest)
+            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest, max_sources=6)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             
-        # Человеческая пауза между ресёрчем и началом подписок (1.5–2.5 минуты)
-        pause_sec = random.randint(75, 150)
+        # Человеческая пауза между ресёрчем и началом подписок (45–75 секунд)
+        pause_sec = random.randint(45, 75)
         print(f"[Orchestrator] Human pause between research and follow actions ({pause_sec}s)...")
         time.sleep(pause_sec)
         

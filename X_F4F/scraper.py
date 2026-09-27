@@ -30,6 +30,32 @@ from database import (
     add_dynamic_donor
 )
 
+OBVIOUS_BRANDS_AND_BOTS = {
+    'google', 'googleai', 'googleaistudio', 'thepracticaldev', 'mapbox', 'convertkit', 'valtown',
+    'figma', 'adobe', 'webflow', 'framer', 'readymag', 'github', 'openai', 'microsoft', 'apple',
+    'vercel', 'stripe', 'notion', 'twitter', 'x', 'youtube', 'discord', 'telegram', 'medium',
+    'wordpress', 'automattic', 'shopify', 'wix', 'canva', 'behance', 'dribbble', 'awwwards',
+    'envato', 'freepik', 'unsplash', 'shutterstock', 'meta', 'metaai', 'deepmind', 'anthropic',
+    'mistralai', 'stabilityai', 'midjourney', 'huggingface', 'aws', 'amazon', 'netflix'
+}
+
+OBVIOUS_SUFFIXES = (
+    'hq', '_hq', 'official', '_official', 'bot', '_bot', 'news', '_news',
+    'daily', '_daily', 'mag', '_mag', 'magazine', '_magazine', 'team', '_team',
+    'support', '_support', 'app', '_app'
+)
+
+def is_obvious_brand_or_bot(username: str) -> bool:
+    """Pre-filters obvious mega-corporations, platforms, bots, and crypto pump accounts before profile navigation."""
+    u = username.lower().replace("@", "").strip()
+    if u in OBVIOUS_BRANDS_AND_BOTS:
+        return True
+    if any(u.endswith(sfx) for sfx in OBVIOUS_SUFFIXES):
+        return True
+    if any(kw in u for kw in ['crypto', 'airdrop', 'memecoin', 'pump', 'forex']):
+        return True
+    return False
+
 def parse_stat_number(text: str) -> int:
     """
     Parses text numbers like '8 489 подписчиков', '1.2K Followers', '34.5M', '1,200', 'Followers\n1,200'.
@@ -217,21 +243,32 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
         scroll_attempts = 0
+        consecutive_stagnant = 0
         
         while len(fresh_usernames) < max_users and scroll_attempts < HARVEST_MAX_SCROLLS:
+            prev_found = len(fresh_usernames)
             tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
             if not tweet_elements:
                 if handle_x_retry_button(page):
                     tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
 
             for tw in tweet_elements:
+                # Pre-filter: skip spam/crypto tweets directly from feed text
+                try:
+                    text_el = tw.query_selector('div[data-testid="tweetText"]')
+                    tw_text = (text_el.inner_text() if text_el else "").lower()
+                    if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale", "whitelist", "memecoin"]):
+                        continue
+                except Exception:
+                    pass
+
                 user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
                 if user_link:
                     href = user_link.get_attribute("href") or ""
                     if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
                         u = href.replace("/", "").strip()
                         if u and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users:
+                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
                                 fresh_usernames.add(u)
                 
                 mentions = tw.query_selector_all('div[data-testid="tweetText"] a[href^="/"]')
@@ -240,9 +277,22 @@ def harvest_from_search(page, query: str, max_users: int = 12) -> int:
                     if m_href.startswith("/") and not any(x in m_href for x in ["/hashtag/", "/search", "/i/"]):
                         u = m_href.replace("/", "").strip()
                         if u and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users:
+                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
                                 fresh_usernames.add(u)
                             
+            if len(fresh_usernames) == prev_found:
+                consecutive_stagnant += 1
+            else:
+                consecutive_stagnant = 0
+
+            # Early exit: if top 2 screens yielded 0 fresh creators, feed is exhausted or known
+            if scroll_attempts >= 2 and len(fresh_usernames) == 0:
+                print(f"  [Early Exit] Top {scroll_attempts} screens yielded 0 fresh creators. Rotating search query.")
+                break
+            if consecutive_stagnant >= 2 and scroll_attempts >= 3:
+                print(f"  [Early Exit] Feed stagnation detected ({consecutive_stagnant} scrolls without new creators).")
+                break
+
             human_scroll(page, steps=random.randint(2, 3), allow_backtrack=True)
             human_idle_noise(page)
             scroll_attempts += 1
@@ -567,6 +617,26 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
 
     queued_added = 0
     for idx, username in enumerate(new_candidates[:max_users], 1):
+        # Pre-filter obvious brands, bots, and crypto handles without network navigation
+        if is_obvious_brand_or_bot(username):
+            candidate_record = {
+                "username": username,
+                "name": username,
+                "bio": "",
+                "url": f"https://x.com/{username}",
+                "followers_count": 0,
+                "following_count": 0,
+                "score": 0,
+                "ratio": 0.0,
+                "score_breakdown": {"reject_reasons": ["Obvious brand, bot or crypto handle"]},
+                "source": source_label,
+                "status": "ignored"
+            }
+            upsert_candidate(candidate_record)
+            existing_users.add(username.lower().replace("@", "").strip())
+            print(f"  @{username} | Status: ignored (Obvious brand/bot/crypto handle - skipped profile load)")
+            continue
+
         profile = inspect_user_profile(page, username)
         if profile:
             evaluation = evaluate_candidate(profile)
@@ -615,12 +685,12 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                 print(f"  [Snowball Graph] Recorded Super-Engager @{username} as peer_seed for network discovery!")
             
             # Organic delay between candidates
-            human_delay(3.0, 6.5)
+            human_delay(1.5, 3.5)
             
-            # Natural micro-break every 4-6 profiles
-            if idx % random.randint(4, 6) == 0:
-                break_sec = random.randint(12, 22)
-                print(f"  [Human Pause] Short break ({break_sec}s) to maintain natural browsing patterns...")
+            # Natural micro-break: only after successfully qualifying and queuing a candidate
+            if evaluation['status'] == 'queued' and queued_added > 0 and queued_added % random.randint(2, 4) == 0:
+                break_sec = random.randint(10, 16)
+                print(f"  [Human Pause] Organic pause after queuing lead ({break_sec}s)...")
                 human_idle_noise(page)
                 time.sleep(break_sec)
 

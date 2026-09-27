@@ -710,10 +710,10 @@ def get_available_sources() -> list:
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
-        "search": 60,
-        "donor_likes": 40,
-        "donor_replies": 30,
-        "peer_following": 25,
+        "donor_likes": 80,
+        "donor_replies": 60,
+        "search": 45,
+        "peer_following": 35,
         "donor_followers": 5
     }
     random.shuffle(all_candidates)
