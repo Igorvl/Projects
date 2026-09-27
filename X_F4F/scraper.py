@@ -467,6 +467,79 @@ def harvest_from_peer_commenters(page, peer_username: str, max_users: int = 8) -
         print(f"Error harvesting commenters to peer @{clean_peer}: {e}")
         return 0
 
+def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 3) -> int:
+    """
+    Algorithm 5b: Opportunistic Live Thread Scouting on Follow.
+    Immediately after following a creator, naturally glances at their recent discussion/replies,
+    gathers real-time peer commenters interacting with them, and queues them with high priority.
+    Takes 4-8 seconds, perfectly mimicking a human browsing the creator's latest interactions.
+    """
+    clean_peer = peer_username.lower().replace("@", "").strip()
+    try:
+        # 1. Look for original tweet status link on the current profile page
+        tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+        target_status_url = None
+        for tw in tweet_elements[:3]:
+            # Skip retweets
+            sc = tw.query_selector('[data-testid="socialContext"]')
+            if sc:
+                sc_text = sc.inner_text().lower()
+                if "repost" in sc_text or "ретвит" in sc_text:
+                    continue
+            status_link = tw.query_selector('a[href*="/status/"]')
+            if status_link:
+                href = status_link.get_attribute("href") or ""
+                m = re.search(rf"/{clean_peer}/status/(\d+)", href, re.IGNORECASE)
+                if m:
+                    target_status_url = f"https://x.com/{clean_peer}/status/{m.group(1)}"
+                    break
+                    
+        if not target_status_url:
+            return 0
+            
+        print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s latest discussion thread...")
+        page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
+        human_delay(1.5, 2.5)
+        human_scroll(page, steps=1)
+        
+        reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
+        if len(reply_tweets) <= 1:
+            # Only root tweet exists, no replies
+            return 0
+            
+        existing_users = get_existing_candidate_usernames()
+        found_commenters = []
+        for r_tw in reply_tweets[1:]:
+            try:
+                # Check for crypto/spam text
+                text_el = r_tw.query_selector('div[data-testid="tweetText"]')
+                tw_text = (text_el.inner_text() if text_el else "").lower()
+                if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
+                    continue
+            except Exception:
+                pass
+                
+            u_link = r_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+            if u_link:
+                href = u_link.get_attribute("href") or ""
+                u = href.replace("/", "").strip()
+                if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
+                    if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
+                        if u not in found_commenters:
+                            found_commenters.append(u)
+                            if len(found_commenters) >= max_leads:
+                                break
+                                
+        if not found_commenters:
+            return 0
+            
+        print(f"  [Thread Scout] Discovered {len(found_commenters)} active peers talking to @{peer_username}!")
+        return _evaluate_and_store_users(page, found_commenters, max_users=max_leads, source_label=f"peer_commenters:@{clean_peer}")
+        
+    except Exception as e:
+        # Non-critical: never break the follow batch
+        return 0
+
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
     """
     Visits a high-tier or mid-tier design creator/platform's followers list:

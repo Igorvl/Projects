@@ -30,8 +30,8 @@ from follower import (
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
 WORK_START_HOUR = 7       # 07:00 утра
 WORK_END_HOUR = 24        # 00:00 (полночь)
-MIN_QUEUE_BUFFER = 35     # Здоровый буфер очереди (держим 30-35+ проверенных супер-лайкеров)
-MAX_HARVEST_PER_CYCLE = 15 # Максимум лидов за 1 цикл сбора (укладываемся в 5-10 минут)
+MIN_QUEUE_BUFFER = 75     # Постоянный здоровый буфер очереди (держим 75-150 проверенных супер-лайкеров)
+MAX_HARVEST_SOURCES = 10  # Безопасный лимит источников за цикл (чтобы сессия оставалась динамичной)
 
 def is_work_hours() -> bool:
     """Returns True if current local time is within active daytime hours (07:00 - 00:00)."""
@@ -78,14 +78,13 @@ def run_single_session(profile_name: str):
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
-    # 1. Проверяем очередь кандидатов. Держим здоровый буфер (минимум MIN_QUEUE_BUFFER лидов)
+    # 1. Проверяем очередь кандидатов. Держим постоянный здоровый буфер (75-150 лидов)
     queue_count = get_queue_count()
     if queue_count < MIN_QUEUE_BUFFER:
-        needed = MIN_QUEUE_BUFFER - queue_count + batch_target
-        target_to_harvest = max(5, min(needed, MAX_HARVEST_PER_CYCLE))
-        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting fast on-demand harvesting (+{target_to_harvest})...")
+        needed = max(25, MIN_QUEUE_BUFFER - queue_count + batch_target)
+        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting on-demand harvesting (goal: +{needed} leads)...")
         try:
-            run_harvesting_cycle(profile_name=profile_name, target_queued=target_to_harvest, max_sources=12)
+            run_harvesting_cycle(profile_name=profile_name, target_queued=needed, max_sources=MAX_HARVEST_SOURCES)
         except Exception as e:
             print(f"[Orchestrator] Harvesting warning: {e}")
             
