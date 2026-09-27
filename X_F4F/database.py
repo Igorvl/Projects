@@ -557,6 +557,10 @@ def get_available_sources() -> list:
     dynamic_records = cur.fetchall()
     dynamic_donors = [r[0] for r in dynamic_records if r[1] != 'peer_seed']
     peer_seeds = [r[0] for r in dynamic_records if r[1] == 'peer_seed']
+
+    # Fetch recently followed creators with good score for Peer Commenters harvesting
+    cur.execute("SELECT username FROM candidates WHERE followed_at IS NOT NULL AND score >= 60 ORDER BY followed_at DESC LIMIT 35")
+    peer_commenter_seeds = [r[0] for r in cur.fetchall()]
     conn.close()
 
     all_candidates = []
@@ -684,11 +688,36 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_search and info_search["last_scraped_at"])
             })
 
+    # 5. Peer Commenters: creators actively discussing work of creators we recently followed: to:{peer} (cooldown 120h)
+    for p in peer_commenter_seeds:
+        clean_p = p.replace("@", "").strip()
+        id_pc = f"peer_commenters:{clean_p}"
+        info_pc = tracking_map.get(id_pc)
+        is_ready_pc = True
+        if info_pc and info_pc["last_scraped_at"]:
+            try:
+                eff_cooldown = info_pc.get("cooldown_hours") or 120
+                last_dt = datetime.datetime.fromisoformat(str(info_pc["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < eff_cooldown * 3600:
+                    is_ready_pc = False
+            except Exception:
+                pass
+        if is_ready_pc:
+            all_candidates.append({
+                "type": "peer_commenters",
+                "target": clean_p,
+                "identifier": id_pc,
+                "cooldown": 120,
+                "yield": info_pc["leads_yielded"] if info_pc else 0,
+                "has_scraped": bool(info_pc and info_pc["last_scraped_at"])
+            })
+
     # Smart Prioritization:
-    # 1. Base weight by source ROI type (search & donor_likes lead)
+    # 1. Base weight by source ROI type (peer_commenters & search lead)
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
+        "peer_commenters": 85,  # НАИВЫСШИЙ ROI - живые собеседники наших зафолловленных дизайнеров
         "search": 75,
         "donor_replies": 70,
         "peer_following": 55,

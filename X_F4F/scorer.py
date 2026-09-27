@@ -167,6 +167,11 @@ def evaluate_candidate(profile_data: dict) -> dict:
         score += 20
         breakdown["hungry_talent_bonus"] = True
 
+    # Кластер F: Собеседники и комментаторы проверенных пиров (+25 очков)
+    if profile_data.get("is_peer_commenter"):
+        score += 25
+        breakdown["peer_commenter_bonus"] = True
+
     # Итоговый статус
     is_qualified = breakdown["hard_gates_passed"] and (score >= MIN_SCORE_THRESHOLD)
     status = "queued" if is_qualified else "ignored"

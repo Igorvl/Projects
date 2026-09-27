@@ -385,90 +385,86 @@ def harvest_from_donor_replies(page, donor_username: str, max_users: int = 15) -
         print(f"Error harvesting commenters to donor @{clean_donor}: {e}")
         return 0
 
-def harvest_from_donor_likes(page, donor_username: str, max_users: int = 15) -> int:
+def harvest_from_peer_commenters(page, peer_username: str, max_users: int = 8) -> int:
     """
-    Algorithm 4: Fresh Post Likers Harvesting
-    Visits the donor profile, discovers recent posts (tweets), extracts status links,
-    navigates to each tweet's likes page (https://x.com/{donor}/status/{tweet_id}/likes),
-    and harvests real-time active designers/creators who liked the work.
-    Likers represent 100% active, awake users with proven positive engagement habits.
+    Algorithm 5: Peer Commenters & Conversation Graph
+    Visits live discussion threads and replies to creators we recently followed: to:{peer_username}
+    Because we already vetted and followed this creator, people actively engaging with and commenting 
+    under their work are their closest peers, colleagues, and hyper-active design mutuals.
     Returns count of newly queued candidates.
     """
-    clean_donor = donor_username.replace("@", "").strip()
-    print(f"\n[Scraper] [Algorithm 4] Harvesting fresh post likers from donor: @{clean_donor}")
-    profile_url = f"https://x.com/{clean_donor}"
+    clean_peer = peer_username.replace("@", "").strip()
+    print(f"\n[Scraper] [Algorithm 5] Harvesting live commenters to peer creator: to:@{clean_peer}")
+    search_query = f"to:{clean_peer}"
+    search_url = f"https://x.com/search?q={urllib.parse.quote(search_query)}&f=live"
     
     try:
-        page.goto(profile_url, wait_until="domcontentloaded", timeout=20000)
+        page.goto(search_url, wait_until="domcontentloaded", timeout=20000)
         wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=8.0, max_retries=2)
         handle_x_retry_button(page)
         human_delay(2.0, 3.5)
         
-        # Collect recent tweet links from donor's profile
-        tweet_urls = []
-        tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
-        for tw in tweet_elements[:6]:
-            status_links = tw.query_selector_all('a[href*="/status/"]')
-            for sl in status_links:
-                href = sl.get_attribute("href") or ""
-                m = re.search(rf"/{clean_donor}/status/(\d+)", href, re.IGNORECASE)
-                if m:
-                    tweet_id = m.group(1)
-                    full_likes_url = f"https://x.com/{clean_donor}/status/{tweet_id}/likes"
-                    if full_likes_url not in tweet_urls:
-                        tweet_urls.append(full_likes_url)
-                        break
-                        
-        if not tweet_urls:
-            print(f"  [Scraper] No recent tweets found for @{clean_donor}. Skipping.")
+        # Check initial screen
+        initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+        if not initial_tweets:
+            if handle_x_retry_button(page):
+                initial_tweets = page.query_selector_all('article[data-testid="tweet"]')
+        if not initial_tweets:
+            print(f"  [Scraper] No active replies found for @{clean_peer}. Skipping.")
             return 0
             
-        print(f"  [Scraper] Discovered {len(tweet_urls)} recent posts from @{clean_donor} to harvest likers from.")
-        
         existing_users = get_existing_candidate_usernames()
         fresh_usernames = set()
+        scroll_attempts = 0
+        consecutive_stagnant = 0
         
-        for t_idx, likes_url in enumerate(tweet_urls[:3], 1):
-            if len(fresh_usernames) >= max_users:
+        while len(fresh_usernames) < max_users and scroll_attempts < 5:
+            prev_found = len(fresh_usernames)
+            tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            if not tweet_elements:
+                if handle_x_retry_button(page):
+                    tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+                    
+            for tw in tweet_elements:
+                try:
+                    # Skip crypto/spam text if any
+                    text_el = tw.query_selector('div[data-testid="tweetText"]')
+                    tw_text = (text_el.inner_text() if text_el else "").lower()
+                    if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
+                        continue
+                except Exception:
+                    pass
+
+                user_link = tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                if user_link:
+                    href = user_link.get_attribute("href") or ""
+                    if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/"]):
+                        u = href.replace("/", "").strip()
+                        # Crucial: the author of the reply must NOT be the peer themselves!
+                        if u and u.lower() != clean_peer.lower() and len(u) < 30 and not "/" in u:
+                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
+                                fresh_usernames.add(u)
+                                
+            if len(fresh_usernames) == prev_found:
+                consecutive_stagnant += 1
+            else:
+                consecutive_stagnant = 0
+                
+            if scroll_attempts >= 2 and len(fresh_usernames) == 0:
+                print(f"  [Early Exit] Top replies for @{clean_peer} already known. Rotating.")
+                break
+            if consecutive_stagnant >= 2 and scroll_attempts >= 3:
                 break
                 
-            print(f"  [Scraper] Visiting post likers ({t_idx}/{len(tweet_urls)}): {likes_url}")
-            page.goto(likes_url, wait_until="domcontentloaded", timeout=20000)
-            wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=8.0, max_retries=2)
-            handle_x_retry_button(page)
-            human_delay(2.0, 3.5)
+            human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
+            human_idle_noise(page)
+            scroll_attempts += 1
             
-            scrolls = 0
-            while len(fresh_usernames) < max_users and scrolls < 5:
-                user_cells = page.query_selector_all('div[data-testid="UserCell"]')
-                if not user_cells:
-                    if handle_x_retry_button(page):
-                        user_cells = page.query_selector_all('div[data-testid="UserCell"]')
-                        
-                for cell in user_cells:
-                    user_links = cell.query_selector_all('a[href^="/"]')
-                    for ul in user_links:
-                        href = ul.get_attribute("href") or ""
-                        if href and not any(x in href for x in ["/home", "/explore", "/notifications", "/i/", "/search"]):
-                            u = href.replace("/", "").strip()
-                            if u and u.lower() != clean_donor.lower() and len(u) < 30 and not "/" in u:
-                                if u.lower() not in existing_users:
-                                    fresh_usernames.add(u)
-                                    
-                human_scroll(page, steps=random.randint(1, 2), allow_backtrack=False)
-                human_idle_noise(page)
-                scrolls += 1
-
-                # Early exit on post likers
-                if scrolls >= 2 and len(fresh_usernames) == 0:
-                    print(f"    [Early Exit] Top likers for this post already known. Next post.")
-                    break
-                
-        print(f"[Scraper] Found {len(fresh_usernames)} active likers from @{clean_donor}'s posts. Starting evaluation...")
-        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"donor_likes:@{clean_donor}")
+        print(f"[Scraper] Found {len(fresh_usernames)} active commenters from @{clean_peer}'s threads. Starting evaluation...")
+        return _evaluate_and_store_users(page, fresh_usernames, max_users, source_label=f"peer_commenters:@{clean_peer}")
         
     except Exception as e:
-        print(f"Error harvesting post likers from @{clean_donor}: {e}")
+        print(f"Error harvesting commenters to peer @{clean_peer}: {e}")
         return 0
 
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
@@ -639,6 +635,8 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
 
         profile = inspect_user_profile(page, username)
         if profile:
+            if "peer_commenters" in source_label:
+                profile["is_peer_commenter"] = True
             evaluation = evaluate_candidate(profile)
             candidate_record = {
                 **profile,
@@ -733,8 +731,8 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             print(f"\n--- [Source #{sources_processed}/{max_sources}] Type: {stype} | Target: {target} ---")
             
             queued_this_source = 0
-            if stype == "donor_likes":
-                queued_this_source = harvest_from_donor_likes(page, target, max_users=15)
+            if stype == "peer_commenters":
+                queued_this_source = harvest_from_peer_commenters(page, target, max_users=8)
             elif stype == "donor_replies":
                 queued_this_source = harvest_from_donor_replies(page, target, max_users=15)
             elif stype == "search":
@@ -744,7 +742,7 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             elif stype == "donor_followers":
                 queued_this_source = harvest_from_donor_followers(page, target, max_users=15)
             else:
-                queued_this_source = harvest_from_donor_likes(page, target, max_users=12)
+                queued_this_source = harvest_from_search(page, target, max_users=12)
                 
             total_queued_added += queued_this_source
             
