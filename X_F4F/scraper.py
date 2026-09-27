@@ -467,20 +467,20 @@ def harvest_from_peer_commenters(page, peer_username: str, max_users: int = 8) -
         print(f"Error harvesting commenters to peer @{clean_peer}: {e}")
         return 0
 
-def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 3) -> int:
+def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 7) -> int:
     """
     Algorithm 5b: Opportunistic Live Thread Scouting on Follow.
-    Immediately after following a creator, naturally glances at their recent discussion/replies,
-    gathers real-time peer commenters interacting with them, and queues them with high priority.
-    Takes 4-8 seconds, perfectly mimicking a human browsing the creator's latest interactions.
+    Immediately after following a creator, naturally inspects up to 3 recent original posts,
+    gathers 5-7 active peer commenters talking to them, and queues them with VIP priority.
+    Mimics a designer thoroughly exploring a newly followed creator's discussions.
     """
     clean_peer = peer_username.lower().replace("@", "").strip()
     try:
-        # 1. Look for original tweet status link on the current profile page
+        # 1. Look for up to 3 original tweet status links on the creator's profile page
         tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
-        target_status_url = None
-        for tw in tweet_elements[:3]:
-            # Skip retweets
+        target_status_urls = []
+        for tw in tweet_elements[:7]:
+            # Skip retweets/reposts
             sc = tw.query_selector('[data-testid="socialContext"]')
             if sc:
                 sc_text = sc.inner_text().lower()
@@ -491,50 +491,59 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                 href = status_link.get_attribute("href") or ""
                 m = re.search(rf"/{clean_peer}/status/(\d+)", href, re.IGNORECASE)
                 if m:
-                    target_status_url = f"https://x.com/{clean_peer}/status/{m.group(1)}"
-                    break
-                    
-        if not target_status_url:
+                    u_status = f"https://x.com/{clean_peer}/status/{m.group(1)}"
+                    if u_status not in target_status_urls:
+                        target_status_urls.append(u_status)
+                        if len(target_status_urls) >= 3:
+                            break
+                            
+        if not target_status_urls:
             return 0
-            
-        print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s latest discussion thread...")
-        page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
-        human_delay(1.5, 2.5)
-        human_scroll(page, steps=1)
-        
-        reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
-        if len(reply_tweets) <= 1:
-            # Only root tweet exists, no replies
-            return 0
-            
+
         existing_users = get_existing_candidate_usernames()
         found_commenters = []
-        for r_tw in reply_tweets[1:]:
-            try:
-                # Check for crypto/spam text
-                text_el = r_tw.query_selector('div[data-testid="tweetText"]')
-                tw_text = (text_el.inner_text() if text_el else "").lower()
-                if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
-                    continue
-            except Exception:
-                pass
+        max_target = max(5, max_leads)
+
+        # 2. Inspect threads of up to 3 original posts
+        for s_idx, target_status_url in enumerate(target_status_urls, 1):
+            if len(found_commenters) >= max_target:
+                break
                 
-            u_link = r_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
-            if u_link:
-                href = u_link.get_attribute("href") or ""
-                u = href.replace("/", "").strip()
-                if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
-                    if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
-                        if u not in found_commenters:
-                            found_commenters.append(u)
-                            if len(found_commenters) >= max_leads:
-                                break
-                                
+            print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s discussion thread ({s_idx}/{len(target_status_urls)})...")
+            page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
+            human_delay(1.5, 2.5)
+            human_scroll(page, steps=random.randint(1, 2))
+            human_delay(1.0, 1.8)
+            
+            reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
+            if len(reply_tweets) <= 1:
+                continue
+
+            for r_tw in reply_tweets[1:]:
+                try:
+                    text_el = r_tw.query_selector('div[data-testid="tweetText"]')
+                    tw_text = (text_el.inner_text() if text_el else "").lower()
+                    if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
+                        continue
+                except Exception:
+                    pass
+                    
+                u_link = r_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                if u_link:
+                    href = u_link.get_attribute("href") or ""
+                    u = href.replace("/", "").strip()
+                    if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
+                        if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
+                            if u not in found_commenters:
+                                found_commenters.append(u)
+                                if len(found_commenters) >= max_target:
+                                    break
+                                    
         if not found_commenters:
             return 0
             
-        print(f"  [Thread Scout] Discovered {len(found_commenters)} active peers talking to @{peer_username}!")
-        return _evaluate_and_store_users(page, found_commenters, max_users=max_leads, source_label=f"peer_commenters:@{clean_peer}")
+        print(f"  [Thread Scout] Discovered {len(found_commenters)} active peers talking to @{peer_username} (target: 5-7)!")
+        return _evaluate_and_store_users(page, found_commenters, max_users=len(found_commenters), source_label=f"peer_commenters:@{clean_peer}")
         
     except Exception as e:
         # Non-critical: never break the follow batch

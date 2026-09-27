@@ -476,7 +476,7 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
                 if random.random() < 0.75:
                     try:
                         from scraper import scout_thread_commenters_on_follow
-                        scout_thread_commenters_on_follow(page, u, max_leads=2)
+                        scout_thread_commenters_on_follow(page, u, max_leads=7)
                     except Exception:
                         pass
 
