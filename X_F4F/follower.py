@@ -472,13 +472,12 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
             success = follow_user(page, u, candidate_meta=c)
             
             if success:
-                # Algorithm 5b: Opportunistic Live Thread Scouting on Follow (в 75% случаев заглядываем в обсуждение)
-                if random.random() < 0.75:
-                    try:
-                        from scraper import scout_thread_commenters_on_follow
-                        scout_thread_commenters_on_follow(page, u, max_leads=7)
-                    except Exception:
-                        pass
+                # Algorithm 5b: Opportunistic Live Thread Scouting on Follow (для 100% зафолловленных)
+                try:
+                    from scraper import scout_thread_commenters_on_follow
+                    scout_thread_commenters_on_follow(page, u, max_leads=7)
+                except Exception:
+                    pass
 
                 # Log-normal distribution around center of min/max delay
                 mean_delay = (MIN_DELAY_SECONDS + MAX_DELAY_SECONDS) / 2.0
