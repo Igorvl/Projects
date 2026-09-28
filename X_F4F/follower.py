@@ -8,6 +8,7 @@ tracks mutual follows, and manages unfollows for non-responders.
 import random
 import time
 import datetime
+import re
 from browser import (
     get_browser_context,
     human_delay,
@@ -357,8 +358,10 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
     """
     Executes unfollow on the already-loaded profile page:
     - Verifies account status (suspended/missing/blocked)
-    - Checks if already not following (Follow/Читать visible)
+    - Locates the Following/Читаю button strictly inside the main profile column
+      (ignoring the right sidebar 'You might like' follow buttons)
     - Clicks Following button & confirms modal (Unfollow/Отписаться)
+    - Only marks 'already_not_following' if the profile header definitely has an exact 'Follow' button
     """
     try:
         # 1. Проверяем, существует ли аккаунт или он заблокирован
@@ -377,50 +380,48 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             log_action(clean_user, "unfollow", success=True, error="account_unavailable")
             return True
 
-        # 2. Ждем монтирования кнопок действий в DOM (до 5 сек)
+        # Ограничиваем область поиска только основной колонкой профиля!
+        # В правой колонке (aside / Who to follow / You might like) ВСЕГДА есть чужие кнопки Follow!
+        col = page.locator('div[data-testid="primaryColumn"]')
+        target_scope = col.first if col.count() > 0 else page
+
+        # 2. Ждем появления кнопок в основной колонке (до 5 сек)
         try:
-            page.wait_for_selector(
+            target_scope.locator(
                 'button[data-testid$="-unfollow"], button[data-testid$="-follow"], '
-                'button:has-text("Following"), button:has-text("Читаю"), '
-                'button:has-text("Follow"), button:has-text("Читать"), button:has-text("Подписаться")',
-                timeout=5000
-            )
+                'button:has-text("Following"), button:has-text("Читаю"), button:has-text("Подписан")'
+            ).first.wait_for(state="visible", timeout=5000)
         except Exception:
             pass
 
-        # 3. Проверяем, возможно мы уже НЕ подписаны (активна кнопка 'Follow' / 'Читать')
-        already_not_following = (
-            page.query_selector('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])') or
-            page.query_selector('button:has-text("Follow")') or
-            page.query_selector('button:has-text("Читать")') or
-            page.query_selector('button:has-text("Подписаться")')
-        )
-        if already_not_following:
-            print(f"  [Follower] Already not following @{clean_user} (Follow/Читать button visible). Marking as unfollowed.")
-            log_action(clean_user, "unfollow", success=True, error="already_not_following")
-            return True
-
-        # 4. Ищем кнопку 'Following' / 'Читаю' (мы подписаны — нужно отписаться)
-        unfollow_btn = (
-            page.query_selector('button[data-testid$="-unfollow"]') or
-            page.query_selector('button:has-text("Following")') or
-            page.query_selector('button:has-text("Читаю")') or
-            page.query_selector('button:has-text("Подписан")') or
-            page.query_selector('button:has-text("Отслеживать")')
-        )
+        # 3. СНАЧАЛА ИЩЕМ КНОПКУ ОТПИСКИ (Following / Читаю / Подписан)
+        unfollow_btn = None
+        # а) По точному data-testid
+        btn_loc = target_scope.locator('button[data-testid$="-unfollow"]')
+        if btn_loc.count() > 0 and btn_loc.first.is_visible():
+            unfollow_btn = btn_loc.first
+        else:
+            # б) По точному тексту внутри основной колонки
+            for txt in ["Following", "Читаю", "Подписан"]:
+                btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
+                if btn_txt.count() > 0 and btn_txt.first.is_visible():
+                    unfollow_btn = btn_txt.first
+                    break
 
         if not unfollow_btn:
-            # Скролл наверх на случай смещения заголовка
+            # Скролл наверх на случай смещения
             try:
                 page.evaluate("window.scrollTo(0, 0)")
                 human_delay(0.6, 1.2)
-                unfollow_btn = (
-                    page.query_selector('button[data-testid$="-unfollow"]') or
-                    page.query_selector('button:has-text("Following")') or
-                    page.query_selector('button:has-text("Читаю")') or
-                    page.query_selector('button:has-text("Подписан")') or
-                    page.query_selector('button:has-text("Отслеживать")')
-                )
+                btn_loc = target_scope.locator('button[data-testid$="-unfollow"]')
+                if btn_loc.count() > 0 and btn_loc.first.is_visible():
+                    unfollow_btn = btn_loc.first
+                else:
+                    for txt in ["Following", "Читаю", "Подписан"]:
+                        btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
+                        if btn_txt.count() > 0 and btn_txt.first.is_visible():
+                            unfollow_btn = btn_txt.first
+                            break
             except Exception:
                 pass
 
@@ -448,13 +449,31 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
                 human_click(page, confirm_btn)
                 human_delay(0.6, 1.4)
 
-            print(f"  [Follower] 🎯 Unfollowed @{clean_user} (organic click)")
+            print(f"  [Follower] 🎯 Successfully unfollowed @{clean_user} (organic click)")
             log_action(clean_user, "unfollow", success=True)
             return True
+
+        # 4. И ТОЛЬКО ЕСЛИ КНОПКИ FOLLOWING НЕТ — проверяем, действительно ли мы уже НЕ подписаны на этого пользователя
+        # (Проверяем строго в шапке профиля target_scope, не путая с боковой панелью)
+        follow_loc = target_scope.locator('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])')
+        already_not_following = False
+        if follow_loc.count() > 0 and follow_loc.first.is_visible():
+            already_not_following = True
         else:
-            print(f"  [Follower] Unfollow button not found for @{clean_user}")
-            log_action(clean_user, "unfollow", success=False, error="button_not_found")
-            return False
+            for txt in ["Follow", "Читать", "Подписаться"]:
+                btn_f = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
+                if btn_f.count() > 0 and btn_f.first.is_visible():
+                    already_not_following = True
+                    break
+
+        if already_not_following:
+            print(f"  [Follower] Verified: already not following @{clean_user} in profile header. Marking as unfollowed.")
+            log_action(clean_user, "unfollow", success=True, error="already_not_following")
+            return True
+
+        print(f"  [Follower] Unfollow button not found for @{clean_user}")
+        log_action(clean_user, "unfollow", success=False, error="button_not_found")
+        return False
     except Exception as e:
         print(f"  [Follower] Error unfollowing @{clean_user}: {e}")
         log_action(clean_user, "unfollow", success=False, error=str(e))
