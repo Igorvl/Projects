@@ -172,14 +172,14 @@ def inspect_user_profile(page, username: str) -> dict:
         if followers_link:
             followers_count = parse_stat_number(followers_link.inner_text())
             
-        # Extract last active date from latest tweet (activity freshness check)
+        # Extract last active date from latest tweet, comments, or replies (activity freshness check)
         days_inactive = None
         last_active_str = None
         try:
-            tweet_times = page.query_selector_all('article[data-testid="tweet"] time')
-            if tweet_times:
+            def extract_freshest_date():
+                tweet_times = page.query_selector_all('article[data-testid="tweet"] time')
                 dates = []
-                for t_el in tweet_times[:3]:
+                for t_el in tweet_times[:5]:
                     dt_val = t_el.get_attribute("datetime")
                     if dt_val:
                         try:
@@ -187,11 +187,36 @@ def inspect_user_profile(page, username: str) -> dict:
                             dates.append(parsed_dt)
                         except Exception:
                             pass
-                if dates:
-                    most_recent = max(dates)
-                    now_utc = datetime.datetime.now(datetime.timezone.utc)
-                    days_inactive = max(0, (now_utc - most_recent).days)
-                    last_active_str = most_recent.strftime("%Y-%m-%d %H:%M:%S")
+                return max(dates) if dates else None
+
+            most_recent = extract_freshest_date()
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            if most_recent:
+                days_inactive = max(0, (now_utc - most_recent).days)
+                last_active_str = most_recent.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Если на главной стене нет свежих постов (days_inactive > 14 или нет твитов вообще):
+            # Проверяем вкладку "Replies" (Комментарии, ответы и дискуссии автора)!
+            # Дизайнер может не выкладывать свои посты, но активно общаться и комментировать других.
+            if days_inactive is None or days_inactive > 14:
+                replies_tab = (
+                    page.query_selector(f'a[href="/{clean_user}/with_replies" i]') or
+                    page.query_selector('a[href$="/with_replies" i]') or
+                    page.query_selector('div[role="tablist"] a:has-text("Replies")') or
+                    page.query_selector('div[role="tablist"] a:has-text("Ответы")')
+                )
+                if replies_tab:
+                    try:
+                        human_click(page, replies_tab)
+                        human_delay(1.2, 2.2)
+                        reply_recent = extract_freshest_date()
+                        if reply_recent:
+                            reply_days = max(0, (now_utc - reply_recent).days)
+                            if days_inactive is None or reply_days < days_inactive:
+                                days_inactive = reply_days
+                                last_active_str = reply_recent.strftime("%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        pass
         except Exception:
             pass
 
