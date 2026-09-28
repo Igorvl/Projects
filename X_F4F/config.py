@@ -124,11 +124,11 @@ RAMP_UP_STAGES = {
     4: {
         "name": "Этап 4 (Целевой боевой максимум с 23 сен)",
         "follows": 300,
-        "unfollows": 300,
+        "unfollows": 220,  # Безопасный суточный потолок отписок (защита от X Churn Detection)
         "likes": 400,
         "batch": (20, 22),
         "pause": (15, 35),
-        "desc": "Полный выход на целевой порог (290–310 follow / 380–420 likes)."
+        "desc": "Полный выход на целевой порог (290–310 follow / 380–420 likes / 220 safe unfollows)."
     }
 }
 

@@ -353,15 +353,14 @@ def check_is_mutual(page, username: str) -> bool:
         print(f"  [Follower] Error checking mutual @{clean_user}: {e}")
         return False
 
-def unfollow_user(page, username: str) -> bool:
-    """Navigates to user profile and unfollows with human curve clicks."""
-    clean_user = username.replace("@", "").strip()
+def unfollow_user_on_current_page(page, clean_user: str) -> bool:
+    """
+    Executes unfollow on the already-loaded profile page:
+    - Verifies account status (suspended/missing/blocked)
+    - Checks if already not following (Follow/Читать visible)
+    - Clicks Following button & confirms modal (Unfollow/Отписаться)
+    """
     try:
-        page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        wait_for_x_page_load(page, ready_selector='button[data-testid$="-unfollow"], button:has-text("Following"), button:has-text("Читаю")', max_wait_sec=6.0, max_retries=2)
-        handle_x_retry_button(page)
-        human_delay(1.5, 3.0)
-
         # 1. Проверяем, существует ли аккаунт или он заблокирован
         page_text = ""
         try:
@@ -370,15 +369,38 @@ def unfollow_user(page, username: str) -> bool:
             pass
 
         if any(msg in page_text for msg in [
-            "Account suspended", "Учетная запись заблокирована",
+            "Account suspended", "Учетная запись заблокирована", "Учетная запись приостановлена",
             "This account doesn’t exist", "Такой учетной записи нет",
             "You’re blocked", "Вы заблокированы"
         ]):
-            print(f"  [Follower] Account @{clean_user} is suspended, blocked or doesn't exist.")
-            log_action(clean_user, "unfollow", success=False, error="account_unavailable")
-            return False
+            print(f"  [Follower] Account @{clean_user} is suspended, blocked or doesn't exist. Marking unfollowed.")
+            log_action(clean_user, "unfollow", success=True, error="account_unavailable")
+            return True
 
-        # 2. Ищем кнопку 'Following' / 'Читаю' (мы подписаны — нужно отписаться)
+        # 2. Ждем монтирования кнопок действий в DOM (до 5 сек)
+        try:
+            page.wait_for_selector(
+                'button[data-testid$="-unfollow"], button[data-testid$="-follow"], '
+                'button:has-text("Following"), button:has-text("Читаю"), '
+                'button:has-text("Follow"), button:has-text("Читать"), button:has-text("Подписаться")',
+                timeout=5000
+            )
+        except Exception:
+            pass
+
+        # 3. Проверяем, возможно мы уже НЕ подписаны (активна кнопка 'Follow' / 'Читать')
+        already_not_following = (
+            page.query_selector('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])') or
+            page.query_selector('button:has-text("Follow")') or
+            page.query_selector('button:has-text("Читать")') or
+            page.query_selector('button:has-text("Подписаться")')
+        )
+        if already_not_following:
+            print(f"  [Follower] Already not following @{clean_user} (Follow/Читать button visible). Marking as unfollowed.")
+            log_action(clean_user, "unfollow", success=True, error="already_not_following")
+            return True
+
+        # 4. Ищем кнопку 'Following' / 'Читаю' (мы подписаны — нужно отписаться)
         unfollow_btn = (
             page.query_selector('button[data-testid$="-unfollow"]') or
             page.query_selector('button:has-text("Following")') or
@@ -387,34 +409,47 @@ def unfollow_user(page, username: str) -> bool:
             page.query_selector('button:has-text("Отслеживать")')
         )
 
-        # 3. Проверяем, возможно мы уже НЕ подписаны (активна кнопка 'Follow' / 'Читать')
-        already_not_following = (
-            page.query_selector('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])') or
-            page.query_selector('button:has-text("Follow")') or
-            page.query_selector('button:has-text("Читать")')
-        )
+        if not unfollow_btn:
+            # Скролл наверх на случай смещения заголовка
+            try:
+                page.evaluate("window.scrollTo(0, 0)")
+                human_delay(0.6, 1.2)
+                unfollow_btn = (
+                    page.query_selector('button[data-testid$="-unfollow"]') or
+                    page.query_selector('button:has-text("Following")') or
+                    page.query_selector('button:has-text("Читаю")') or
+                    page.query_selector('button:has-text("Подписан")') or
+                    page.query_selector('button:has-text("Отслеживать")')
+                )
+            except Exception:
+                pass
 
         if unfollow_btn:
             human_click(page, unfollow_btn)
             human_delay(0.8, 1.8)
 
             # Модальное окно подтверждения отписки (мультиязычное)
+            try:
+                page.wait_for_selector(
+                    'button[data-testid="confirmationSheetConfirm"], '
+                    'div[data-testid="confirmationSheetDialog"] button:has-text("Unfollow"), '
+                    'div[data-testid="confirmationSheetDialog"] button:has-text("Отписаться")',
+                    timeout=4000
+                )
+            except Exception:
+                pass
+
             confirm_btn = (
                 page.query_selector('button[data-testid="confirmationSheetConfirm"]') or
                 page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Unfollow")') or
-                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Отменить")') or
                 page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Отписаться")')
             )
             if confirm_btn:
                 human_click(page, confirm_btn)
-                human_delay(0.5, 1.2)
+                human_delay(0.6, 1.4)
 
-            print(f"  [Follower] Unfollowed @{clean_user} (organic click)")
+            print(f"  [Follower] 🎯 Unfollowed @{clean_user} (organic click)")
             log_action(clean_user, "unfollow", success=True)
-            return True
-        elif already_not_following:
-            print(f"  [Follower] Already not following @{clean_user} (Follow/Читать button visible). Marking as unfollowed.")
-            log_action(clean_user, "unfollow", success=True, error="already_not_following")
             return True
         else:
             print(f"  [Follower] Unfollow button not found for @{clean_user}")
@@ -425,9 +460,25 @@ def unfollow_user(page, username: str) -> bool:
         log_action(clean_user, "unfollow", success=False, error=str(e))
         return False
 
+def unfollow_user(page, username: str) -> bool:
+    """Navigates to user profile and unfollows with human curve clicks."""
+    clean_user = username.replace("@", "").strip()
+    try:
+        page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"], button[data-testid$="-unfollow"], button[data-testid$="-follow"], button:has-text("Following"), button:has-text("Читаю"), button:has-text("Follow")', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
+        return unfollow_user_on_current_page(page, clean_user)
+    except Exception as e:
+        print(f"  [Follower] Navigation error for @{clean_user}: {e}")
+        log_action(clean_user, "unfollow", success=False, error=str(e))
+        return False
+
 def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20) -> list:
     """
     Returns users we followed N+ days ago who still haven't followed back.
+    Prioritizes fresh candidates (0 failed attempts) and oldest follow dates first.
+    Excludes candidates with 3+ failed unfollow attempts.
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -435,8 +486,10 @@ def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20
     cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT username FROM candidates
-        WHERE status = 'followed' AND COALESCE(followed_at, updated_at) <= {ph}
-        ORDER BY COALESCE(followed_at, updated_at) ASC
+        WHERE status = 'followed' 
+          AND COALESCE(unfollow_attempts, 0) < 3
+          AND COALESCE(followed_at, updated_at) <= {ph}
+        ORDER BY COALESCE(unfollow_attempts, 0) ASC, COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}
     """, (cutoff, limit))
     rows = [r[0] for r in cur.fetchall()]
@@ -702,10 +755,11 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
     return mutual_found
 
 
-def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
+def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
     """
     Checks candidates followed N+ days ago, verifies mutual status,
     unfollows non-responders, marks mutuals.
+    Uses single-page DOM inspection to avoid double page loads.
     """
     _, unfollows_today = get_today_counts()
     _, stage_data, _ = get_current_ramp_up()
@@ -719,36 +773,45 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=5):
         print("[Follower] No candidates pending unfollow check.")
         return
 
-    print(f"[Follower] Starting unfollow check for {len(candidates)} candidates...")
+    print(f"[Follower] Starting unfollow check for {len(candidates)} candidates (Today: {unfollows_today}/{daily_unfollow_limit})...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
 
     try:
         for username in candidates:
-            print(f"\n[Follower] Checking mutual for @{username}...")
-            is_mutual = check_is_mutual(page, username)
+            clean_user = username.replace("@", "").strip()
+            print(f"\n[Follower] Inspecting @{clean_user} for reciprocity / unfollow...")
+
+            # 1. Заходим на профиль и проверяем взаимность (один переход вместо двух!)
+            is_mutual = check_is_mutual(page, clean_user)
 
             if is_mutual:
-                # They followed back — mark as mutual, keep following
-                log_action(username, "mutual", success=True)
-                print(f"  [Follower] @{username} followed back — marked as MUTUAL ✅")
+                # Взаимный подписчик — повышаем статус и сохраняем подписку
+                log_action(clean_user, "mutual", success=True)
+                print(f"  [Follower] 🎯 @{clean_user} followed back — marked as MUTUAL ✅")
+                human_delay(2.0, 4.0)
+                continue
+
+            # 2. Weekend Safe-Zone: в Сб и Вс не отписываемся от неответивших, даем дочитать ленту
+            if datetime.datetime.now().weekday() in (5, 6):
+                print(f"  [Follower] 🛡️ Weekend Safe-Zone active: Non-responder unfollow for @{clean_user} postponed to Monday.")
+                human_delay(1.5, 3.0)
+                continue
+
+            # 3. Проверка суточного лимита отписок
+            _, unfollows_today = get_today_counts()
+            if unfollows_today >= daily_unfollow_limit:
+                print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting batch.")
+                break
+
+            # 4. Мы уже на странице профиля! Выполняем отписку на открытой странице без лишней перезагрузки
+            success = unfollow_user_on_current_page(page, clean_user)
+            if success:
+                delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
+                print(f"  [Follower] Human pacing delay: {delay}s...")
+                time.sleep(delay)
             else:
-                # Weekend Safe-Zone: Don't unfollow on Sat(5)/Sun(6) when creators catch up with feeds
-                if datetime.datetime.now().weekday() in (5, 6):
-                    print(f"  [Follower] 🛡️ Weekend Safe-Zone active: Non-responder unfollow for @{username} postponed to Monday.")
-                    continue
+                human_delay(2.0, 4.0)
 
-                # No reciprocity after N days — unfollow
-                _, unfollows_today = get_today_counts()
-                if unfollows_today >= DAILY_UNFOLLOW_LIMIT:
-                    print("[Follower] Daily unfollow limit reached mid-batch. Stopping.")
-                    break
-                success = unfollow_user(page, username)
-                if success:
-                    delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
-                    print(f"  [Follower] Sleeping {delay}s...")
-                    time.sleep(delay)
-
-            human_delay(2.0, 4.0)
     finally:
         ctx.close()
         pw.stop()

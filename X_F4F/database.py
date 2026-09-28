@@ -364,13 +364,15 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
             cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'followed', followed_at = COALESCE(followed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "unfollow" and success:
-        cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
+        if error not in ("already_not_following", "account_unavailable"):
+            cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'unfollowed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
     elif action_type == "unfollow" and not success:
         cur.execute(f"""
             UPDATE candidates 
             SET unfollow_attempts = COALESCE(unfollow_attempts, 0) + 1,
-                status = CASE WHEN COALESCE(unfollow_attempts, 0) + 1 >= 5 THEN 'failed_unfollow' ELSE status END
+                status = CASE WHEN COALESCE(unfollow_attempts, 0) + 1 >= 3 THEN 'failed_unfollow' ELSE status END,
+                updated_at = CURRENT_TIMESTAMP
             WHERE username = {ph}
         """, (username,))
         cur.execute(f"SELECT unfollow_attempts, status FROM candidates WHERE username = {ph}", (username,))
@@ -378,9 +380,9 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
         attempts = row[0] if row else 1
         curr_status = row[1] if row else 'followed'
         if curr_status == 'failed_unfollow':
-            print(f"  [Follower] ⚠️ @{username} reached {attempts}/5 failed unfollow attempts -> marked as 'failed_unfollow'. Bot will not touch this account anymore.")
+            print(f"  [Follower] ⚠️ @{username} reached {attempts}/3 failed unfollow attempts -> marked as 'failed_unfollow'. Bot will not touch this account anymore.")
         else:
-            print(f"  [Follower] Unfollow attempt {attempts}/5 failed for @{username}.")
+            print(f"  [Follower] Unfollow attempt {attempts}/3 failed for @{username}.")
     elif action_type == "mutual":
         cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
         cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))

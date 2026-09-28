@@ -124,13 +124,18 @@ def run_single_session(profile_name: str):
         except Exception as e:
             print(f"[Orchestrator] Day 4 Funnel List notice: {e}")
 
-    # 5. Вечерний аудит взаимности (после 18:00) с Weekend Safe-Zone
-    if now.hour >= 18:
-        print("\n[Orchestrator] Evening routine: checking reciprocal follows & non-responders...")
+    # 5. Органический аудит взаимности и отписка от неответивших (72ч дедлайн, равномерно по всем сессиям)
+    _, unfollows_today = get_today_counts()
+    _, stage_data, _ = get_current_ramp_up()
+    daily_unfollow_limit = stage_data["unfollows"]
+    if unfollows_today < daily_unfollow_limit:
+        remaining_unfollows = daily_unfollow_limit - unfollows_today
+        unfollow_session_target = min(random.randint(8, 14), remaining_unfollows)
+        print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit})...")
         try:
-            run_unfollow_batch(profile_name=profile_name, batch_size=5)
+            run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
         except Exception as e:
-            print(f"[Orchestrator] Mutual check error: {e}")
+            print(f"[Orchestrator] Mutual/Unfollow batch error: {e}")
 
     # 6. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
     pw = ctx = None
@@ -228,6 +233,19 @@ def run_passive_intelligence_session(profile_name: str):
                 pw.stop()
             except Exception:
                 pass
+
+    # 4. Безопасная планомерная отписка от неответивших в дневном фоновом режиме
+    _, unfollows_today = get_today_counts()
+    _, stage_data, _ = get_current_ramp_up()
+    daily_unfollow_limit = stage_data["unfollows"]
+    if unfollows_today < daily_unfollow_limit:
+        remaining_unfollows = daily_unfollow_limit - unfollows_today
+        unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
+        print(f"\n[Intelligence] Paced Unfollow review (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit})...")
+        try:
+            run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
+        except Exception as e:
+            print(f"[Intelligence] Unfollow batch notice: {e}")
 
 def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
     """
