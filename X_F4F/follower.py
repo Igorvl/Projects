@@ -926,17 +926,17 @@ def run_nudge_batch(profile_name="test_igorvl777", batch_size=3):
         print(f"[Nudge] Daily like limit reached ({today_likes}/{DAILY_LIKE_LIMIT}). Postponing nudge batch.")
         return
 
-    candidates = get_candidates_for_nudge(days=3, limit=batch_size)
+    candidates = get_candidates_for_nudge(days=1, limit=batch_size)
     if not candidates:
-        print("[Nudge] No candidates currently due for Day 3 Nudge.")
+        print("[Nudge] No candidates currently due for Day 2 Nudge.")
         return
 
-    print(f"[Nudge] Starting Day 3 Nudge batch for {len(candidates)} candidates...")
+    print(f"[Nudge] Starting Day 2 Nudge batch for {len(candidates)} candidates...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     try:
         for c in candidates:
             u = c["username"]
-            print(f"\n[Nudge] Processing Day 3 Nudge for @{u} (Score: {c.get('score', 0)})...")
+            print(f"\n[Nudge] Processing Day 2 Nudge for @{u} (Score: {c.get('score', 0)})...")
             success = nudge_user_like(page, u)
             if success:
                 delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
@@ -946,11 +946,11 @@ def run_nudge_batch(profile_name="test_igorvl777", batch_size=3):
     finally:
         ctx.close()
         pw.stop()
-        print("\n[Nudge] Day 3 Nudge batch completed.")
+        print("\n[Nudge] Day 2 Nudge batch completed.")
 
 def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
     """
-    Executes Day 4 Last-Chance Ego-List addition for candidates followed 4-5 days ago.
+    Executes Day 3 Last-Chance Ego-List addition for candidates followed 2+ days ago (48h+).
     """
     from database import get_candidates_for_funnel_list_add, get_today_list_adds
     from config import DAILY_LIST_ADD_LIMIT, EGO_LIST_DEFAULT_NAME
@@ -961,7 +961,7 @@ def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
         print(f"[Funnel List] Daily list add limit reached ({today_adds}/{DAILY_LIST_ADD_LIMIT}). Postponing.")
         return
 
-    candidates = get_candidates_for_funnel_list_add(days=4, limit=batch_size)
+    candidates = get_candidates_for_funnel_list_add(days=2, limit=batch_size)
     if not candidates:
         print("[Funnel List] No candidates currently due for Day 4 Ego-List addition.")
         return

@@ -409,9 +409,9 @@ def get_today_list_adds() -> int:
     conn.close()
     return row[0] if row else 0
 
-def get_candidates_for_nudge(days: int = 3, limit: int = 5) -> list:
+def get_candidates_for_nudge(days: int = 1, limit: int = 5) -> list:
     """
-    Returns candidates followed N+ days ago (Day 3 Nudge) who haven't received
+    Returns candidates followed N+ days ago (Day 2 Nudge: 24h+) who haven't received
     a second-wave nudge like yet and haven't followed back.
     """
     conn = get_connection()
@@ -430,9 +430,9 @@ def get_candidates_for_nudge(days: int = 3, limit: int = 5) -> list:
     conn.close()
     return rows
 
-def get_candidates_for_funnel_list_add(days: int = 4, limit: int = 5) -> list:
+def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
     """
-    Returns candidates followed N+ days ago (Day 4 Ego-List) who haven't received
+    Returns candidates followed N+ days ago (Day 3 Ego-List: 48h+) who haven't received
     a list addition yet and haven't followed back.
     """
     conn = get_connection()
