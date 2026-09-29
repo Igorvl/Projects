@@ -451,6 +451,25 @@ def get_candidates_for_funnel_list_add(days: int = 4, limit: int = 5) -> list:
     conn.close()
     return rows
 
+def get_stale_unfollow_count(days: int = 3) -> int:
+    """
+    Returns count of candidates followed N+ days ago who have not followed back
+    and have fewer than 3 failed unfollow attempts.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    cur.execute(f"""
+        SELECT COUNT(*) FROM candidates
+        WHERE status = 'followed'
+          AND COALESCE(unfollow_attempts, 0) < 3
+          AND COALESCE(followed_at, updated_at) <= {ph}
+    """, (cutoff,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
 def get_candidates_for_list_bombing(limit: int = 10, min_score: int = 50) -> list:
     """
     Retrieves qualified candidates (status 'queued' or 'followed') who have NOT yet

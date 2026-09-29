@@ -13,7 +13,13 @@ import sys
 import time
 import random
 import datetime
-from database import get_connection, get_candidates_for_follow, get_queue_count, DB_TYPE
+from database import (
+    get_connection,
+    get_candidates_for_follow,
+    get_queue_count,
+    get_stale_unfollow_count,
+    DB_TYPE
+)
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
@@ -74,7 +80,19 @@ def run_single_session(profile_name: str):
         
     remaining_today = daily_follow_limit - follows_today
     min_b, max_b = stage_data["batch"]
-    batch_target = min(random.randint(min_b, max_b), remaining_today)
+
+    # 0. Проверяем размер очереди кандидатов, ожидающих отписки (>72ч дедлайн)
+    stale_unfollow_backlog = get_stale_unfollow_count(days=3)
+    pruning_priority_mode = (stale_unfollow_backlog > 80)
+
+    if pruning_priority_mode:
+        # Режим приоритетной разгрузки (Pruning Priority Mode)
+        # Снижаем пачку подписок до 8-12, чтобы не раздувать Following и форсировать очистку
+        batch_target = min(random.randint(8, 12), remaining_today)
+        print(f"[Orchestrator] ⚖️ Pruning Priority Mode ACTIVE: {stale_unfollow_backlog} candidates waiting for unfollow (72h+).")
+        print(f"[Orchestrator] Scaled down session follow target to {batch_target} to invert Following/Followers ratio.")
+    else:
+        batch_target = min(random.randint(min_b, max_b), remaining_today)
     
     print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
     
@@ -107,20 +125,22 @@ def run_single_session(profile_name: str):
         
     # 3. Воронка Дожима — День 3: Second-Wave Nudge (повторный лайк на свежий твит)
     now = datetime.datetime.now()
-    if 12 <= now.hour <= 20:
+    if 10 <= now.hour <= 22:
         try:
             from follower import run_nudge_batch
-            print("\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review...")
-            run_nudge_batch(profile_name=profile_name, batch_size=random.randint(2, 4))
+            nudge_batch = random.randint(4, 7) if pruning_priority_mode else random.randint(2, 4)
+            print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review ({nudge_batch} candidates)...")
+            run_nudge_batch(profile_name=profile_name, batch_size=nudge_batch)
         except Exception as e:
             print(f"[Orchestrator] Day 3 Nudge notice: {e}")
 
     # 4. Воронка Дожима — День 4: Last-Chance Ego-List (дожим системным пушем тщеславия)
-    if 14 <= now.hour <= 21:
+    if 10 <= now.hour <= 22:
         try:
             from follower import run_funnel_list_batch
-            print("\n[Orchestrator] Funnel Stage 3: Day 4 Ego-List review...")
-            run_funnel_list_batch(profile_name=profile_name, batch_size=random.randint(2, 4))
+            list_batch = random.randint(3, 5) if pruning_priority_mode else random.randint(2, 3)
+            print(f"\n[Orchestrator] Funnel Stage 3: Day 4 Ego-List review ({list_batch} candidates)...")
+            run_funnel_list_batch(profile_name=profile_name, batch_size=list_batch)
         except Exception as e:
             print(f"[Orchestrator] Day 4 Funnel List notice: {e}")
 
@@ -130,8 +150,11 @@ def run_single_session(profile_name: str):
     daily_unfollow_limit = stage_data["unfollows"]
     if unfollows_today < daily_unfollow_limit:
         remaining_unfollows = daily_unfollow_limit - unfollows_today
-        unfollow_session_target = min(random.randint(8, 14), remaining_unfollows)
-        print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit})...")
+        if pruning_priority_mode:
+            unfollow_session_target = min(random.randint(18, 25), remaining_unfollows)
+        else:
+            unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
+        print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
         try:
             run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
         except Exception as e:

@@ -13,13 +13,16 @@ from browser import (
     human_delay,
     human_click,
     human_scroll,
-    human_type
+    human_type,
+    wait_for_x_page_load,
+    handle_x_retry_button
 )
 from config import (
     DAILY_LIST_ADD_LIMIT,
     EGO_LIST_DEFAULT_NAME,
     EGO_LIST_MIN_SCORE,
-    LIST_ADD_DELAY_SECONDS
+    LIST_ADD_DELAY_SECONDS,
+    TARGET_ACCOUNT
 )
 from database import (
     get_candidates_for_list_bombing,
@@ -34,12 +37,33 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
     """
     print(f"[List Bomber] Verifying existence of public list: '{list_name}'...")
     try:
-        page.goto("https://x.com/i/lists", wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 3.5)
+        # Check target account lists directly first
+        page.goto(f"https://x.com/{TARGET_ACCOUNT}/lists", wait_until="domcontentloaded", timeout=20000)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=6.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
 
-        # Check if list name is already present on page
-        page_text = page.inner_text("body")
-        if list_name.lower() in page_text.lower() or "Frontier Designers" in page_text:
+        try:
+            page_text = page.inner_text("body")
+        except Exception:
+            page_text = ""
+
+        if list_name.lower() in page_text.lower() or "frontier designers" in page_text.lower():
+            print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists on @{TARGET_ACCOUNT}/lists.")
+            return True
+
+        # Check /i/lists
+        page.goto("https://x.com/i/lists", wait_until="domcontentloaded", timeout=20000)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=6.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
+
+        try:
+            page_text = page.inner_text("body")
+        except Exception:
+            page_text = ""
+
+        if list_name.lower() in page_text.lower() or "frontier designers" in page_text.lower():
             print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists.")
             return True
 
@@ -50,7 +74,8 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
         if not create_btn:
             # Fallback direct URL
             page.goto("https://x.com/i/lists/create", wait_until="domcontentloaded", timeout=15000)
-            human_delay(2.0, 3.0)
+            wait_for_x_page_load(page, max_wait_sec=5.0)
+            human_delay(1.5, 2.5)
         else:
             human_click(page, create_btn)
             human_delay(1.5, 2.5)
@@ -78,7 +103,12 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
             human_delay(0.5, 1.0)
 
         # Click Save / Create button
-        save_btn = page.query_selector('button[data-testid="listCreateSaveButton"]') or page.query_selector('button:has-text("Save")') or page.query_selector('button:has-text("Сохранить")')
+        save_btn = (
+            page.query_selector('button[data-testid="listCreateSaveButton"]') or
+            page.query_selector('button[role="button"]:has-text("Save")') or
+            page.query_selector('button[role="button"]:has-text("Done")') or
+            page.query_selector('button:has-text("Сохранить")')
+        )
         if save_btn:
             human_click(page, save_btn)
             human_delay(2.0, 3.5)
@@ -103,7 +133,9 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        human_delay(2.0, 3.5)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=6.0)
+        handle_x_retry_button(page)
+        human_delay(1.5, 3.0)
 
         # 1. Locate user actions '...' button in profile header
         actions_btn = page.query_selector('button[data-testid="userActions"]')
@@ -144,7 +176,7 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
         if list_entry.count() == 0:
             print(f"  [List Bomber] List '{list_name}' not available in selection modal for @{clean_user}")
             close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]')
-            if close_btn.count() > 0:
+            if close_btn.count() > 0 and close_btn.first.is_visible():
                 human_click(page, close_btn.first)
             log_action(clean_user, "list_add", success=False, error="list_not_in_modal")
             return False
@@ -154,12 +186,8 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
         human_delay(0.8, 1.5)
 
         # 4. Click Save button in modal
-        save_btn = (
-            modal.locator('button[data-testid="listSaveButton"]') or
-            modal.locator('button:has-text("Save")') or
-            modal.locator('button:has-text("Сохранить")')
-        )
-        if save_btn.count() > 0:
+        save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Save"), button:has-text("Done"), button:has-text("Сохранить")')
+        if save_btn.count() > 0 and save_btn.first.is_visible():
             human_click(page, save_btn.first)
             human_delay(1.5, 2.5)
             print(f"  [List Bomber] 🏆 Added @{clean_user} to public list '{list_name}'! (Push notification triggered)")
@@ -167,7 +195,7 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             return True
         else:
             close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]')
-            if close_btn.count() > 0:
+            if close_btn.count() > 0 and close_btn.first.is_visible():
                 human_click(page, close_btn.first)
             print(f"  [List Bomber] 🏆 Added @{clean_user} to list (auto-close applied)!")
             log_action(clean_user, "list_add", success=True)

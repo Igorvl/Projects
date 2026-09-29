@@ -380,9 +380,34 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             log_action(clean_user, "unfollow", success=True, error="account_unavailable")
             return True
 
+        # Если страница вообще пустая (сбой сети, таймаут рендера, пустой body) — пробуем нажать Retry
+        if len(page_text) < 50:
+            if handle_x_retry_button(page):
+                human_delay(2.5, 4.0)
+                try:
+                    page_text = page.inner_text("body").strip()
+                except Exception:
+                    pass
+
+            if len(page_text) < 50:
+                print(f"  [Follower] ⚠️ Profile page for @{clean_user} is blank / slow to load (network/VPN lag). Skipping without penalty.")
+                return False
+
+        # Проверка временного глитча сервера X ('Try again')
+        if "Try again" in page_text or "Попробовать снова" in page_text or "Something went wrong" in page_text:
+            if handle_x_retry_button(page):
+                human_delay(2.5, 4.0)
+                try:
+                    page_text = page.inner_text("body").strip()
+                except Exception:
+                    pass
+            if "Try again" in page_text or "Something went wrong" in page_text:
+                print(f"  [Follower] ⚠️ Temporary X server glitch ('Try again') for @{clean_user}. Skipping without penalty.")
+                return False
+
         # Ограничиваем область поиска только основной колонкой профиля!
         # В правой колонке (aside / Who to follow / You might like) ВСЕГДА есть чужие кнопки Follow!
-        col = page.locator('div[data-testid="primaryColumn"]')
+        col = page.locator('div[data-testid="primaryColumn"], main[role="main"]')
         target_scope = col.first if col.count() > 0 else page
 
         # 2. Ждем появления кнопок в основной колонке (до 5 сек)
@@ -401,12 +426,16 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
         if btn_loc.count() > 0 and btn_loc.first.is_visible():
             unfollow_btn = btn_loc.first
         else:
-            # б) По точному тексту внутри основной колонки
-            for txt in ["Following", "Читаю", "Подписан"]:
-                btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
-                if btn_txt.count() > 0 and btn_txt.first.is_visible():
-                    unfollow_btn = btn_txt.first
-                    break
+            # б) По aria-label или тексту внутри основной колонки
+            aria_loc = target_scope.locator('button[aria-label*="Following" i], button[aria-label*="Читаю" i]')
+            if aria_loc.count() > 0 and aria_loc.first.is_visible():
+                unfollow_btn = aria_loc.first
+            else:
+                for txt in ["Following", "Читаю", "Подписан"]:
+                    btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}", re.I))
+                    if btn_txt.count() > 0 and btn_txt.first.is_visible():
+                        unfollow_btn = btn_txt.first
+                        break
 
         if not unfollow_btn:
             # Скролл наверх на случай смещения
@@ -417,11 +446,15 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
                 if btn_loc.count() > 0 and btn_loc.first.is_visible():
                     unfollow_btn = btn_loc.first
                 else:
-                    for txt in ["Following", "Читаю", "Подписан"]:
-                        btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
-                        if btn_txt.count() > 0 and btn_txt.first.is_visible():
-                            unfollow_btn = btn_txt.first
-                            break
+                    aria_loc = target_scope.locator('button[aria-label*="Following" i], button[aria-label*="Читаю" i]')
+                    if aria_loc.count() > 0 and aria_loc.first.is_visible():
+                        unfollow_btn = aria_loc.first
+                    else:
+                        for txt in ["Following", "Читаю", "Подписан"]:
+                            btn_txt = target_scope.get_by_role("button", name=re.compile(rf"^{txt}", re.I))
+                            if btn_txt.count() > 0 and btn_txt.first.is_visible():
+                                unfollow_btn = btn_txt.first
+                                break
             except Exception:
                 pass
 
@@ -460,11 +493,15 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
         if follow_loc.count() > 0 and follow_loc.first.is_visible():
             already_not_following = True
         else:
-            for txt in ["Follow", "Читать", "Подписаться"]:
-                btn_f = target_scope.get_by_role("button", name=re.compile(rf"^{txt}$", re.I))
-                if btn_f.count() > 0 and btn_f.first.is_visible():
-                    already_not_following = True
-                    break
+            aria_follow = target_scope.locator('button[aria-label*="Follow @" i], button[aria-label*="Читать @" i]')
+            if aria_follow.count() > 0 and aria_follow.first.is_visible():
+                already_not_following = True
+            else:
+                for txt in ["Follow", "Читать", "Подписаться"]:
+                    btn_f = target_scope.get_by_role("button", name=re.compile(rf"^{txt}\b", re.I))
+                    if btn_f.count() > 0 and btn_f.first.is_visible():
+                        already_not_following = True
+                        break
 
         if already_not_following:
             print(f"  [Follower] Verified: already not following @{clean_user} in profile header. Marking as unfollowed.")
