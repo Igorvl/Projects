@@ -369,6 +369,61 @@ def wait_for_x_page_load(page, ready_selector=None, max_wait_sec=8.0, max_retrie
 
     return False
 
+def test_x_connectivity(page=None, max_wait_sec=6.0) -> bool:
+    """
+    Tests active network connection to x.com.
+    Returns True if connection is alive and responding, False if dead/degraded.
+    """
+    # 1. Fast check via page evaluate if page is alive
+    if page:
+        try:
+            res = page.evaluate("""
+                () => fetch('https://x.com/manifest.json', { method: 'GET', cache: 'no-cache' })
+                    .then(r => r.status < 500)
+                    .catch(() => false)
+            """)
+            if res:
+                return True
+        except Exception:
+            pass
+
+    # 2. Fast Python HTTP check to x.com:443
+    import urllib.request
+    try:
+        req = urllib.request.Request("https://x.com", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        with urllib.request.urlopen(req, timeout=max_wait_sec) as resp:
+            return resp.status < 500
+    except Exception:
+        return False
+
+def wait_for_x_channel_recovery(page=None, max_standby_min=15, check_interval_sec=20) -> bool:
+    """
+    Enters standby mode when X connection is broken/unstable.
+    Pings X every check_interval_sec until 2 consecutive successful checks,
+    or until max_standby_min timeout.
+    """
+    print(f"\n[Watchdog] 📡 X connection unstable / channel degraded.")
+    print(f"[Watchdog] ⏸️ Entering channel recovery standby mode (checking every {check_interval_sec}s, max {max_standby_min}m)...")
+    
+    start_wait = time.time()
+    consecutive_success = 0
+    
+    while (time.time() - start_wait) < (max_standby_min * 60):
+        time.sleep(check_interval_sec)
+        if test_x_connectivity(page, max_wait_sec=6.0):
+            consecutive_success += 1
+            print(f"[Watchdog] 🟢 Probe {consecutive_success}/2 successful to x.com...")
+            if consecutive_success >= 2:
+                print(f"[Watchdog] ✅ Channel restored and stable! Resuming operations.\n")
+                return True
+        else:
+            consecutive_success = 0
+            elapsed = int(time.time() - start_wait)
+            print(f"[Watchdog] ⏳ Channel still down/degraded ({elapsed}s elapsed). Waiting...")
+
+    print(f"[Watchdog] ❌ Channel recovery timed out after {max_standby_min}m.")
+    return False
+
 
 
 if __name__ == "__main__":

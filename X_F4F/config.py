@@ -160,7 +160,7 @@ TRI_TOUCH_PAUSE_BEFORE_FOLLOW = (6, 12)  # Финальная пауза пер�
 
 # Настройки Схемы 3: «Тщеславные списки» (Ego-List Bombing)
 DAILY_LIST_ADD_LIMIT = 35      # Суточная квота добавлений в списки (отдельный счетчик в X)
-EGO_LIST_DEFAULT_NAME = "✦ Top 1% Frontier Designers 2026"  # Основной публичный статусный список
+EGO_LIST_DEFAULT_NAME = "✦ Top 1% Designers 2026"  # Основной публичный статусный список (макс. 25 симв. в X)
 EGO_LIST_MIN_SCORE = 50        # Минимальный скор кандидата для включения в список
 LIST_ADD_DELAY_SECONDS = (30, 60) # Случайная пауза между добавлениями в список
 

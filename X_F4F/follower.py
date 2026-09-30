@@ -16,7 +16,9 @@ from browser import (
     human_scroll,
     human_idle_noise,
     handle_x_retry_button,
-    wait_for_x_page_load
+    wait_for_x_page_load,
+    test_x_connectivity,
+    wait_for_x_channel_recovery
 )
 from config import (
     DAILY_FOLLOW_LIMIT,
@@ -330,47 +332,93 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
         log_action(clean_user, "follow", success=False, error=str(e))
         return False
 
-def check_is_mutual(page, username: str) -> bool:
+def check_is_mutual(page, username: str):
     """
-    Checks if user follows us back.
-    X shows 'Follows you' / 'Читает вас' badge on their profile page.
+    Checks if user follows us back on their profile page.
+    Returns:
+      True  -> Verified mutual ('Follows you' / 'Читает вас')
+      False -> Verified NOT mutual (profile page loaded successfully)
+      None  -> Network / connection / channel failure (profile failed to load).
+               DO NOT treat as non-mutual! DO NOT penalize!
     """
     clean_user = username.replace("@", "").strip()
-    try:
-        page.goto(f"https://x.com/{clean_user}", wait_until="domcontentloaded", timeout=20000)
-        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=6.0, max_retries=2)
-        handle_x_retry_button(page)
-        human_delay(1.5, 3.0)
-        
-        # 1. Check official data-testid selector
-        indicator = page.locator('[data-testid="userFollowIndicator"]')
-        if indicator.count() > 0 and indicator.first.is_visible():
-            return True
-            
-        # 2. Multilingual text fallback (EN: 'Follows you', RU: 'Читает вас')
-        page_text = page.inner_text("body")
-        return "Follows you" in page_text or "Читает вас" in page_text
-    except Exception as e:
-        print(f"  [Follower] Error checking mutual @{clean_user}: {e}")
-        return False
+    profile_url = f"https://x.com/{clean_user}"
+    
+    max_nav_attempts = 2
+    for attempt in range(1, max_nav_attempts + 1):
+        try:
+            page.goto(profile_url, wait_until="domcontentloaded", timeout=25000)
+            wait_for_x_page_load(
+                page, 
+                ready_selector='div[data-testid="UserName"], div[data-testid="primaryColumn"], main[role="main"]',
+                max_wait_sec=8.0, 
+                max_retries=2
+            )
+            handle_x_retry_button(page)
+            human_delay(1.0, 2.0)
 
-def unfollow_user_on_current_page(page, clean_user: str) -> bool:
+            page_text = ""
+            try:
+                page_text = page.inner_text("body")
+            except Exception:
+                pass
+
+            is_net_error = any(err in page_text for err in [
+                "ERR_CONNECTION", "ERR_TIMED_OUT", "ERR_NAME_NOT_RESOLVED", 
+                "can't be reached", "Не удается получить доступ", "No internet",
+                "DNS_PROBE", "Connection reset", "Connection refused"
+            ])
+
+            if len(page_text) < 50 or is_net_error or "Try again" in page_text or "Something went wrong" in page_text:
+                if handle_x_retry_button(page):
+                    human_delay(2.0, 3.5)
+                    try:
+                        page_text = page.inner_text("body")
+                    except Exception:
+                        pass
+
+                if len(page_text) < 50 or is_net_error or "Try again" in page_text or "Something went wrong" in page_text:
+                    print(f"  [Follower] ⚠️ Channel to X unstable during navigation to @{clean_user} (attempt {attempt}/{max_nav_attempts}).")
+                    channel_ok = wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+                    if not channel_ok:
+                        return None
+                    continue
+
+            # Profile loaded successfully! Check mutual indicator
+            indicator = page.locator('[data-testid="userFollowIndicator"]')
+            if indicator.count() > 0 and indicator.first.is_visible():
+                return True
+
+            if "Follows you" in page_text or "Читает вас" in page_text:
+                return True
+
+            return False
+
+        except Exception as e:
+            print(f"  [Follower] ⚠️ Navigation error for @{clean_user}: {e}")
+            channel_ok = wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+            if not channel_ok:
+                return None
+
+    return None
+
+def unfollow_user_on_current_page(page, clean_user: str):
     """
     Executes unfollow on the already-loaded profile page:
     - Verifies account status (suspended/missing/blocked)
     - Locates the Following/Читаю button strictly inside the main profile column
-      (ignoring the right sidebar 'You might like' follow buttons)
-    - Clicks Following button & confirms modal (Unfollow/Отписаться)
-    - Only marks 'already_not_following' if the profile header definitely has an exact 'Follow' button
+    - Returns True on successful unfollow or already-not-following / suspended
+    - Returns None if channel/network lag prevented verifying the button (NO PENALTY!)
+    - Returns False only on real logic failure
     """
     try:
-        # 1. Проверяем, существует ли аккаунт или он заблокирован
         page_text = ""
         try:
             page_text = page.inner_text("body")
         except Exception:
             pass
 
+        # 1. Account status
         if any(msg in page_text for msg in [
             "Account suspended", "Учетная запись заблокирована", "Учетная запись приостановлена",
             "This account doesn’t exist", "Такой учетной записи нет",
@@ -380,53 +428,42 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             log_action(clean_user, "unfollow", success=True, error="account_unavailable")
             return True
 
-        # Если страница вообще пустая (сбой сети, таймаут рендера, пустой body) — пробуем нажать Retry
-        if len(page_text) < 50:
+        # Check for network error page or blank body
+        is_net_error = any(err in page_text for err in [
+            "ERR_CONNECTION", "ERR_TIMED_OUT", "ERR_NAME_NOT_RESOLVED", 
+            "can't be reached", "Не удается получить доступ", "No internet",
+            "DNS_PROBE", "Connection reset", "Connection refused"
+        ])
+        if len(page_text) < 50 or is_net_error or "Try again" in page_text or "Something went wrong" in page_text:
             if handle_x_retry_button(page):
                 human_delay(2.5, 4.0)
                 try:
-                    page_text = page.inner_text("body").strip()
+                    page_text = page.inner_text("body")
                 except Exception:
                     pass
+            if len(page_text) < 50 or is_net_error or "Try again" in page_text or "Something went wrong" in page_text:
+                print(f"  [Follower] ⚠️ Network / server glitch for @{clean_user}. Triggering channel recovery (NO PENALTY).")
+                wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+                return None
 
-            if len(page_text) < 50:
-                print(f"  [Follower] ⚠️ Profile page for @{clean_user} is blank / slow to load (network/VPN lag). Skipping without penalty.")
-                return False
-
-        # Проверка временного глитча сервера X ('Try again')
-        if "Try again" in page_text or "Попробовать снова" in page_text or "Something went wrong" in page_text:
-            if handle_x_retry_button(page):
-                human_delay(2.5, 4.0)
-                try:
-                    page_text = page.inner_text("body").strip()
-                except Exception:
-                    pass
-            if "Try again" in page_text or "Something went wrong" in page_text:
-                print(f"  [Follower] ⚠️ Temporary X server glitch ('Try again') for @{clean_user}. Skipping without penalty.")
-                return False
-
-        # Ограничиваем область поиска только основной колонкой профиля!
-        # В правой колонке (aside / Who to follow / You might like) ВСЕГДА есть чужие кнопки Follow!
+        # 2. Check profile header mounting
         col = page.locator('div[data-testid="primaryColumn"], main[role="main"]')
         target_scope = col.first if col.count() > 0 else page
 
-        # 2. Ждем появления кнопок в основной колонке (до 5 сек)
-        try:
-            target_scope.locator(
-                'button[data-testid$="-unfollow"], button[data-testid$="-follow"], '
-                'button:has-text("Following"), button:has-text("Читаю"), button:has-text("Подписан")'
-            ).first.wait_for(state="visible", timeout=5000)
-        except Exception:
-            pass
+        user_name_loc = target_scope.locator('div[data-testid="UserName"]')
+        if user_name_loc.count() == 0 or not user_name_loc.first.is_visible():
+            try:
+                user_name_loc.first.wait_for(state="visible", timeout=6000)
+            except Exception:
+                print(f"  [Follower] ⚠️ Profile header not rendered for @{clean_user} (network/hydration lag). Skipping without penalty.")
+                return None
 
-        # 3. СНАЧАЛА ИЩЕМ КНОПКУ ОТПИСКИ (Following / Читаю / Подписан)
+        # 3. Locate Following / Читаю / Подписан button
         unfollow_btn = None
-        # а) По точному data-testid
         btn_loc = target_scope.locator('button[data-testid$="-unfollow"]')
         if btn_loc.count() > 0 and btn_loc.first.is_visible():
             unfollow_btn = btn_loc.first
         else:
-            # б) По aria-label или тексту внутри основной колонки
             aria_loc = target_scope.locator('button[aria-label*="Following" i], button[aria-label*="Читаю" i]')
             if aria_loc.count() > 0 and aria_loc.first.is_visible():
                 unfollow_btn = aria_loc.first
@@ -438,10 +475,9 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
                         break
 
         if not unfollow_btn:
-            # Скролл наверх на случай смещения
             try:
                 page.evaluate("window.scrollTo(0, 0)")
-                human_delay(0.6, 1.2)
+                human_delay(0.5, 1.0)
                 btn_loc = target_scope.locator('button[data-testid$="-unfollow"]')
                 if btn_loc.count() > 0 and btn_loc.first.is_visible():
                     unfollow_btn = btn_loc.first
@@ -462,7 +498,6 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             human_click(page, unfollow_btn)
             human_delay(0.8, 1.8)
 
-            # Модальное окно подтверждения отписки (мультиязычное)
             try:
                 page.wait_for_selector(
                     'button[data-testid="confirmationSheetConfirm"], '
@@ -486,8 +521,7 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             log_action(clean_user, "unfollow", success=True)
             return True
 
-        # 4. И ТОЛЬКО ЕСЛИ КНОПКИ FOLLOWING НЕТ — проверяем, действительно ли мы уже НЕ подписаны на этого пользователя
-        # (Проверяем строго в шапке профиля target_scope, не путая с боковой панелью)
+        # 4. Check if already not following (exact Follow button in profile header)
         follow_loc = target_scope.locator('button[data-testid$="-follow"]:not([data-testid$="-unfollow"])')
         already_not_following = False
         if follow_loc.count() > 0 and follow_loc.first.is_visible():
@@ -508,13 +542,13 @@ def unfollow_user_on_current_page(page, clean_user: str) -> bool:
             log_action(clean_user, "unfollow", success=True, error="already_not_following")
             return True
 
-        print(f"  [Follower] Unfollow button not found for @{clean_user}")
-        log_action(clean_user, "unfollow", success=False, error="button_not_found")
-        return False
+        # If header rendered but buttons not ready yet -> lag, do not penalize!
+        print(f"  [Follower] ⚠️ Action buttons not visible for @{clean_user} (DOM lag). Skipping without penalty.")
+        return None
+
     except Exception as e:
-        print(f"  [Follower] Error unfollowing @{clean_user}: {e}")
-        log_action(clean_user, "unfollow", success=False, error=str(e))
-        return False
+        print(f"  [Follower] ⚠️ Error unfollowing @{clean_user}: {e}. Skipping without penalty.")
+        return None
 
 def unfollow_user(page, username: str) -> bool:
     """Navigates to user profile and unfollows with human curve clicks."""
@@ -840,6 +874,16 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
             # 1. Заходим на профиль и проверяем взаимность (один переход вместо двух!)
             is_mutual = check_is_mutual(page, clean_user)
 
+            if is_mutual is None:
+                # Сетевой сбой канала связи с X — ждем восстановления канала и повторяем
+                print(f"  [Follower] 📡 Connection to X dropped during @{clean_user}. Waiting for channel recovery...")
+                recovered = wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+                if recovered:
+                    is_mutual = check_is_mutual(page, clean_user)
+                if is_mutual is None:
+                    print(f"  [Follower] ⚠️ X channel remains unstable. Postponing remaining unfollows to avoid false penalties.")
+                    break
+
             if is_mutual:
                 # Взаимный подписчик — повышаем статус и сохраняем подписку
                 log_action(clean_user, "mutual", success=True)
@@ -861,7 +905,19 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
 
             # 4. Мы уже на странице профиля! Выполняем отписку на открытой странице без лишней перезагрузки
             success = unfollow_user_on_current_page(page, clean_user)
-            if success:
+            if success is None:
+                # Сбой сети или задержка рендера кнопок — ждем восстановления канала и повторяем для ЭТОГО ЖЕ кандидата
+                print(f"  [Follower] 📡 Action button delayed by network for @{clean_user}. Testing channel...")
+                recovered = wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+                if recovered:
+                    try:
+                        page.reload(wait_until="domcontentloaded", timeout=25000)
+                        human_delay(2.0, 3.5)
+                        success = unfollow_user_on_current_page(page, clean_user)
+                    except Exception:
+                        success = None
+
+            if success is True:
                 delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
                 print(f"  [Follower] Human pacing delay: {delay}s...")
                 time.sleep(delay)

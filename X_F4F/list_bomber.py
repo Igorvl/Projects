@@ -15,7 +15,9 @@ from browser import (
     human_scroll,
     human_type,
     wait_for_x_page_load,
-    handle_x_retry_button
+    handle_x_retry_button,
+    test_x_connectivity,
+    wait_for_x_channel_recovery
 )
 from config import (
     DAILY_LIST_ADD_LIMIT,
@@ -34,12 +36,26 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
     """
     Checks if the designated public ego list exists under current account.
     If not, navigates to Lists creation page and creates it publicly.
+    Enforces Twitter/X 25-character list name maximum limit.
     """
-    print(f"[List Bomber] Verifying existence of public list: '{list_name}'...")
+    if len(list_name) > 25:
+        list_name = list_name[:25].strip()
+
+    print(f"[List Bomber] Verifying existence of public list: '{list_name}' ({len(list_name)}/25 chars)...")
     try:
         # Check target account lists directly first
-        page.goto(f"https://x.com/{TARGET_ACCOUNT}/lists", wait_until="domcontentloaded", timeout=20000)
-        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=6.0, max_retries=2)
+        lists_url = f"https://x.com/{TARGET_ACCOUNT}/lists"
+        try:
+            page.goto(lists_url, wait_until="domcontentloaded", timeout=35000)
+        except Exception as e:
+            print(f"[List Bomber] ⚠️ Navigation timeout to lists: {e}. Testing channel...")
+            wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+            try:
+                page.goto(lists_url, wait_until="domcontentloaded", timeout=35000)
+            except Exception:
+                pass
+
+        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"], main[role="main"]', max_wait_sec=8.0, max_retries=2)
         handle_x_retry_button(page)
         human_delay(1.5, 3.0)
 
@@ -48,24 +64,22 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
         except Exception:
             page_text = ""
 
-        if list_name.lower() in page_text.lower() or "frontier designers" in page_text.lower():
+        if list_name.lower() in page_text.lower() or "top 1% designers" in page_text.lower() or "frontier designers" in page_text.lower():
             print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists on @{TARGET_ACCOUNT}/lists.")
             return True
 
         # Check /i/lists
-        page.goto("https://x.com/i/lists", wait_until="domcontentloaded", timeout=20000)
-        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=6.0, max_retries=2)
-        handle_x_retry_button(page)
-        human_delay(1.5, 3.0)
-
         try:
+            page.goto("https://x.com/i/lists", wait_until="domcontentloaded", timeout=30000)
+            wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=8.0, max_retries=2)
+            handle_x_retry_button(page)
+            human_delay(1.5, 3.0)
             page_text = page.inner_text("body")
+            if list_name.lower() in page_text.lower() or "top 1% designers" in page_text.lower() or "frontier designers" in page_text.lower():
+                print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists.")
+                return True
         except Exception:
-            page_text = ""
-
-        if list_name.lower() in page_text.lower() or "frontier designers" in page_text.lower():
-            print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists.")
-            return True
+            pass
 
         print(f"[List Bomber] List '{list_name}' not found. Creating it now...")
         
@@ -73,14 +87,14 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
         create_btn = page.query_selector('a[href="/i/lists/create"]') or page.query_selector('button[data-testid="createListButton"]')
         if not create_btn:
             # Fallback direct URL
-            page.goto("https://x.com/i/lists/create", wait_until="domcontentloaded", timeout=15000)
-            wait_for_x_page_load(page, max_wait_sec=5.0)
+            page.goto("https://x.com/i/lists/create", wait_until="domcontentloaded", timeout=25000)
+            wait_for_x_page_load(page, max_wait_sec=6.0)
             human_delay(1.5, 2.5)
         else:
             human_click(page, create_btn)
             human_delay(1.5, 2.5)
 
-        # Name input field
+        # Name input field (max 25 characters in X)
         name_input = page.query_selector('input[name="name"]') or page.query_selector('input[data-testid="listNameInput"]')
         if name_input:
             human_click(page, name_input)
@@ -93,7 +107,7 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
         if desc_input:
             human_click(page, desc_input)
             human_delay(0.5, 1.0)
-            human_type(page, desc_input, "Curated index of exceptional visual systems architects, frontier tech designers, and computational artists.")
+            human_type(page, desc_input, "Curated index of exceptional visual systems architects and frontier designers.")
             human_delay(0.8, 1.5)
 
         # CRITICAL: Ensure "Make private" checkbox is UNCHECKED (must be PUBLIC to trigger notifications!)
@@ -128,12 +142,21 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
     This triggers a system push notification:
     'Gerrit Brandt added you to the list [list_name]'.
     """
+    if len(list_name) > 25:
+        list_name = list_name[:25].strip()
+
     clean_user = username.replace("@", "").strip()
     url = f"https://x.com/{clean_user}"
     
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=6.0)
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        except Exception as e:
+            print(f"  [List Bomber] ⚠️ Navigation timeout to @{clean_user}: {e}. Testing channel...")
+            wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+
+        wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=8.0)
         handle_x_retry_button(page)
         human_delay(1.5, 3.0)
 
@@ -171,7 +194,7 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
 
         list_entry = modal.locator(f'span:has-text("{list_name}")')
         if list_entry.count() == 0:
-            list_entry = modal.locator('span:has-text("Frontier"), span:has-text("Visual")')
+            list_entry = modal.locator('span:has-text("Top 1%"), span:has-text("Designers"), span:has-text("Frontier")')
 
         if list_entry.count() == 0:
             print(f"  [List Bomber] List '{list_name}' not available in selection modal for @{clean_user}")
