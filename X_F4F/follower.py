@@ -810,8 +810,9 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
                 log_action(actual_user, "mutual", success=True)
                 mutual_found += 1
 
-        # Only proceed with stale cleanup and churn if page rendered full follower list (>= 5 users)
-        if len(all_handles) >= 5:
+        # Only proceed with stale cleanup and churn if virtually entire follower list was captured
+        # (Otherwise Twitter's DOM virtualization hides users below scroll 12, causing false churn!)
+        if len(all_handles) >= 220:
             # 2. Cleanup stale test mutuals from old accounts (where followed_at was NULL and user is not in all_handles)
             cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NULL")
             stale_rows = cur.fetchall()
@@ -822,15 +823,17 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
                     cur.execute(f"UPDATE candidates SET status = 'ignored', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
             conn.commit()
 
-            # 3. Detect churn: Candidates marked mutual with followed_at set who are no longer following us
+            # 3. Detect true churn only on full scans
             cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NOT NULL")
             active_mutual_rows = cur.fetchall()
             for m_row in active_mutual_rows:
                 u_name = m_row[0]
                 if u_name.lower() not in all_handles:
-                    print(f"  [Follower Sync] [CHURN] Candidate @{u_name} previously mutual is no longer in followers list.")
+                    print(f"  [Follower Sync] [CHURN] Candidate @{u_name} confirmed unfollowed us.")
                     cur.execute(f"UPDATE candidates SET status = 'unfollowed_me', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
             conn.commit()
+        else:
+            print(f"  [Follower Sync] Partial scroll scan ({len(all_handles)} followers). Skipping churn check to protect mutuals.")
 
         conn.close()
         print(f"[Follower Sync] Sync complete. Newly promoted mutuals: {mutual_found}")

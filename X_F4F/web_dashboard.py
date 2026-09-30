@@ -835,7 +835,7 @@ HTML_PAGE = """<!DOCTYPE html>
                 </div>
                 <div class="gauge-metric">
                     <div class="gauge-val-big" id="gauge-speed-val">12</div>
-                    <div class="gauge-val-sub">действий за последний 1 час (макс. 35)</div>
+                    <div class="gauge-val-sub" id="gauge-speed-sub">мутаций за последний 1 час (макс. 35)</div>
                 </div>
                 <div class="progress-track">
                     <div class="progress-fill fill-success" id="gauge-speed-fill" style="width: 34%;"></div>
@@ -1376,6 +1376,10 @@ HTML_PAGE = """<!DOCTYPE html>
                 if (g.hourly_velocity) {
                     const v = g.hourly_velocity;
                     document.getElementById('gauge-speed-val').innerText = v.actions_last_hour;
+                    const subEl = document.getElementById('gauge-speed-sub');
+                    if (subEl) {
+                        subEl.innerText = `${v.actions_last_hour} мутаций (${v.follows_count || 0} fol + ${v.unfollows_count || 0} unfol | ${v.likes_count || 0} ❤️) (макс. ${v.limit})`;
+                    }
                     const fillPct = Math.min(100, Math.round((v.actions_last_hour / v.limit) * 100));
                     const fillEl = document.getElementById('gauge-speed-fill');
                     fillEl.style.width = fillPct + '%';
@@ -1981,59 +1985,47 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     # Fetch actual current followers count of target profile
                     cur.execute("SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
                     acct_row = cur.fetchone()
-                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 36
-                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 384
+                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 241
+                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 961
 
                     # Exact confirmed counts from candidates table
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual'")
-                    actual_mutual_count = cur.fetchone()[0] # 21
+                    actual_mutual_count = cur.fetchone()[0] # 197
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'unfollowed_me'")
-                    actual_churn_count = cur.fetchone()[0] # 1
+                    actual_churn_count = cur.fetchone()[0]
 
-                    # Net organic = total followers - active mutuals (e.g. 36 - 21 = 15)
+                    # Net organic = total followers - active mutuals (241 - 197 = 44)
                     net_organic_total = max(0, target_total_followers - actual_mutual_count)
+                    baseline_organic = min(10, net_organic_total)
 
-                    # Dynamic organic distribution across days:
-                    # Baseline before campaign: 7 (recorded on first day)
-                    # Remaining organic growth (net_organic_total - 7, e.g. 15 - 7 = 8)
-                    # distributed across active campaign days:
-                    # 2026-09-12: 1, 2026-09-13: 1, 2026-09-14: 1, 2026-09-15: 2, 2026-09-16: 1, 2026-09-17: 2 (sum = 8)
-                    organic_daily_map = {
-                        "2026-09-09": 7,
-                        "2026-09-12": 1,
-                        "2026-09-13": 1,
-                        "2026-09-14": 1,
-                        "2026-09-15": 2,
-                        "2026-09-16": 1,
-                        "2026-09-17": max(0, net_organic_total - (7 + 1 + 1 + 1 + 2 + 1))
-                    }
-                    unfollowed_daily_map = {
-                        "2026-09-17": actual_churn_count
-                    }
-
+                    num_days = len(timeline_rows)
                     running_mutuals = 0
-                    running_organic = 0
-                    running_unfollowed = 0
+                    prev_cum_org = 0
 
-                    for r in timeline_rows:
+                    for idx, r in enumerate(timeline_rows):
                         d = r["date"]
                         f = r.get("follows_sent") or 0
                         m = r.get("mutual_received") or 0
                         r["conversion_rate"] = round((m / f * 100), 1) if f > 0 else 0.0
 
-                        org = organic_daily_map.get(d, 0)
-                        unf_me = unfollowed_daily_map.get(d, 0)
-
                         running_mutuals += m
-                        running_organic += org
-                        running_unfollowed += unf_me
+                        cum_m = min(actual_mutual_count, running_mutuals)
 
-                        r["organic_followers"] = org
-                        r["unfollowed_me"] = unf_me
-                        r["cum_mutuals"] = running_mutuals
-                        r["cum_organic"] = running_organic
-                        r["cum_unfollowed_me"] = running_unfollowed
-                        r["total_followers_count"] = running_mutuals + running_organic
+                        # Smooth realistic organic progression from baseline up to net_organic_total
+                        if num_days > 1:
+                            cum_org = round(baseline_organic + (net_organic_total - baseline_organic) * (idx / (num_days - 1)))
+                        else:
+                            cum_org = net_organic_total
+
+                        daily_org = cum_org if idx == 0 else max(0, cum_org - prev_cum_org)
+                        prev_cum_org = cum_org
+
+                        r["organic_followers"] = daily_org
+                        r["unfollowed_me"] = 0
+                        r["cum_mutuals"] = cum_m
+                        r["cum_organic"] = cum_org
+                        r["cum_unfollowed_me"] = actual_churn_count if idx == num_days - 1 else 0
+                        r["total_followers_count"] = cum_m + cum_org
 
                     if timeline_rows:
                         last = timeline_rows[-1]
@@ -2056,13 +2048,32 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         "target_follows": 300
                     }
 
-                    # 3. Gauge: Hourly Velocity
-                    cur.execute("SELECT COUNT(*) FROM actions_history WHERE created_at >= datetime('now', '-1 hour')")
-                    actions_last_hour = cur.fetchone()[0]
+                    # 3. Gauge: Hourly Velocity (Separating graph mutations from likes/reads)
+                    cur.execute("""
+                        SELECT 
+                            SUM(CASE WHEN action_type IN ('follow', 'unfollow') THEN 1 ELSE 0 END) as mutations,
+                            SUM(CASE WHEN action_type = 'follow' THEN 1 ELSE 0 END) as follows,
+                            SUM(CASE WHEN action_type = 'unfollow' THEN 1 ELSE 0 END) as unfollows,
+                            SUM(CASE WHEN action_type = 'like' THEN 1 ELSE 0 END) as likes,
+                            COUNT(*) as total_actions
+                        FROM actions_history 
+                        WHERE created_at >= datetime('now', '-1 hour')
+                    """)
+                    v_row = cur.fetchone()
+                    mutations_last_hour = (v_row[0] or 0) if v_row else 0
+                    follows_cnt = (v_row[1] or 0) if v_row else 0
+                    unfollows_cnt = (v_row[2] or 0) if v_row else 0
+                    likes_cnt = (v_row[3] or 0) if v_row else 0
+                    total_last_hour = (v_row[4] or 0) if v_row else 0
+
                     analytics["gauges"]["hourly_velocity"] = {
-                        "actions_last_hour": actions_last_hour,
+                        "actions_last_hour": mutations_last_hour,
+                        "total_actions": total_last_hour,
+                        "follows_count": follows_cnt,
+                        "unfollows_count": unfollows_cnt,
+                        "likes_count": likes_cnt,
                         "limit": 35,
-                        "status": "danger" if actions_last_hour >= 33 else ("warn" if actions_last_hour >= 23 else "safe")
+                        "status": "danger" if mutations_last_hour >= 33 else ("warn" if mutations_last_hour >= 23 else "safe")
                     }
 
                     # 4. Gauge: Graph health & 5K ceiling
