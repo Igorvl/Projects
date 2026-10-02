@@ -2010,16 +2010,16 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     # Fetch actual current followers count of target profile
                     cur.execute("SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
                     acct_row = cur.fetchone()
-                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 241
-                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 961
+                    target_total_followers = acct_row["followers_count"] if acct_row and acct_row["followers_count"] else 277
+                    target_following_count = acct_row["following_count"] if acct_row and acct_row["following_count"] else 818
 
                     # Exact confirmed counts from candidates table
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual'")
-                    actual_mutual_count = cur.fetchone()[0] # 197
+                    actual_mutual_count = cur.fetchone()[0] # 231
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'unfollowed_me'")
                     actual_churn_count = cur.fetchone()[0]
 
-                    # Net organic = total followers - active mutuals (241 - 197 = 44)
+                    # Net organic = total followers - active mutuals (277 - 231 = 46)
                     net_organic_total = max(0, target_total_followers - actual_mutual_count)
                     baseline_organic = min(10, net_organic_total)
 
@@ -2031,7 +2031,7 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         d = r["date"]
                         f = r.get("follows_sent") or 0
                         m = r.get("mutual_received") or 0
-                        r["conversion_rate"] = round((m / f * 100), 1) if f > 0 else 0.0
+                        r["conversion_rate"] = min(100.0, round((m / f * 100), 1)) if f > 0 else 0.0
 
                         running_mutuals += m
                         cum_m = min(actual_mutual_count, running_mutuals)
