@@ -83,53 +83,131 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
 
         print(f"[List Bomber] List '{list_name}' not found. Creating it now...")
         
-        # Click "New List" button
-        create_btn = page.query_selector('a[href="/i/lists/create"]') or page.query_selector('button[data-testid="createListButton"]')
-        if not create_btn:
-            # Fallback direct URL
+        # 1. Look for "New List" button on page or navigate
+        create_btn = (
+            page.query_selector('a[href="/i/lists/create"]') or
+            page.query_selector('a[aria-label="Create a List"]') or
+            page.query_selector('a[aria-label="New List"]') or
+            page.query_selector('a[aria-label="Создать список"]') or
+            page.query_selector('button[data-testid="createListButton"]') or
+            page.query_selector('a[href*="/lists/create"]')
+        )
+        if create_btn:
+            print("[List Bomber] Clicking 'New List' button...")
+            human_click(page, create_btn)
+            human_delay(2.0, 3.5)
+        else:
+            print("[List Bomber] Navigating to https://x.com/i/lists/create...")
             page.goto("https://x.com/i/lists/create", wait_until="domcontentloaded", timeout=25000)
             wait_for_x_page_load(page, max_wait_sec=6.0)
-            human_delay(1.5, 2.5)
-        else:
-            human_click(page, create_btn)
-            human_delay(1.5, 2.5)
+            handle_x_retry_button(page)
+            human_delay(2.0, 3.5)
 
-        # Name input field (max 25 characters in X)
-        name_input = page.query_selector('input[name="name"]') or page.query_selector('input[data-testid="listNameInput"]')
-        if name_input:
-            human_click(page, name_input)
-            human_delay(0.5, 1.0)
-            human_type(page, name_input, list_name)
-            human_delay(0.8, 1.5)
+        # 2. Wait for modal dialog or input field
+        try:
+            page.wait_for_selector('div[role="dialog"], input[name="name"], input[data-testid="listNameInput"]', timeout=8000)
+        except Exception:
+            pass
 
-        # Description input field
-        desc_input = page.query_selector('textarea[name="description"]') or page.query_selector('textarea[data-testid="listDescriptionInput"]')
+        # 3. Name input field (max 25 characters in X)
+        name_input = (
+            page.query_selector('div[role="dialog"] input[name="name"]') or
+            page.query_selector('input[name="name"]') or
+            page.query_selector('input[data-testid="listNameInput"]') or
+            page.query_selector('div[role="dialog"] input[type="text"]') or
+            page.query_selector('input[placeholder*="Name"]') or
+            page.query_selector('input[placeholder*="Имя"]')
+        )
+
+        if not name_input:
+            print("[List Bomber] ⚠️ Name input field not found in dialog!")
+            return False
+
+        print(f"[List Bomber] Entering list name: '{list_name}'...")
+        human_click(page, name_input)
+        human_delay(0.5, 1.0)
+        name_input.fill(list_name)
+        human_delay(0.5, 1.0)
+        page.keyboard.press("Space")
+        page.keyboard.press("Backspace")
+        human_delay(0.5, 1.0)
+
+        # 4. Description input field
+        desc_input = (
+            page.query_selector('div[role="dialog"] textarea[name="description"]') or
+            page.query_selector('textarea[name="description"]') or
+            page.query_selector('textarea[data-testid="listDescriptionInput"]') or
+            page.query_selector('div[role="dialog"] textarea') or
+            page.query_selector('textarea[placeholder*="Description"]')
+        )
         if desc_input:
             human_click(page, desc_input)
             human_delay(0.5, 1.0)
-            human_type(page, desc_input, "Curated index of exceptional visual systems architects and frontier designers.")
-            human_delay(0.8, 1.5)
+            desc_input.fill("Curated index of exceptional visual systems architects and frontier designers.")
+            human_delay(0.5, 1.0)
 
-        # CRITICAL: Ensure "Make private" checkbox is UNCHECKED (must be PUBLIC to trigger notifications!)
-        private_toggle = page.query_selector('input[type="checkbox"][name="is_private"]') or page.query_selector('[data-testid="privateListToggle"]')
+        # 5. CRITICAL: Ensure "Make private" checkbox is UNCHECKED
+        private_toggle = (
+            page.query_selector('div[role="dialog"] input[type="checkbox"][name="is_private"]') or
+            page.query_selector('input[type="checkbox"][name="is_private"]') or
+            page.query_selector('[data-testid="privateListToggle"]')
+        )
         if private_toggle and private_toggle.is_checked():
+            print("[List Bomber] Unchecking private toggle...")
             human_click(page, private_toggle)
             human_delay(0.5, 1.0)
 
-        # Click Save / Create button
+        # 6. Click Next / Save / Create button
+        # In Twitter/X, Step 1 top-right button is "Next" (or "Save" / "Далее")
         save_btn = (
             page.query_selector('button[data-testid="listCreateSaveButton"]') or
+            page.query_selector('button[data-testid="listCreateNextButton"]') or
+            page.query_selector('div[role="dialog"] button:has-text("Next")') or
+            page.query_selector('div[role="dialog"] button:has-text("Save")') or
+            page.query_selector('div[role="dialog"] button:has-text("Create")') or
+            page.query_selector('div[role="dialog"] button:has-text("Далее")') or
+            page.query_selector('div[role="dialog"] button:has-text("Сохранить")') or
+            page.query_selector('div[role="dialog"] button:has-text("Создать")') or
             page.query_selector('button[role="button"]:has-text("Save")') or
-            page.query_selector('button[role="button"]:has-text("Done")') or
-            page.query_selector('button:has-text("Сохранить")')
+            page.query_selector('button[role="button"]:has-text("Next")')
         )
-        if save_btn:
-            human_click(page, save_btn)
-            human_delay(2.0, 3.5)
-            print(f"[List Bomber] 🎉 Successfully created public list: '{list_name}'!")
-            return True
 
-        return False
+        if not save_btn:
+            # Fallback to dialog header primary button
+            save_btn = page.query_selector('div[role="dialog"] div[data-testid="toolBar"] button:not([aria-label="Close"]):not([aria-label="Назад"])')
+
+        if not save_btn:
+            print("[List Bomber] ⚠️ Save/Next button not found in list modal!")
+            return False
+
+        btn_txt = save_btn.inner_text().strip() if save_btn else "Action"
+        print(f"[List Bomber] Clicking list modal button: '{btn_txt}'...")
+        human_click(page, save_btn)
+        human_delay(2.5, 4.0)
+
+        # 7. Check if Step 2 ("Add to your List" with 'Done' button) appeared
+        done_btn = (
+            page.query_selector('button[data-testid="listCreateDoneButton"]') or
+            page.query_selector('div[role="dialog"] button:has-text("Done")') or
+            page.query_selector('div[role="dialog"] button:has-text("Готово")') or
+            page.query_selector('div[role="dialog"] button:has-text("Save")')
+        )
+        if done_btn and done_btn.is_visible():
+            print(f"[List Bomber] Step 2: Clicking '{done_btn.inner_text().strip()}' to finalize list...")
+            human_click(page, done_btn)
+            human_delay(2.0, 3.5)
+
+        # 8. Check if modal needs close
+        try:
+            close_btn = page.query_selector('div[role="dialog"] button[aria-label="Close"]')
+            if close_btn and close_btn.is_visible():
+                human_click(page, close_btn)
+                human_delay(1.0, 2.0)
+        except Exception:
+            pass
+
+        print(f"[List Bomber] 🎉 Successfully created public list: '{list_name}'!")
+        return True
 
     except Exception as e:
         print(f"[List Bomber] Notice during list verification: {e}")
