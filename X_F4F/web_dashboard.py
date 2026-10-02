@@ -765,14 +765,14 @@ HTML_PAGE = """<!DOCTYPE html>
             <div class="stat-card">
                 <div class="stat-label">📈 Конверсия F4F</div>
                 <div class="stat-value success" id="stat-cr">--%</div>
-                <div class="stat-sub">Mutuals / Follows</div>
+                <div class="stat-sub" id="stat-cr-sub">Всего кампании</div>
             </div>
 
-            <!-- Card 5: Follows Sent -->
+            <!-- Card 5: Follows In-Flight Buffer -->
             <div class="stat-card" onclick="setStatusFilter('followed')" id="card-followed">
-                <div class="stat-label">🚀 Подписок отправлено</div>
+                <div class="stat-label">⏳ В ожидании ответа</div>
                 <div class="stat-value warning" id="stat-followed">--</div>
-                <div class="stat-sub">Ожидают ответа 72ч</div>
+                <div class="stat-sub" id="stat-followed-sub">Буфер 72ч</div>
             </div>
 
             <!-- Card 6: Likes Today -->
@@ -1336,8 +1336,22 @@ HTML_PAGE = """<!DOCTYPE html>
                 
                 document.getElementById('stat-likes').innerText = `${data.likes_today || 0} / ${data.daily_like_limit || 200}`;
 
-                const cr = data.followed_count > 0 ? ((data.mutual_count / data.followed_count) * 100).toFixed(1) : '0';
-                document.getElementById('stat-cr').innerText = cr + '%';
+                const totalEverFollowed = data.total_followed_all_time || (data.mutual_count + data.followed_count + (data.unfollowed_count || 0));
+                const resolved = data.resolved_count || (data.mutual_count + (data.unfollowed_count || 0));
+                const crAll = totalEverFollowed > 0 ? ((data.mutual_count / totalEverFollowed) * 100).toFixed(1) : '0';
+                const crResolved = resolved > 0 ? ((data.mutual_count / resolved) * 100).toFixed(1) : '0';
+                
+                document.getElementById('stat-cr').innerText = crAll + '%';
+                const crSub = document.getElementById('stat-cr-sub');
+                if (crSub) {
+                    crSub.innerText = `${crResolved}% закрытые (${data.mutual_count}/${totalEverFollowed})`;
+                }
+
+                document.getElementById('stat-followed').innerText = data.followed_count || 0;
+                const folSub = document.getElementById('stat-followed-sub');
+                if (folSub) {
+                    folSub.innerText = `из ${totalEverFollowed} за кампанию`;
+                }
             } catch (err) {
                 console.error('Error fetching stats:', err);
             }
@@ -1900,11 +1914,22 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual'")
                     stats["mutual_count"] = cur.fetchone()[0]
 
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'unfollowed'")
+                    stats["unfollowed_count"] = cur.fetchone()[0]
+
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'ignored'")
                     stats["ignored_count"] = cur.fetchone()[0]
 
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'failed_unfollow'")
                     stats["failed_unfollow_count"] = cur.fetchone()[0]
+
+                    # Total unique profiles followed by our bot across entire campaign
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status IN ('mutual', 'followed', 'unfollowed', 'failed_unfollow')")
+                    stats["total_followed_all_time"] = cur.fetchone()[0]
+
+                    # Closed cohorts where 72h window has finished (mutuals + unfollows)
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status IN ('mutual', 'unfollowed', 'failed_unfollow')")
+                    stats["resolved_count"] = cur.fetchone()[0]
 
                     # Target profile followers and following counts
                     cur.execute("SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
