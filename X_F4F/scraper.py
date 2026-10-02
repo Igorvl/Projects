@@ -494,85 +494,133 @@ def harvest_from_peer_commenters(page, peer_username: str, max_users: int = 8) -
 
 def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 7) -> int:
     """
-    Algorithm 5b: Opportunistic Live Thread Scouting on Follow.
-    Immediately after following a creator, naturally inspects up to 3 recent original posts,
-    gathers 5-7 active peer commenters talking to them, and queues them with VIP priority.
-    Mimics a designer thoroughly exploring a newly followed creator's discussions.
+    Algorithm 5b: Opportunistic Live Thread Scouting on Follow (Commenters + Reposters).
+    Immediately after following a creator, naturally inspects up to 2 recent original posts (<= 14 days old),
+    gathers:
+      1. Up to 5-7 active peer commenters talking in the discussion.
+      2. Up to 10 fresh reposters (retweeters) who amplified the creator's post within the last 14 days.
+    Mimics a designer thoroughly exploring and networking within a newly followed creator's ecosystem.
     """
     clean_peer = peer_username.lower().replace("@", "").strip()
+    total_added = 0
     try:
-        # 1. Look for up to 3 original tweet status links on the creator's profile page
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        # 1. Look for up to 2 original tweet status links on the creator's profile page (<= 14 days old)
         tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
-        target_status_urls = []
-        for tw in tweet_elements[:7]:
+        target_posts = []
+        for tw in tweet_elements[:8]:
             # Skip retweets/reposts
             sc = tw.query_selector('[data-testid="socialContext"]')
             if sc:
                 sc_text = sc.inner_text().lower()
                 if "repost" in sc_text or "ретвит" in sc_text:
                     continue
+
+            # Check post age: must be <= 14 days old
+            time_el = tw.query_selector('time')
+            if time_el:
+                dt_str = time_el.get_attribute('datetime')
+                if dt_str:
+                    try:
+                        clean_dt = dt_str.replace("Z", "+00:00")
+                        post_dt = datetime.datetime.fromisoformat(clean_dt)
+                        age_days = (now_utc - post_dt).total_seconds() / 86400.0
+                        if age_days > 14.0:
+                            continue  # Older than 14 days, skip
+                    except Exception:
+                        pass
+
             status_link = tw.query_selector('a[href*="/status/"]')
             if status_link:
                 href = status_link.get_attribute("href") or ""
                 m = re.search(rf"/{clean_peer}/status/(\d+)", href, re.IGNORECASE)
                 if m:
                     u_status = f"https://x.com/{clean_peer}/status/{m.group(1)}"
-                    if u_status not in target_status_urls:
-                        target_status_urls.append(u_status)
-                        if len(target_status_urls) >= 3:
+                    if u_status not in [p["url"] for p in target_posts]:
+                        target_posts.append({"url": u_status, "id": m.group(1)})
+                        if len(target_posts) >= 2:
                             break
                             
-        if not target_status_urls:
+        if not target_posts:
             return 0
 
         existing_users = get_existing_candidate_usernames()
         found_commenters = []
-        max_target = max(5, max_leads)
+        found_reposters = []
+        max_target_commenters = max_leads
+        max_target_reposters = 10
 
-        # 2. Inspect threads of up to 3 original posts
-        for s_idx, target_status_url in enumerate(target_status_urls, 1):
-            if len(found_commenters) >= max_target:
-                break
-                
-            print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s discussion thread ({s_idx}/{len(target_status_urls)})...")
+        # 2. Inspect threads of up to 2 original fresh posts
+        for s_idx, post_item in enumerate(target_posts, 1):
+            target_status_url = post_item["url"]
+            print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s fresh discussion & reposts ({s_idx}/{len(target_posts)})...")
             page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
             human_delay(1.5, 2.5)
+            handle_x_retry_button(page)
             human_scroll(page, steps=random.randint(1, 2))
             human_delay(1.0, 1.8)
             
+            # A) Gather Commenters from thread
             reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
-            if len(reply_tweets) <= 1:
-                continue
+            if len(reply_tweets) > 1:
+                for r_tw in reply_tweets[1:]:
+                    try:
+                        text_el = r_tw.query_selector('div[data-testid="tweetText"]')
+                        tw_text = (text_el.inner_text() if text_el else "").lower()
+                        if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
+                            continue
+                    except Exception:
+                        pass
+                        
+                    u_link = r_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                    if u_link:
+                        href = u_link.get_attribute("href") or ""
+                        u = href.replace("/", "").strip()
+                        if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
+                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
+                                if u not in found_commenters:
+                                    found_commenters.append(u)
+                                    if len(found_commenters) >= max_target_commenters:
+                                        break
 
-            for r_tw in reply_tweets[1:]:
-                try:
-                    text_el = r_tw.query_selector('div[data-testid="tweetText"]')
-                    tw_text = (text_el.inner_text() if text_el else "").lower()
-                    if any(bad in tw_text for bad in ["#crypto", "solana", "airdrop", "trading", "giveaway", "forex", "presale"]):
-                        continue
-                except Exception:
-                    pass
-                    
-                u_link = r_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
-                if u_link:
-                    href = u_link.get_attribute("href") or ""
-                    u = href.replace("/", "").strip()
-                    if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
-                        if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
-                            if u not in found_commenters:
-                                found_commenters.append(u)
-                                if len(found_commenters) >= max_target:
-                                    break
+            # B) Gather Reposters (up to 10) from /retweets modal page
+            try:
+                retweets_url = f"{target_status_url}/retweets"
+                page.goto(retweets_url, wait_until="domcontentloaded", timeout=12000)
+                handle_x_retry_button(page)
+                human_delay(1.2, 2.0)
+                cells = page.query_selector_all('[data-testid="UserCell"]')
+                for cell in cells:
+                    u_link = cell.query_selector('a[href^="/"]')
+                    if u_link:
+                        href = u_link.get_attribute("href") or ""
+                        u = href.replace("/", "").strip()
+                        if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
+                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
+                                if u not in found_reposters and u not in found_commenters:
+                                    found_reposters.append(u)
+                                    if len(found_reposters) >= max_target_reposters:
+                                        break
+            except Exception:
+                pass
                                     
-        if not found_commenters:
-            return 0
+        # 3. Store Commenters
+        if found_commenters:
+            print(f"  [Thread Scout] 💬 Discovered {len(found_commenters)} active commenters from @{peer_username}!")
+            added_c = _evaluate_and_store_users(page, found_commenters, max_users=len(found_commenters), source_label=f"peer_commenters:@{clean_peer}")
+            total_added += added_c
+
+        # 4. Store Reposters (<= 14 days old, up to 10)
+        if found_reposters:
+            print(f"  [Thread Scout] 🔄 Discovered {len(found_reposters)} fresh reposters (<=14d) amplifying @{peer_username}!")
+            added_r = _evaluate_and_store_users(page, found_reposters, max_users=len(found_reposters), source_label=f"peer_reposters:@{clean_peer}")
+            total_added += added_r
+
+        return total_added
             
-        print(f"  [Thread Scout] Discovered {len(found_commenters)} active peers talking to @{peer_username} (target: 5-7)!")
-        return _evaluate_and_store_users(page, found_commenters, max_users=len(found_commenters), source_label=f"peer_commenters:@{clean_peer}")
-        
     except Exception as e:
         # Non-critical: never break the follow batch
-        return 0
+        return total_added
 
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
     """
