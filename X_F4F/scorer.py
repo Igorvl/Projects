@@ -11,6 +11,7 @@ from config import (
     KEYWORDS_INDUSTRY,
     KEYWORDS_ENGAGEMENT,
     KEYWORDS_CONNECT,
+    KEYWORDS_LAUNCH_FREELANCE,
     PORTFOLIO_DOMAINS,
     MIN_FOLLOWERS,
     MAX_FOLLOWERS,
@@ -57,9 +58,12 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "engagement_matched": [],
         "portfolio_matched": [],
         "connect_matched": [],
+        "launch_freelance_matched": [],
         "hungry_talent_bonus": False,
         "super_engager_bonus": False,
         "connect_intent_bonus": False,
+        "launch_freelance_bonus": False,
+        "mutual_friend_bonus": False,
         "hard_gates_passed": True,
         "reject_reasons": []
     }
@@ -140,7 +144,7 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if breakdown["portfolio_matched"]:
         score += 15
 
-    # Кластер E: Маркеры взаимности (Connect & Mutuals) (+20 очков за готовность к нетворкингу)
+    # Кластер E: Маркеры взаимности (Connect & Mutuals) - Механизм 1 (+25 очков за готовность к нетворкингу)
     # Проверяем как в Bio, так и в закрепленных / свежих твитах
     recent_tweets = (profile_data.get("recent_tweets") or "").lower()
     bio_and_tweets = f"{bio} {recent_tweets}"
@@ -148,8 +152,17 @@ def evaluate_candidate(profile_data: dict) -> dict:
         if contains_keyword(bio_and_tweets, conn_kw):
             breakdown["connect_matched"].append(conn_kw)
     if breakdown["connect_matched"]:
-        score += 20 + min(10, (len(breakdown["connect_matched"]) - 1) * 5)
+        score += 25 + min(10, (len(breakdown["connect_matched"]) - 1) * 5)
         breakdown["connect_intent_bonus"] = True
+
+    # Кластер G: Свежие запуски портфолио и доступность для проектов - Механизм 2 (+25 очков)
+    # Дизайнеры в окне запуска (<48ч) или поиска проектов максимально вовлечены и мониторят каждое уведомление
+    for launch_kw in KEYWORDS_LAUNCH_FREELANCE:
+        if contains_keyword(bio_and_tweets, launch_kw):
+            breakdown["launch_freelance_matched"].append(launch_kw)
+    if breakdown["launch_freelance_matched"] or profile_data.get("is_launch_freelance"):
+        score += 25 + min(10, (len(breakdown["launch_freelance_matched"]) - 1) * 5)
+        breakdown["launch_freelance_bonus"] = True
 
     # Ratio scoring: Супер-бонус за щедрость на лайки и взаимность
     if ratio >= 1.10 and following >= 150:
@@ -171,6 +184,12 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if profile_data.get("is_peer_commenter"):
         score += 25
         breakdown["peer_commenter_bonus"] = True
+
+    # Механизм 4: Triadic Closure ("Friends of Friends" - круг проверенного взаимного дизайнера) (+30 очков)
+    # В интерфейсе X пишется: "Followed by @mutual_friend you know", давая конверсию в 30-45%
+    if profile_data.get("is_mutual_friend"):
+        score += 30
+        breakdown["mutual_friend_bonus"] = True
 
     # Итоговый статус
     is_qualified = breakdown["hard_gates_passed"] and (score >= MIN_SCORE_THRESHOLD)

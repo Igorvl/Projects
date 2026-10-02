@@ -331,6 +331,24 @@ def get_candidates_for_follow(limit: int = 10, min_score: int = None):
     conn.close()
     return rows
 
+def get_top_mutual_seeds(limit: int = 15) -> list:
+    """
+    Returns usernames of confirmed mutual followers with high score (>= 60)
+    for Mechanism 4: Triadic Closure ('Friends of Friends') graph harvesting.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"""
+        SELECT username FROM candidates
+        WHERE status = 'mutual' AND score >= 60
+        ORDER BY score DESC, ratio DESC
+        LIMIT {ph}
+    """, (limit,))
+    rows = [r[0] for r in cur.fetchall()]
+    conn.close()
+    return rows
+
 def get_existing_candidate_usernames() -> set:
     """Returns set of all lowercase usernames already tracked in candidates database."""
     conn = get_connection()
@@ -582,6 +600,10 @@ def get_available_sources() -> list:
     # Fetch recently followed creators with good score for Peer Commenters harvesting
     cur.execute("SELECT username FROM candidates WHERE followed_at IS NOT NULL AND score >= 60 ORDER BY followed_at DESC LIMIT 35")
     peer_commenter_seeds = [r[0] for r in cur.fetchall()]
+
+    # Fetch top confirmed mutual followers for Mechanism 4 (Triadic Closure / Friends of Friends)
+    cur.execute("SELECT username FROM candidates WHERE status = 'mutual' AND score >= 60 ORDER BY score DESC, ratio DESC LIMIT 35")
+    mutual_seeds = [r[0] for r in cur.fetchall()]
     conn.close()
 
     all_candidates = []
@@ -733,11 +755,39 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_pc and info_pc["last_scraped_at"])
             })
 
+    # 6. Mutual Friends: Mechanism 4 (Triadic Closure Graph / Friends of Friends, cooldown 72h) - MAXIMUM CR (30-45%)
+    for m in mutual_seeds:
+        clean_m = m.replace("@", "").strip()
+        id_mf = f"mutual_friends:{clean_m}"
+        info_mf = tracking_map.get(id_mf)
+        is_ready_mf = True
+        if info_mf and info_mf["last_scraped_at"]:
+            try:
+                eff_cooldown = info_mf.get("cooldown_hours") or 72
+                last_dt = datetime.datetime.fromisoformat(str(info_mf["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < eff_cooldown * 3600:
+                    is_ready_mf = False
+            except Exception:
+                pass
+        # Skip dead mutual sources (evaluated > 20 and yield == 0)
+        if info_mf and info_mf.get("total_evaluated", 0) > 20 and info_mf.get("leads_yielded", 0) == 0:
+            is_ready_mf = False
+        if is_ready_mf:
+            all_candidates.append({
+                "type": "mutual_friends",
+                "target": clean_m,
+                "identifier": id_mf,
+                "cooldown": 72,
+                "yield": info_mf["leads_yielded"] if info_mf else 0,
+                "has_scraped": bool(info_mf and info_mf["last_scraped_at"])
+            })
+
     # Smart Prioritization:
-    # 1. Base weight by source ROI type (peer_commenters & search lead)
+    # 1. Base weight by source ROI type (mutual_friends & peer_commenters lead)
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
+        "mutual_friends": 95,   # НАИВЫСШАЯ КОНВЕРСИЯ (Triadic Closure - 'Followed by @mutual you know')
         "peer_commenters": 85,  # НАИВЫСШИЙ ROI - живые собеседники наших зафолловленных дизайнеров
         "search": 75,
         "donor_replies": 70,

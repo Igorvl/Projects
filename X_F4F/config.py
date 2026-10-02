@@ -48,14 +48,28 @@ KEYWORDS_ENGAGEMENT = [
     "blender wip", "design diary", "visual archive", "generative"
 ]
 
-# Кластер E: Маркеры взаимного нетворкинга (Connect, Moots, Mutuals) - Вес: +20
+# Кластер E: Маркеры взаимного нетворкинга (Connect, Moots, Mutuals) - Вес: +25 (Механизм 1)
 KEYWORDS_CONNECT = [
     "looking for mutuals", "design mutuals", "need mutuals", "creative mutuals",
     "looking to connect", "let's connect", "lets connect", "open to connect",
     "moots", "design moots", "art moots", "connect with designers",
     "connect with creators", "mutuals?", "moots?", "mutuals welcome",
-    "looking for moots", "open to collabs and connect"
+    "looking for moots", "open to collabs and connect", "f4f design",
+    "design twitter moots", "designtwitter moots", "design twitter mutuals",
+    "designtwitter mutuals", "looking for design mutuals", "let's be mutuals",
+    "lets be mutuals", "need design mutuals", "mutuals open", "art moots welcome"
 ]
+
+# Кластер G: Свежие запуски портфолио и доступность (Launch & Booking Window < 48h) - Вес: +25 (Механизм 2)
+KEYWORDS_LAUNCH_FREELANCE = [
+    "just launched", "new portfolio", "portfolio is live", "site is live",
+    "v2 is live", "redesign is live", "launched my new portfolio",
+    "available for freelance", "open for freelance", "freelance availability",
+    "booking for q", "booking for 2026", "available for projects", "open for projects",
+    "taking new clients", "accepting new projects", "open for work", "available for work",
+    "freelance art director", "freelance designer", "booking q4", "booking q1", "booking q2", "booking q3"
+]
+
 
 # Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
 NEGATIVE_KEYWORDS = [
@@ -198,12 +212,18 @@ SEARCH_QUERIES = [
     'to:readymag portfolio',
     'to:framer website',
     'to:type01_',
-    # Креативные «Пузыри взаимности» (Design Connect & Mutuals) - ТОП КОНВЕРСИЯ
+    # Механизм 1: Креативные «Пузыри взаимности» (Design Connect, Moots & Mutuals) - ТОП КОНВЕРСИЯ
+    '#DesignTwitter "looking for mutuals"',
+    '#DesignTwitter "design moots"',
     '#DesignTwitter "let\'s connect"',
     '#DesignTwitter "mutuals"',
     '#DesignTwitter "moots"',
-    '#DesignTwitter "connect"',
     '#designmoots',
+    '"design mutuals" "let\'s connect"',
+    '"looking for design mutuals"',
+    '"creative mutuals" "connect"',
+    '"mutuals welcome" designer',
+    '"moots?" design',
     'designer "looking to connect"',
     'ui/ux "let\'s connect"',
     'ui designer "looking to connect"',
@@ -215,7 +235,13 @@ SEARCH_QUERIES = [
     '"graphic designer" "connect"',
     '"mutuals?" design',
     '"open to connect" designer',
-    # Свежие портфолио, запуски и поиск проектов
+    # Механизм 2: Свежие запуски портфолио и доступность (Hyper-Active Booking/Launch Window < 48h)
+    '("just launched my portfolio" OR "new portfolio is live")',
+    '("portfolio is live" OR "new site is live") (framer OR readymag OR layers.to)',
+    '("just launched" portfolio) (framer OR readymag OR behance)',
+    '("available for freelance" OR "open for freelance") (designer OR "art director")',
+    '("booking for Q4" OR "taking freelance clients") (designer OR figma)',
+    '("available for new projects" OR "open for projects") (designer OR "brand identity")',
     '"my new portfolio" framer',
     '"my portfolio" behance',
     '"my portfolio" layers.to',
