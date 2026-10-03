@@ -555,14 +555,16 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
             target_status_url = post_item["url"]
             print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s fresh discussion & reposts ({s_idx}/{len(target_posts)})...")
             page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
-            human_delay(1.5, 2.5)
+            wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=6.0)
             handle_x_retry_button(page)
+            human_delay(1.5, 2.5)
             human_scroll(page, steps=random.randint(1, 2))
             human_delay(1.0, 1.8)
             
             # A) Gather Commenters from thread
             reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
             if len(reply_tweets) > 1:
+                thread_commenters_found = 0
                 for r_tw in reply_tweets[1:]:
                     try:
                         text_el = r_tw.query_selector('div[data-testid="tweetText"]')
@@ -576,50 +578,118 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                     if u_link:
                         href = u_link.get_attribute("href") or ""
                         u = href.replace("/", "").strip()
-                        if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
-                                if u not in found_commenters:
-                                    found_commenters.append(u)
-                                    if len(found_commenters) >= max_target_commenters:
-                                        break
+                        if u and u.lower() != clean_peer and len(u) < 30 and "/" not in u:
+                            if is_obvious_brand_or_bot(u):
+                                continue
+                            if u.lower() in existing_users:
+                                print(f"  [Thread Scout] ℹ️ Commenter @{u} already tracked in DB")
+                            elif u not in found_commenters:
+                                found_commenters.append(u)
+                                thread_commenters_found += 1
+                                print(f"  [Thread Scout] 💬 Found candidate commenter: @{u}")
+                                if len(found_commenters) >= max_target_commenters:
+                                    break
+                if thread_commenters_found > 0:
+                    print(f"  [Thread Scout] 💬 Added {thread_commenters_found} fresh commenter(s) from thread {s_idx}")
 
-            # B) Gather Reposters (up to 10) from /retweets modal page
+            # B) Gather Reposters & Quoters (up to 10)
             try:
+                # Look for repost link on the active post page first
+                repost_link = page.query_selector('a[href*="/retweets"], a[href*="/reposts"]')
+                has_repost_link = repost_link is not None
+
                 retweets_url = f"{target_status_url}/retweets"
-                page.goto(retweets_url, wait_until="domcontentloaded", timeout=12000)
-                handle_x_retry_button(page)
-                human_delay(1.2, 2.0)
-                cells = page.query_selector_all('[data-testid="UserCell"]')
-                for cell in cells:
-                    u_link = cell.query_selector('a[href^="/"]')
-                    if u_link:
-                        href = u_link.get_attribute("href") or ""
-                        u = href.replace("/", "").strip()
-                        if u and u.lower() != clean_peer and len(u) < 30 and not "/" in u:
-                            if u.lower() not in existing_users and not is_obvious_brand_or_bot(u):
-                                if u not in found_reposters and u not in found_commenters:
+                opened_modal = False
+
+                if has_repost_link and repost_link.is_visible():
+                    try:
+                        repost_label = repost_link.inner_text().strip()
+                        print(f"  [Thread Scout] 🔄 Reposts detected on post ({repost_label}). Opening reposters list...")
+                        human_click(page, repost_link)
+                        wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=5.0)
+                        human_delay(1.2, 2.0)
+                        opened_modal = True
+                    except Exception:
+                        opened_modal = False
+
+                if not opened_modal:
+                    page.goto(retweets_url, wait_until="domcontentloaded", timeout=12000)
+                    handle_x_retry_button(page)
+                    wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=6.0)
+                    human_delay(1.5, 2.5)
+
+                cells = page.query_selector_all('div[data-testid="UserCell"]')
+                if cells:
+                    print(f"  [Thread Scout] 🔄 Found {len(cells)} reposter(s) in list for post {s_idx}...")
+                    for cell in cells:
+                        u_link = cell.query_selector('a[href^="/"]')
+                        if u_link:
+                            href = u_link.get_attribute("href") or ""
+                            u = href.replace("/", "").strip()
+                            if u and u.lower() != clean_peer and len(u) < 30 and "/" not in u:
+                                if is_obvious_brand_or_bot(u):
+                                    continue
+                                if u.lower() in existing_users:
+                                    print(f"  [Thread Scout] ℹ️ Reposter @{u} already tracked in DB")
+                                elif u not in found_reposters and u not in found_commenters:
                                     found_reposters.append(u)
+                                    print(f"  [Thread Scout] 🎯 Found candidate reposter: @{u}")
                                     if len(found_reposters) >= max_target_reposters:
                                         break
-            except Exception:
-                pass
+                else:
+                    print(f"  [Thread Scout] ℹ️ Post {s_idx}: 0 active reposters visible in list")
+
+                # C) Gather Quote tweets (quoted retweets with comments)
+                quote_link = page.query_selector('a[href*="/quotes"]')
+                if quote_link and len(found_reposters) < max_target_reposters:
+                    try:
+                        quotes_url = f"{target_status_url}/quotes"
+                        page.goto(quotes_url, wait_until="domcontentloaded", timeout=12000)
+                        handle_x_retry_button(page)
+                        wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=5.0)
+                        human_delay(1.2, 2.0)
+                        q_tweets = page.query_selector_all('article[data-testid="tweet"]')
+                        for q_tw in q_tweets:
+                            u_link = q_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                            if u_link:
+                                href = u_link.get_attribute("href") or ""
+                                u = href.replace("/", "").strip()
+                                if u and u.lower() != clean_peer and len(u) < 30 and "/" not in u:
+                                    if is_obvious_brand_or_bot(u):
+                                        continue
+                                    if u.lower() in existing_users:
+                                        print(f"  [Thread Scout] ℹ️ Quoter @{u} already tracked in DB")
+                                    elif u not in found_reposters and u not in found_commenters:
+                                        found_reposters.append(u)
+                                        print(f"  [Thread Scout] 🎯 Found candidate quoter: @{u}")
+                                        if len(found_reposters) >= max_target_reposters:
+                                            break
+                    except Exception as q_err:
+                        pass
+
+            except Exception as r_err:
+                print(f"  [Thread Scout] ⚠️ Notice while scouting reposters: {r_err}")
                                     
         # 3. Store Commenters
         if found_commenters:
-            print(f"  [Thread Scout] 💬 Discovered {len(found_commenters)} active commenters from @{peer_username}!")
+            print(f"  [Thread Scout] 💬 Discovered {len(found_commenters)} active commenter(s) from @{peer_username}!")
             added_c = _evaluate_and_store_users(page, found_commenters, max_users=len(found_commenters), source_label=f"peer_commenters:@{clean_peer}")
             total_added += added_c
+        else:
+            print(f"  [Thread Scout] 💬 No fresh commenters to evaluate for @{peer_username}")
 
         # 4. Store Reposters (<= 14 days old, up to 10)
         if found_reposters:
-            print(f"  [Thread Scout] 🔄 Discovered {len(found_reposters)} fresh reposters (<=14d) amplifying @{peer_username}!")
+            print(f"  [Thread Scout] 🔄 Discovered {len(found_reposters)} fresh reposter/quoter candidate(s) amplifying @{peer_username}!")
             added_r = _evaluate_and_store_users(page, found_reposters, max_users=len(found_reposters), source_label=f"peer_reposters:@{clean_peer}")
             total_added += added_r
+        else:
+            print(f"  [Thread Scout] 🔄 No fresh reposters/quoters to evaluate for @{peer_username}")
 
         return total_added
             
     except Exception as e:
-        # Non-critical: never break the follow batch
+        print(f"  [Thread Scout] Notice: {e}")
         return total_added
 
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
