@@ -23,6 +23,7 @@ from config import (
     DASHBOARD_HOST,
     TARGET_ACCOUNT,
     DAILY_LIKE_LIMIT,
+    MAX_HOURLY_MUTATIONS,
     get_current_ramp_up
 )
 
@@ -835,15 +836,15 @@ HTML_PAGE = """<!DOCTYPE html>
                 </div>
                 <div class="gauge-metric">
                     <div class="gauge-val-big" id="gauge-speed-val">12</div>
-                    <div class="gauge-val-sub" id="gauge-speed-sub">мутаций за последний 1 час (макс. 35)</div>
+                    <div class="gauge-val-sub" id="gauge-speed-sub">мутаций за последний 1 час (макс. 40)</div>
                 </div>
                 <div class="progress-track">
-                    <div class="progress-fill fill-success" id="gauge-speed-fill" style="width: 34%;"></div>
+                    <div class="progress-fill fill-success" id="gauge-speed-fill" style="width: 30%;"></div>
                 </div>
                 <div class="gauge-meta-row">
-                    <span>🟢 0–22: Органика</span>
-                    <span>🟡 23–32: Плотная сессия</span>
-                    <span>🔴 33+: Пауза</span>
+                    <span>🟢 0–25: Органика</span>
+                    <span>🟡 26–39: Плотная сессия</span>
+                    <span>🔴 40+: Авто-пауза</span>
                 </div>
             </div>
 
@@ -907,7 +908,7 @@ HTML_PAGE = """<!DOCTYPE html>
                 </div>
                 <div class="gauge-meta-row" style="margin-top:10px;">
                     <span>Авто-анфолловинг через 72ч</span>
-                    <span>Защита выходных дней</span>
+                    <span>24/7 конвейер отписок</span>
                 </div>
             </div>
 
@@ -1344,7 +1345,7 @@ HTML_PAGE = """<!DOCTYPE html>
                 document.getElementById('stat-cr').innerText = crAll + '%';
                 const crSub = document.getElementById('stat-cr-sub');
                 if (crSub) {
-                    crSub.innerText = `${crResolved}% закрытые (${data.mutual_count}/${totalEverFollowed})`;
+                    crSub.innerText = `${crResolved}% закрытые (${data.mutual_count}/${resolved})`;
                 }
 
                 document.getElementById('stat-followed').innerText = data.followed_count || 0;
@@ -1399,11 +1400,11 @@ HTML_PAGE = """<!DOCTYPE html>
                     fillEl.style.width = fillPct + '%';
                     
                     const badge = document.getElementById('gauge-speed-badge');
-                    if (v.actions_last_hour >= 33) {
+                    if (v.actions_last_hour >= (v.limit || 40)) {
                         badge.className = 'gauge-badge danger';
                         badge.innerText = '🔴 Предел безопасности';
                         fillEl.className = 'progress-fill fill-warning';
-                    } else if (v.actions_last_hour >= 23) {
+                    } else if (v.actions_last_hour >= 26) {
                         badge.className = 'gauge-badge warn';
                         badge.innerText = '🟡 Плотная сессия';
                         fillEl.className = 'progress-fill fill-warning';
@@ -2097,8 +2098,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         "follows_count": follows_cnt,
                         "unfollows_count": unfollows_cnt,
                         "likes_count": likes_cnt,
-                        "limit": 35,
-                        "status": "danger" if mutations_last_hour >= 33 else ("warn" if mutations_last_hour >= 23 else "safe")
+                        "limit": MAX_HOURLY_MUTATIONS,
+                        "status": "danger" if mutations_last_hour >= MAX_HOURLY_MUTATIONS else ("warn" if mutations_last_hour >= 26 else "safe")
                     }
 
                     # 4. Gauge: Graph health & 5K ceiling
