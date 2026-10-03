@@ -40,12 +40,14 @@ from config import (
     TRI_TOUCH_MIN_SCORE,
     TRI_TOUCH_PAUSE_BETWEEN_LIKES,
     TRI_TOUCH_PAUSE_BEFORE_FOLLOW,
+    MAX_HOURLY_MUTATIONS,
     get_current_ramp_up
 )
 from database import (
     get_connection,
     get_candidates_for_follow,
     log_action,
+    check_hourly_mutation_governor,
     DB_TYPE
 )
 
@@ -660,6 +662,12 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
                 print(f"[Follower] 🛑 Daily like limit reached during batch. Stopping immediately.")
                 break
 
+            # Проверка жесткого часового лимита мутаций (>= 40)
+            gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
+            if gov["triggered"]:
+                print(f"[Follower] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Pausing follow batch.")
+                break
+
             u = c["username"]
             print(f"\n[Follower] Processing candidate @{u} (Score: {c['score']}, Ratio: {c['ratio']})...")
             success = follow_user(page, u, candidate_meta=c)
@@ -943,6 +951,12 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
             _, unfollows_today = get_today_counts()
             if unfollows_today >= daily_unfollow_limit:
                 print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting batch.")
+                break
+
+            # 3. Проверка жесткого часового лимита мутаций (>= 40)
+            gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
+            if gov["triggered"]:
+                print(f"[Follower] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Halting unfollow batch.")
                 break
 
             # 4. Мы уже на странице профиля! Выполняем отписку на открытой странице без лишней перезагрузки

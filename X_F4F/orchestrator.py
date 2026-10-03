@@ -25,6 +25,8 @@ from database import (
     get_queue_count,
     get_stale_unfollow_count,
     get_account_stats,
+    get_hourly_mutation_stats,
+    check_hourly_mutation_governor,
     DB_TYPE
 )
 from config import (
@@ -33,6 +35,7 @@ from config import (
     MIN_SCORE_THRESHOLD,
     TARGET_ACCOUNT,
     UNFOLLOW_AFTER_DAYS,
+    MAX_HOURLY_MUTATIONS,
     get_current_ramp_up
 )
 from scraper import run_harvesting_cycle
@@ -59,6 +62,12 @@ def print_banner(profile_name: str):
     """Prints status header with Smart Ramp-Up progression and Following/Followers balance."""
     follows_today, unfollows_today = get_today_counts()
     likes_today = get_today_likes()
+    hourly_stats = get_hourly_mutation_stats(window_minutes=60)
+    h_mut = hourly_stats["total_mutations"]
+    h_fol = hourly_stats["follows_count"]
+    h_unf = hourly_stats["unfollows_count"]
+    h_lik = hourly_stats["likes_count"]
+
     queue_count = get_queue_count()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     stage_idx, stage_data, ramp_day = get_current_ramp_up()
@@ -66,14 +75,46 @@ def print_banner(profile_name: str):
     ratio = (acc_following / max(1, acc_followers)) if acc_followers > 0 else 1.0
     gap = acc_following - acc_followers
     
-    print("\n" + "=" * 68)
+    speed_status = "🟢 Органика" if h_mut < 23 else ("🟡 Плотная сессия" if h_mut < 33 else "🔴 Предел безопасности")
+    
+    print("\n" + "=" * 70)
     print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR [SMART RAMP-UP]")
     print(f"  Profile: @{profile_name}  |  Time: {now_str}")
     print(f"  Ramp-Up: {stage_data['name']} (День {ramp_day}/8)")
     print(f"  Balance: [{acc_following} Following] | [{acc_followers} Followers] (Ratio: {ratio:.2f}, Gap: +{gap})")
     print(f"  Follows today: {follows_today}/{stage_data['follows']} (Цель: 300) | Likes today: {likes_today}/{stage_data['likes']}")
     print(f"  Unfollows today: {unfollows_today}/{stage_data['unfollows']} | Queue: {queue_count} leads ready")
-    print("=" * 68 + "\n")
+    print(f"  ⏱️ Антиспам-Тахометр (1ч): {h_mut}/{MAX_HOURLY_MUTATIONS} мутаций ({h_fol} fol + {h_unf} unfol | {h_lik} ❤️) [{speed_status}]")
+    print("=" * 70 + "\n")
+
+def enforce_hourly_safety_governor() -> bool:
+    """
+    Жесткий предохранитель антиспама:
+    Ограничивает мутации графа (follow + unfollow) числом MAX_HOURLY_MUTATIONS (40) в любой скользящий 1 час.
+    При превышении >= 40:
+    - Выводит причину остановки (кол-во мутаций, подписок, отписок, лайков);
+    - Выводит длительность паузы до охлаждения активности до безопасного уровня;
+    - Выводит точное местное время возобновления работы бота;
+    - Запускает контролируемый sleep с периодическим heart-beat в консоли.
+    """
+    gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
+    if gov["triggered"]:
+        wait_sec = gov["wait_seconds"]
+        mins = wait_sec // 60
+        secs = wait_sec % 60
+        resume_str = gov["resume_time"].strftime("%H:%M:%S")
+        
+        print("\n" + "=" * 72)
+        print("  🛑 [АНТИСПАМ-ПРЕДОХРАНИТЕЛЬ] СРАБОТАЛА ЖЕСТКАЯ БЕЗОПАСНАЯ БЛОКИРОВКА!")
+        print(f"  Причина: Зафиксировано {gov['mutations']} мутаций графа за скользящий 1 час (лимит: {MAX_HOURLY_MUTATIONS}).")
+        print(f"  Действия за последний час: {gov['follows']} подписок + {gov['unfollows']} отписок (также {gov['likes']} ❤️).")
+        print(f"  Длительность остановки: {mins} мин {secs} сек (до охлаждения активности до безопасного уровня).")
+        print(f"  Возобновление работы бота: ровно в {resume_str}")
+        print("=" * 72 + "\n")
+        
+        sleep_until(gov["resume_time"], reason="Антиспам-Охлаждение")
+        return True
+    return False
 
 def run_content_pipeline(profile_name: str = "test_igorvl777"):
     """
@@ -89,16 +130,21 @@ def run_content_pipeline(profile_name: str = "test_igorvl777"):
 def run_single_session(profile_name: str):
     """
     Executes one complete human-style session according to active Ramp-Up stage:
-    1. Dynamic Balance Equalizer: Enforces Following ≈ Followers parity.
+    1. Hard Hourly Governor: Enforces <= 40 mutations in rolling 1-hour window.
+    2. Dynamic Balance Equalizer: Enforces Following ≈ Followers parity.
        If Following significantly exceeds Followers or like quota is exhausted,
        new follows are FROZEN (batch_target = 0) to avoid dry follows.
-    2. Runs Unfollow pruning to reduce Following gap.
-    3. Runs Ego-List bombing catalyst & Nudges.
-    4. Executes micro-batch follows with Tri-Touch Cascade ONLY if likes are available.
-    5. Runs harvesting to keep lead queue full for tomorrow.
-    6. Syncs live followers and following stats on X.
+    3. Runs Unfollow pruning to reduce Following gap.
+    4. Runs Ego-List bombing catalyst & Nudges.
+    5. Executes micro-batch follows with Tri-Touch Cascade ONLY if likes are available.
+    6. Continuous Lead Harvesting without queue ceilings.
+    7. Syncs live followers and following stats on X.
     """
     print_banner(profile_name)
+
+    # Жесткий предохранитель антиспама: проверяем скользящий 1 час
+    enforce_hourly_safety_governor()
+
     follows_today, unfollows_today = get_today_counts()
     likes_today = get_today_likes()
     stage_idx, stage_data, _ = get_current_ramp_up()

@@ -448,6 +448,119 @@ def get_today_list_adds() -> int:
     conn.close()
     return row[0] if row else 0
 
+def get_hourly_mutation_stats(window_minutes: int = 60) -> dict:
+    """
+    Returns statistics of graph mutations (follows + unfollows) and likes
+    in the rolling window of the last N minutes.
+    Used by Anti-Spam Safety Tachometer & Hard Governor (limit >= 40).
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    if DB_TYPE == "sqlite":
+        cur.execute(f"""
+            SELECT created_at, action_type 
+            FROM actions_history
+            WHERE action_type IN ('follow', 'unfollow')
+              AND success = 1
+              AND created_at >= datetime('now', '-{window_minutes} minutes')
+            ORDER BY created_at ASC
+        """)
+        mutation_rows = cur.fetchall()
+        
+        cur.execute(f"""
+            SELECT COUNT(*) 
+            FROM actions_history
+            WHERE action_type = 'like'
+              AND success = 1
+              AND created_at >= datetime('now', '-{window_minutes} minutes')
+        """)
+        likes_cnt = cur.fetchone()[0]
+        
+        cur.execute("SELECT datetime('now')")
+        now_db_str = cur.fetchone()[0]
+    else:
+        cur.execute(f"""
+            SELECT created_at, action_type 
+            FROM actions_history
+            WHERE action_type IN ('follow', 'unfollow')
+              AND success = 1
+              AND created_at >= NOW() - INTERVAL '{window_minutes} MINUTE'
+            ORDER BY created_at ASC
+        """)
+        mutation_rows = cur.fetchall()
+        
+        cur.execute(f"""
+            SELECT COUNT(*) 
+            FROM actions_history
+            WHERE action_type = 'like'
+              AND success = 1
+              AND created_at >= NOW() - INTERVAL '{window_minutes} MINUTE'
+        """)
+        likes_cnt = cur.fetchone()[0]
+        now_db_str = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    conn.close()
+
+    total_mutations = len(mutation_rows)
+    follows_cnt = sum(1 for r in mutation_rows if r[1] == 'follow')
+    unfollows_cnt = sum(1 for r in mutation_rows if r[1] == 'unfollow')
+
+    return {
+        "total_mutations": total_mutations,
+        "follows_count": follows_cnt,
+        "unfollows_count": unfollows_cnt,
+        "likes_count": likes_cnt,
+        "mutation_rows": mutation_rows,
+        "now_db_str": now_db_str
+    }
+
+def check_hourly_mutation_governor(limit: int = 40, target_safe: int = 28) -> dict:
+    """
+    Evaluates rolling 60-minute mutations against hard safety limit (40).
+    If triggered, calculates exact wait duration in seconds and target local resume time.
+    """
+    stats = get_hourly_mutation_stats(window_minutes=60)
+    total_mutations = stats["total_mutations"]
+    
+    if total_mutations < limit:
+        return {
+            "triggered": False,
+            "mutations": total_mutations,
+            "follows": stats["follows_count"],
+            "unfollows": stats["unfollows_count"],
+            "likes": stats["likes_count"],
+            "wait_seconds": 0,
+            "resume_time": None
+        }
+
+    # Calculate when oldest excess mutations slide past 60 minutes
+    excess = total_mutations - target_safe
+    idx_to_expire = min(max(0, excess), total_mutations - 1)
+    target_row = stats["mutation_rows"][idx_to_expire]
+
+    ts_val = target_row[0]
+    if isinstance(ts_val, str):
+        t_utc = datetime.datetime.strptime(ts_val, "%Y-%m-%d %H:%M:%S")
+    else:
+        t_utc = ts_val
+
+    expire_utc = t_utc + datetime.timedelta(minutes=60, seconds=45) # 45s safety buffer
+    now_utc = datetime.datetime.strptime(stats["now_db_str"], "%Y-%m-%d %H:%M:%S")
+
+    wait_seconds = max(300, int((expire_utc - now_utc).total_seconds()))
+    resume_time = datetime.datetime.now() + datetime.timedelta(seconds=wait_seconds)
+
+    return {
+        "triggered": True,
+        "mutations": total_mutations,
+        "follows": stats["follows_count"],
+        "unfollows": stats["unfollows_count"],
+        "likes": stats["likes_count"],
+        "wait_seconds": wait_seconds,
+        "resume_time": resume_time
+    }
+
 def get_candidates_for_nudge(days: int = 1, limit: int = 5) -> list:
     """
     Returns candidates followed N+ days ago (Day 2 Nudge: 24h+) who haven't received
