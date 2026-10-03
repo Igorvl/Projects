@@ -223,17 +223,18 @@ def run_single_session(profile_name: str):
         else:
             print(f"[Orchestrator] Daily follow limit ({daily_follow_limit}) reached. Following skipped.")
 
-    # 5. ПОИСК КАНДИДАТОВ В ПУЛ ПОДПИСОК (Harvesting):
-    # Если подписки заморожены, но мы в дневном окне — держим пул полным на завтра!
+    # 5. ПОИСК КАНДИДАТОВ В ПУЛ ПОДПИСОК (Continuous Lead Harvesting Engine):
+    # Когда подписки заморожены, но на дворе день — сбор кандидатов продолжается непрерывно!
+    # Чтение и оценка кандидатов не расходуют квоты лайков/подписок.
+    # Чем больше кандидатов в очереди (300, 500, 1000+), тем выше ранжирование и качество выборки.
     if (likes_exhausted or follows_exhausted) and is_work_hours():
         queue_count = get_queue_count()
-        if queue_count < 120:
-            target_harvest = min(20, 120 - queue_count)
-            print(f"\n[Orchestrator] 🔍 Daytime maintenance: Harvesting candidate pool for tomorrow (Queue: {queue_count}, target: +{target_harvest})...")
-            try:
-                run_harvesting_cycle(profile_name=profile_name, target_queued=target_harvest, max_sources=MAX_HARVEST_SOURCES)
-            except Exception as e:
-                print(f"[Orchestrator] Harvesting pool notice: {e}")
+        target_harvest = random.randint(15, 25)
+        print(f"\n[Orchestrator] 🔍 Continuous Lead Harvesting: Expanding candidate pool (Current queue: {queue_count} leads, Session goal: +{target_harvest} qualified leads)...")
+        try:
+            run_harvesting_cycle(profile_name=profile_name, target_queued=target_harvest, max_sources=MAX_HARVEST_SOURCES)
+        except Exception as e:
+            print(f"[Orchestrator] Continuous harvesting notice: {e}")
 
     # 6. КОНТЕНТНЫЙ ПАЙПЛАЙН: задел под постинг, репостинг, комментинг
     try:
