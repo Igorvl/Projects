@@ -43,40 +43,49 @@ def ensure_ego_list_exists(page, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool
 
     print(f"[List Bomber] Verifying existence of public list: '{list_name}' ({len(list_name)}/25 chars)...")
     try:
-        # Check target account lists directly first
-        lists_url = f"https://x.com/{TARGET_ACCOUNT}/lists"
-        try:
-            page.goto(lists_url, wait_until="domcontentloaded", timeout=35000)
-        except Exception as e:
-            print(f"[List Bomber] ⚠️ Navigation timeout to lists: {e}. Testing channel...")
-            wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
-            try:
-                page.goto(lists_url, wait_until="domcontentloaded", timeout=35000)
-            except Exception:
-                pass
-
-        wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"], main[role="main"]', max_wait_sec=8.0, max_retries=2)
-        handle_x_retry_button(page)
-        human_delay(1.5, 3.0)
-
-        try:
-            page_text = page.inner_text("body")
-        except Exception:
-            page_text = ""
-
-        if list_name.lower() in page_text.lower() or "top 1% designers" in page_text.lower() or "frontier designers" in page_text.lower():
-            print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists on @{TARGET_ACCOUNT}/lists.")
-            return True
-
-        # Check /i/lists
+        # 1. Check /i/lists with scrolling to ensure 'Your Lists' section is hydrated in DOM
         try:
             page.goto("https://x.com/i/lists", wait_until="domcontentloaded", timeout=30000)
-            wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"]', max_wait_sec=8.0, max_retries=2)
+            wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"], main[role="main"]', max_wait_sec=8.0, max_retries=2)
             handle_x_retry_button(page)
-            human_delay(1.5, 3.0)
-            page_text = page.inner_text("body")
-            if list_name.lower() in page_text.lower() or "top 1% designers" in page_text.lower() or "frontier designers" in page_text.lower():
-                print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists.")
+            human_delay(1.5, 2.5)
+
+            # Smooth scrolling down to trigger GraphQL hydration for "Your Lists" section
+            for _ in range(3):
+                page.mouse.wheel(0, 450)
+                human_delay(0.8, 1.5)
+
+            try:
+                page_text = page.inner_text("body")
+            except Exception:
+                page_text = ""
+
+            recognized_lists = [list_name.lower(), "top 1% designers", "frontier designers"]
+            if any(term in page_text.lower() for term in recognized_lists):
+                print(f"[List Bomber] ✅ Verified: Public ego list '{list_name}' exists in Your Lists.")
+                return True
+        except Exception as e:
+            print(f"[List Bomber] Lists page check notice: {e}")
+
+        # 2. Check target account lists directly: /account/lists
+        lists_url = f"https://x.com/{TARGET_ACCOUNT}/lists"
+        try:
+            page.goto(lists_url, wait_until="domcontentloaded", timeout=30000)
+            wait_for_x_page_load(page, ready_selector='div[data-testid="cellInnerDiv"], div[data-testid="primaryColumn"], main[role="main"]', max_wait_sec=8.0, max_retries=2)
+            handle_x_retry_button(page)
+            human_delay(1.5, 2.5)
+
+            for _ in range(2):
+                page.mouse.wheel(0, 400)
+                human_delay(0.8, 1.5)
+
+            try:
+                page_text = page.inner_text("body")
+            except Exception:
+                page_text = ""
+
+            if any(term in page_text.lower() for term in [list_name.lower(), "top 1% designers", "frontier designers"]):
+                print(f"[List Bomber] ✅ Verified: Public list '{list_name}' exists on @{TARGET_ACCOUNT}/lists.")
                 return True
         except Exception:
             pass
@@ -239,40 +248,103 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
         human_delay(1.5, 3.0)
 
         # 1. Locate user actions '...' button in profile header
-        actions_btn = page.query_selector('button[data-testid="userActions"]')
+        actions_btn = (
+            page.query_selector('button[data-testid="userActions"]') or
+            page.query_selector('div[data-testid="userActions"]') or
+            page.query_selector('button[aria-label*="More" i]') or
+            page.query_selector('button[aria-label*="Еще" i]') or
+            page.query_selector('button[aria-label*="Ещё" i]')
+        )
         if not actions_btn:
             print(f"  [List Bomber] Actions button '...' not found on @{clean_user}")
             log_action(clean_user, "list_add", success=False, error="actions_button_not_found")
             return False
 
         human_click(page, actions_btn)
-        human_delay(1.0, 2.0)
+        human_delay(1.5, 2.5)
 
-        # 2. In dropdown menu, locate 'Add/remove @user from Lists' item
-        list_menu_item = (
-            page.query_selector('[data-testid="listAddRemove"]') or
-            page.query_selector('div[role="menuitem"]:has-text("Lists")') or
-            page.query_selector('div[role="menuitem"]:has-text("Списки")')
+        # Wait for dropdown menu hydration in DOM (div[role="menu"] / [data-testid="Dropdown"])
+        try:
+            page.wait_for_selector('div[role="menu"], div[data-testid="Dropdown"]', timeout=4000)
+        except Exception:
+            human_click(page, actions_btn)
+            human_delay(1.5, 2.5)
+
+        # 2. In dropdown menu, locate 'Add/remove from Lists' item
+        menu_loc = page.locator('div[role="menu"], div[data-testid="Dropdown"]')
+        list_menu_item = None
+
+        candidates_loc = menu_loc.locator(
+            '[data-testid="listAddRemove"], '
+            '[data-testid*="list" i], '
+            '[role="menuitem"]:has-text("Lists"), '
+            '[role="menuitem"]:has-text("lists"), '
+            '[role="menuitem"]:has-text("Add/remove"), '
+            '[role="menuitem"]:has-text("списк"), '
+            '[role="menuitem"]:has-text("Списк"), '
+            'a[href*="/lists" i], '
+            'div:has-text("Add/remove"), '
+            'span:has-text("Lists"), '
+            'span:has-text("списк")'
         )
+
+        if candidates_loc.count() > 0:
+            for i in range(candidates_loc.count()):
+                el = candidates_loc.nth(i)
+                txt = el.inner_text().lower()
+                if any(w in txt for w in ["add", "remove", "внести", "добавить", "удалить", "списк"]) or "lists" in txt:
+                    list_menu_item = el
+                    break
+
+        if not list_menu_item or not list_menu_item.is_visible():
+            menu_items = page.query_selector_all('div[role="menu"] [role="menuitem"], div[data-testid="Dropdown"] [role="menuitem"]')
+            for mi in menu_items:
+                mi_txt = mi.inner_text().lower()
+                if "list" in mi_txt or "списк" in mi_txt or "add" in mi_txt or "внести" in mi_txt:
+                    list_menu_item = mi
+                    break
+
         if not list_menu_item:
-            print(f"  [List Bomber] 'Lists' menu option not found for @{clean_user}")
+            print(f"  [List Bomber] ⚠️ 'Lists' menu option not found for @{clean_user}")
             page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="menu_item_not_found")
             return False
 
+        print(f"  [List Bomber] Opening Lists modal for @{clean_user}...")
         human_click(page, list_menu_item)
-        human_delay(1.5, 2.5)
+        human_delay(2.0, 3.0)
 
-        # 3. In the modal dialog, find our target list
-        modal = page.locator('div[role="dialog"]')
-        if modal.count() == 0:
+        # 3. Wait for modal dialog using multi-selector
+        dialog_selector = 'div[role="dialog"], div[aria-modal="true"], div[data-testid="sheetDialog"], div[data-testid="listAddRemoveSheet"]'
+        try:
+            page.wait_for_selector(dialog_selector, timeout=5000)
+        except Exception:
+            pass
+
+        modal = page.locator(dialog_selector)
+        if modal.count() == 0 or not modal.first.is_visible():
+            # Fallback: force click on list menu item / data-testid="listAddRemove"
+            try:
+                if hasattr(list_menu_item, 'click'):
+                    list_menu_item.click(force=True)
+                elif hasattr(list_menu_item, 'first'):
+                    list_menu_item.first.click(force=True)
+                human_delay(2.0, 3.0)
+            except Exception:
+                pass
+            modal = page.locator(dialog_selector)
+
+        if modal.count() == 0 or not modal.first.is_visible():
             print(f"  [List Bomber] List selection dialog did not open for @{clean_user}")
+            page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="dialog_not_found")
             return False
 
-        list_entry = modal.locator(f'span:has-text("{list_name}")')
+        # Strictly target our own public ego list: '✦ Top 1% Designers 2026'
+        # Explicit exclusion: DO NOT touch 'TALENT POOL / 2026' (belongs to Ksar, not Gerrit Brandt)
+        list_entry = modal.locator(f'div:has-text("{list_name}")')
         if list_entry.count() == 0:
-            list_entry = modal.locator('span:has-text("Top 1%"), span:has-text("Designers"), span:has-text("Frontier")')
+            list_entry = modal.locator('div:has-text("Top 1% Designers"), span:has-text("Top 1% Designers")')
 
         if list_entry.count() == 0:
             print(f"  [List Bomber] List '{list_name}' not available in selection modal for @{clean_user}")
@@ -282,12 +354,12 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             log_action(clean_user, "list_add", success=False, error="list_not_in_modal")
             return False
 
-        # Click list item row to toggle checkbox
+        print(f"  [List Bomber] Toggling ego list checkbox for @{clean_user}...")
         human_click(page, list_entry.first)
-        human_delay(0.8, 1.5)
+        human_delay(1.0, 2.0)
 
         # 4. Click Save button in modal
-        save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Save"), button:has-text("Done"), button:has-text("Сохранить")')
+        save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Save"), button:has-text("Done"), button:has-text("Сохранить"), button:has-text("Готово")')
         if save_btn.count() > 0 and save_btn.first.is_visible():
             human_click(page, save_btn.first)
             human_delay(1.5, 2.5)

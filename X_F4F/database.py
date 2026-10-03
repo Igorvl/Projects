@@ -60,7 +60,8 @@ def init_db():
             ("unfollow_attempts", "INTEGER DEFAULT 0"),
             ("followed_at", "TIMESTAMP"),
             ("nudge_sent", "INTEGER DEFAULT 0"),
-            ("list_add_sent", "INTEGER DEFAULT 0")
+            ("list_add_sent", "INTEGER DEFAULT 0"),
+            ("list_add_attempts", "INTEGER DEFAULT 0")
         ]:
             try:
                 cur.execute(f"ALTER TABLE candidates ADD COLUMN {col} {col_def}")
@@ -349,6 +350,24 @@ def get_top_mutual_seeds(limit: int = 15) -> list:
     conn.close()
     return rows
 
+def get_account_stats(account: str = None) -> tuple:
+    """
+    Returns (followers_count, following_count) for the target profile.
+    Used by Orchestrator's Balance Governor to ensure Following ≈ Followers.
+    """
+    from config import TARGET_ACCOUNT
+    if not account:
+        account = TARGET_ACCOUNT
+    conn = get_connection()
+    cur = conn.cursor()
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER({ph})", (account,))
+    row = cur.fetchone()
+    conn.close()
+    if row and row[0] is not None and row[1] is not None:
+        return int(row[0]), int(row[1])
+    return 0, 0
+
 def get_existing_candidate_usernames() -> set:
     """Returns set of all lowercase usernames already tracked in candidates database."""
     conn = get_connection()
@@ -411,7 +430,9 @@ def log_action(username: str, action_type: str, success: bool = True, error: str
         cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
     elif action_type == "list_add" and success:
         cur.execute(f"UPDATE daily_stats SET list_adds_sent = COALESCE(list_adds_sent, 0) + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET list_add_sent = 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+        cur.execute(f"UPDATE candidates SET list_add_sent = 1, list_add_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+    elif action_type == "list_add" and not success:
+        cur.execute(f"UPDATE candidates SET list_add_attempts = COALESCE(list_add_attempts, 0) + 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
 
     conn.commit()
     conn.close()
@@ -452,6 +473,7 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
     """
     Returns candidates followed N+ days ago (Day 3 Ego-List: 48h+) who haven't received
     a list addition yet and haven't followed back.
+    Excludes candidates with 3+ failed list add attempts.
     """
     conn = get_connection()
     cur = conn.cursor()
@@ -461,6 +483,7 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
         SELECT * FROM candidates
         WHERE status = 'followed'
           AND COALESCE(list_add_sent, 0) = 0
+          AND COALESCE(list_add_attempts, 0) < 3
           AND COALESCE(followed_at, updated_at) <= {ph}
         ORDER BY score DESC, COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}

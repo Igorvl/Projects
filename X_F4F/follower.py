@@ -5,10 +5,17 @@ Performs safe follows with randomized human pauses, respects daily limits,
 tracks mutual follows, and manages unfollows for non-responders.
 """
 
+import sys
 import random
 import time
 import datetime
 import re
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 from browser import (
     get_browser_context,
     human_delay,
@@ -286,7 +293,23 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
             return False
 
         # 1. Execute Engagement Cascade (Tri-Touch: 2 likes + Dwell Time or single warm touch)
-        execute_engagement_cascade(page, clean_user, candidate_score=candidate_score, is_hungry_talent=is_hungry_talent)
+        likes_placed = execute_engagement_cascade(page, clean_user, candidate_score=candidate_score, is_hungry_talent=is_hungry_talent)
+        
+        # СТРОГОЕ ПРАВИЛО: Подписываться на кандидатов без лайков бессмысленно (теряется конверсия)!
+        # Если лимит лайков исчерпан или каскад не смог поставить лайк — ПОДПИСКА ОТМЕНЯЕТСЯ!
+        likes_today = get_today_likes()
+        _, stage_data, _ = get_current_ramp_up()
+        daily_like_limit = stage_data["likes"]
+
+        if likes_today >= daily_like_limit:
+            print(f"  [Follower] 🛑 Daily like limit reached ({likes_today}/{daily_like_limit}). Dry follow prohibited for @{clean_user}! Preserving candidate.")
+            log_action(clean_user, "follow", success=False, error="like_limit_reached")
+            return False
+
+        if likes_placed == 0:
+            print(f"  [Follower] ⚠️ 0 likes placed for @{clean_user} (no eligible tweets/media). Skipping follow to preserve conversion quality.")
+            log_action(clean_user, "follow", success=False, error="no_likes_placed")
+            return False
         
         # 2. Scroll back to top if needed and locate Follow button
         follow_btn = (
@@ -305,12 +328,11 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
                 page.query_selector('button:has-text("Подписаться")')
             )
 
-
         if follow_btn:
             # Human smooth click with Bezier trajectory
             clicked = human_click(page, follow_btn)
             if clicked:
-                print(f"  [Follower] 🎯 Successfully followed @{clean_user}! (Tri-Touch complete)")
+                print(f"  [Follower] 🎯 Successfully followed @{clean_user}! (Tri-Touch complete, {likes_placed} likes)")
                 log_action(clean_user, "follow", success=True)
                 
                 # Human lingering
@@ -501,21 +523,26 @@ def unfollow_user_on_current_page(page, clean_user: str):
             try:
                 page.wait_for_selector(
                     'button[data-testid="confirmationSheetConfirm"], '
-                    'div[data-testid="confirmationSheetDialog"] button:has-text("Unfollow"), '
-                    'div[data-testid="confirmationSheetDialog"] button:has-text("Отписаться")',
-                    timeout=4000
+                    'div[data-testid="confirmationSheetDialog"] button, '
+                    'div[role="dialog"] button:has-text("Unfollow"), '
+                    'div[role="dialog"] button:has-text("Отписаться"), '
+                    'div[role="dialog"] button:has-text("Отменить подписку")',
+                    timeout=4500
                 )
             except Exception:
                 pass
 
             confirm_btn = (
                 page.query_selector('button[data-testid="confirmationSheetConfirm"]') or
-                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Unfollow")') or
-                page.query_selector('div[data-testid="confirmationSheetDialog"] button:has-text("Отписаться")')
+                page.query_selector('div[data-testid="confirmationSheetDialog"] button:not([data-testid="confirmationSheetCancel"])') or
+                page.query_selector('div[role="dialog"] button:has-text("Unfollow")') or
+                page.query_selector('div[role="dialog"] button:has-text("Отписаться")') or
+                page.query_selector('div[role="dialog"] button:has-text("Отменить подписку")') or
+                page.query_selector('div[role="dialog"] button:has-text("Отменить читаемое")')
             )
             if confirm_btn:
                 human_click(page, confirm_btn)
-                human_delay(0.6, 1.4)
+                human_delay(1.0, 2.0)
 
             print(f"  [Follower] 🎯 Successfully unfollowed @{clean_user} (organic click)")
             log_action(clean_user, "unfollow", success=True)
@@ -589,27 +616,50 @@ def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20
 def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
     """
     Executes a small batch of follows safely within limits with log-normal delays
-    and natural rest breaks.
+    and natural rest breaks. Strictly enforces like quota: NO follows without likes!
     """
     follows_today, _ = get_today_counts()
+    likes_today = get_today_likes()
     _, stage_data, _ = get_current_ramp_up()
     daily_follow_limit = stage_data["follows"]
+    daily_like_limit = stage_data["likes"]
+
     if follows_today >= daily_follow_limit:
         print(f"[Follower] Daily follow limit reached ({follows_today}/{daily_follow_limit}). Halting.")
         return
+
+    # СТРОГОЕ ПРАВИЛО: Без лайков подписываться бессмысленно (нет Tri-Touch Cascade)
+    if likes_today >= daily_like_limit:
+        print(f"[Follower] 🛑 Daily like limit reached ({likes_today}/{daily_like_limit}). Tri-Touch Cascade impossible without likes. Halting follow batch for today!")
+        return
+
+    likes_remaining = daily_like_limit - likes_today
+    if likes_remaining < 2:
+        print(f"[Follower] 🛑 Only {likes_remaining} like(s) remaining today (need at least 2 for Tri-Touch). Halting follow batch!")
+        return
         
-    allowed_count = min(batch_size, daily_follow_limit - follows_today)
+    # Рассчитываем, сколько подписок мы реально можем обеспечить каскадом лайков
+    max_possible_by_likes = likes_remaining // 2
+    allowed_count = min(batch_size, daily_follow_limit - follows_today, max_possible_by_likes)
+    if allowed_count <= 0:
+        print(f"[Follower] 🛑 Like quota insufficient for batch ({likes_today}/{daily_like_limit}). Halting.")
+        return
+
     candidates = get_candidates_for_follow(limit=allowed_count)
     
     if not candidates:
         print("[Follower] No candidates in queue with qualifying score.")
         return
         
-    print(f"[Follower] Starting safe follow batch for {len(candidates)} candidates...")
+    print(f"[Follower] Starting safe follow batch for {len(candidates)} candidates (Likes left: {likes_remaining})...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     
     try:
         for idx, c in enumerate(candidates, 1):
+            if get_today_likes() >= daily_like_limit:
+                print(f"[Follower] 🛑 Daily like limit reached during batch. Stopping immediately.")
+                break
+
             u = c["username"]
             print(f"\n[Follower] Processing candidate @{u} (Score: {c['score']}, Ratio: {c['ratio']})...")
             success = follow_user(page, u, candidate_meta=c)
@@ -638,11 +688,6 @@ def run_follow_batch(profile_name="test_igorvl777", batch_size=5):
                     except Exception:
                         pass
                     time.sleep(rest_sec)
-        # Quick sync of followers page while browser is already open
-        try:
-            sync_mutual_followers(page=page)
-        except Exception as e:
-            print(f"  [Follower] Follower sync notice: {e}")
     finally:
         ctx.close()
         pw.stop()
@@ -894,13 +939,7 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
                 human_delay(2.0, 4.0)
                 continue
 
-            # 2. Weekend Safe-Zone: в Сб и Вс не отписываемся от неответивших, даем дочитать ленту
-            if datetime.datetime.now().weekday() in (5, 6):
-                print(f"  [Follower] 🛡️ Weekend Safe-Zone active: Non-responder unfollow for @{clean_user} postponed to Monday.")
-                human_delay(1.5, 3.0)
-                continue
-
-            # 3. Проверка суточного лимита отписок
+            # 2. Проверка суточного лимита отписок
             _, unfollows_today = get_today_counts()
             if unfollows_today >= daily_unfollow_limit:
                 print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting batch.")

@@ -13,24 +13,35 @@ import sys
 import time
 import random
 import datetime
+
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 from database import (
     get_connection,
     get_candidates_for_follow,
     get_queue_count,
     get_stale_unfollow_count,
+    get_account_stats,
     DB_TYPE
 )
 from config import (
     DAILY_FOLLOW_LIMIT,
     DAILY_UNFOLLOW_LIMIT,
     MIN_SCORE_THRESHOLD,
+    TARGET_ACCOUNT,
+    UNFOLLOW_AFTER_DAYS,
     get_current_ramp_up
 )
 from scraper import run_harvesting_cycle
 from follower import (
     run_follow_batch,
     run_unfollow_batch,
-    get_today_counts
+    get_today_counts,
+    get_today_likes,
+    sync_target_profile_stats
 )
 
 # Расписание дня (сон 7 часов: с 00:00 до 07:00, активные часы: с 07:00 до 00:00)
@@ -45,96 +56,131 @@ def is_work_hours() -> bool:
     return now.hour >= WORK_START_HOUR
 
 def print_banner(profile_name: str):
-    """Prints status header with Smart Ramp-Up progression."""
+    """Prints status header with Smart Ramp-Up progression and Following/Followers balance."""
     follows_today, unfollows_today = get_today_counts()
+    likes_today = get_today_likes()
     queue_count = get_queue_count()
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     stage_idx, stage_data, ramp_day = get_current_ramp_up()
+    acc_followers, acc_following = get_account_stats(TARGET_ACCOUNT)
+    ratio = (acc_following / max(1, acc_followers)) if acc_followers > 0 else 1.0
+    gap = acc_following - acc_followers
     
-    print("\n" + "=" * 65)
+    print("\n" + "=" * 68)
     print(f"  🤖 F4F AUTONOMOUS GROWTH ORCHESTRATOR [SMART RAMP-UP]")
     print(f"  Profile: @{profile_name}  |  Time: {now_str}")
     print(f"  Ramp-Up: {stage_data['name']} (День {ramp_day}/8)")
-    print(f"  Follows today: {follows_today}/{stage_data['follows']} (Цель: 300) | Queue: {queue_count} leads ready")
-    print(f"  Unfollows today: {unfollows_today}/{stage_data['unfollows']}")
-    print("=" * 65 + "\n")
+    print(f"  Balance: [{acc_following} Following] | [{acc_followers} Followers] (Ratio: {ratio:.2f}, Gap: +{gap})")
+    print(f"  Follows today: {follows_today}/{stage_data['follows']} (Цель: 300) | Likes today: {likes_today}/{stage_data['likes']}")
+    print(f"  Unfollows today: {unfollows_today}/{stage_data['unfollows']} | Queue: {queue_count} leads ready")
+    print("=" * 68 + "\n")
+
+def run_content_pipeline(profile_name: str = "test_igorvl777"):
+    """
+    Slot for future automated content operations:
+    - Post creation / scheduling (постинг)
+    - Reposting curated industry works (репостинг)
+    - Meaningful commenting on peer design threads (комментинг)
+    Integrated into the 24/7 orchestration lifecycle.
+    """
+    # Architecture hook: ready for future modules
+    pass
 
 def run_single_session(profile_name: str):
     """
     Executes one complete human-style session according to active Ramp-Up stage:
-    1. Checks daily quota for current stage
-    2. Harvests if queue is below buffer target (MIN_QUEUE_BUFFER = 75)
-    3. Executes micro-batch follows according to current stage pace
-    4. Runs Ego-List bombing catalyst
-    5. Runs evening mutual check / pruning (72h non-responders)
-    6. Syncs mutual followers for up-to-date stats
+    1. Dynamic Balance Equalizer: Enforces Following ≈ Followers parity.
+       If Following significantly exceeds Followers or like quota is exhausted,
+       new follows are FROZEN (batch_target = 0) to avoid dry follows.
+    2. Runs Unfollow pruning to reduce Following gap.
+    3. Runs Ego-List bombing catalyst & Nudges.
+    4. Executes micro-batch follows with Tri-Touch Cascade ONLY if likes are available.
+    5. Runs harvesting to keep lead queue full for tomorrow.
+    6. Syncs live followers and following stats on X.
     """
     print_banner(profile_name)
-    follows_today, _ = get_today_counts()
+    follows_today, unfollows_today = get_today_counts()
+    likes_today = get_today_likes()
     stage_idx, stage_data, _ = get_current_ramp_up()
     daily_follow_limit = stage_data["follows"]
+    daily_unfollow_limit = stage_data["unfollows"]
+    daily_like_limit = stage_data["likes"]
     
-    if follows_today >= daily_follow_limit:
-        print(f"[Orchestrator] Daily follow limit for {stage_data['name']} ({daily_follow_limit}) reached today. Standing by.")
-        return
-        
-    remaining_today = daily_follow_limit - follows_today
+    acc_followers, acc_following = get_account_stats(TARGET_ACCOUNT)
+    stale_unfollow_backlog = get_stale_unfollow_count(days=UNFOLLOW_AFTER_DAYS)
+    
+    ratio = (acc_following / max(1, acc_followers)) if acc_followers > 0 else 1.0
+    gap = acc_following - acc_followers
+
+    # Dynamic Ratio Equalizer: добиваемся паритета Following ≈ Followers!
+    is_imbalanced = (acc_following > 0 and acc_followers > 0 and (ratio > 1.05 or gap > 15))
+    pruning_priority_mode = is_imbalanced or (stale_unfollow_backlog > 30)
+
+    remaining_follows = daily_follow_limit - follows_today
+    remaining_likes = daily_like_limit - likes_today
+    remaining_unfollows = daily_unfollow_limit - unfollows_today
+
+    likes_exhausted = (likes_today >= daily_like_limit or remaining_likes < 2)
+    follows_exhausted = (follows_today >= daily_follow_limit)
+
     min_b, max_b = stage_data["batch"]
 
-    # 0. Проверяем размер очереди кандидатов, ожидающих отписки (>72ч дедлайн)
-    stale_unfollow_backlog = get_stale_unfollow_count(days=3)
-    pruning_priority_mode = (stale_unfollow_backlog > 80)
+    # СТРОГОЕ ПРАВИЛО: Подписываться на кандидатов без лайков бессмысленно (нет Tri-Touch Cascade)!
+    # Если лимит лайков исчерпан — подписки СТРОГО замораживаются!
+    if likes_exhausted:
+        batch_target = 0
+        print(f"[Orchestrator] 🛑 Daily like limit reached ({likes_today}/{daily_like_limit}).")
+        print(f"[Orchestrator] 🚫 Follows FROZEN: Tri-Touch Cascade strictly requires likes. Dry follows are prohibited!")
+        print(f"[Orchestrator] ⚡ Activating maintenance mode: executing Unfollows, Lead Harvesting, Ego-Lists, Mutuals.")
+    elif follows_exhausted:
+        batch_target = 0
+        print(f"[Orchestrator] 🎯 Daily follow limit reached ({follows_today}/{daily_follow_limit}). Follows completed.")
+        print(f"[Orchestrator] ⚡ Focusing on remaining quotas: Unfollows ({unfollows_today}/{daily_unfollow_limit}), Harvesting, Ego-Lists.")
+    elif is_imbalanced:
+        # При дисбалансе: подписки идут малым темпом, отписки максимальным
+        max_by_likes = remaining_likes // 2
+        batch_target = min(random.randint(6, 10), remaining_follows, max_by_likes)
+        print(f"[Orchestrator] ⚖️ Ratio Balancing ACTIVE: Following ({acc_following}) > Followers ({acc_followers}) [Gap: +{gap}].")
+        print(f"[Orchestrator] 🚀 Paced convergence: {batch_target} follows vs target 18-25 unfollows (gradual parity).")
+    elif pruning_priority_mode:
+        max_by_likes = remaining_likes // 2
+        batch_target = min(random.randint(8, 12), remaining_follows, max_by_likes)
+        print(f"[Orchestrator] ⚖️ Pruning Priority Mode: {stale_unfollow_backlog} candidates waiting (72h+). Follow target: {batch_target}.")
+    else:
+        max_by_likes = remaining_likes // 2
+        batch_target = min(random.randint(min_b, max_b), remaining_follows, max_by_likes)
 
-    if pruning_priority_mode:
-        # Режим приоритетной разгрузки (Pruning Priority Mode)
-        # Снижаем пачку подписок до 8-12, чтобы не раздувать Following и форсировать очистку
-        batch_target = min(random.randint(8, 12), remaining_today)
-        print(f"[Orchestrator] ⚖️ Pruning Priority Mode ACTIVE: {stale_unfollow_backlog} candidates waiting for unfollow (72h+).")
-        print(f"[Orchestrator] Scaled down session follow target to {batch_target} to invert Following/Followers ratio.")
-    else:
-        batch_target = min(random.randint(min_b, max_b), remaining_today)
-    
-    print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_today})")
-    
-    # 1. Проверяем очередь кандидатов. Держим постоянный здоровый буфер (75-150 лидов)
-    queue_count = get_queue_count()
-    if queue_count < MIN_QUEUE_BUFFER:
-        needed = max(25, MIN_QUEUE_BUFFER - queue_count + batch_target)
-        print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting on-demand harvesting (goal: +{needed} leads)...")
+    if batch_target > 0:
+        print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_follows}, Likes left: {remaining_likes})")
+
+    # 1. ОТПИСКИ (Reciprocity & Unfollow Pruning):
+    # Выполняем в первую очередь, если включен приоритет разгрузки ИЛИ если подписки остановлены (нет лайков/лимит подписок)!
+    should_unfollow_first = pruning_priority_mode or likes_exhausted or follows_exhausted
+    if should_unfollow_first and unfollows_today < daily_unfollow_limit:
+        unfollow_session_target = min(random.randint(18, 25), remaining_unfollows)
+        print(f"\n[Orchestrator] 🧹 [Priority Step 1] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
         try:
-            run_harvesting_cycle(profile_name=profile_name, target_queued=needed, max_sources=MAX_HARVEST_SOURCES)
+            run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
+            sync_target_profile_stats(profile_name=profile_name, account=TARGET_ACCOUNT)
         except Exception as e:
-            print(f"[Orchestrator] Harvesting warning: {e}")
-            
-        # Человеческая пауза между ресёрчем и началом подписок (45–75 секунд)
-        pause_sec = random.randint(45, 75)
-        print(f"[Orchestrator] Human pause between research and follow actions ({pause_sec}s)...")
-        time.sleep(pause_sec)
-        
-    # 2. Выполняем пачку подписок
-    queue_count = get_queue_count()
-    if queue_count > 0:
-        actual_batch = min(batch_target, queue_count)
-        print(f"[Orchestrator] Executing follow batch of {actual_batch} top-scored candidates...")
-        try:
-            run_follow_batch(profile_name=profile_name, batch_size=actual_batch)
-        except Exception as e:
-            print(f"[Orchestrator] Follow batch error: {e}")
-    else:
-        print("[Orchestrator] No qualified candidates found in this cycle. Will retry in next session.")
-        
-    # 3. Воронка Дожима — День 3: Second-Wave Nudge (повторный лайк на свежий твит)
+            print(f"[Orchestrator] Priority Unfollow error: {e}")
+
+    # 2. ВОРОНКА ДОЖИМА — День 2-3: Second-Wave Nudge (повторный лайк на свежий твит)
     now = datetime.datetime.now()
     if 10 <= now.hour <= 22:
-        try:
-            from follower import run_nudge_batch
-            nudge_batch = random.randint(4, 7) if pruning_priority_mode else random.randint(2, 4)
-            print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review ({nudge_batch} candidates)...")
-            run_nudge_batch(profile_name=profile_name, batch_size=nudge_batch)
-        except Exception as e:
-            print(f"[Orchestrator] Day 3 Nudge notice: {e}")
+        if not likes_exhausted:
+            try:
+                from follower import run_nudge_batch
+                nudge_batch = random.randint(4, 7) if pruning_priority_mode else random.randint(2, 4)
+                print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review ({nudge_batch} candidates)...")
+                run_nudge_batch(profile_name=profile_name, batch_size=nudge_batch)
+            except Exception as e:
+                print(f"[Orchestrator] Day 3 Nudge notice: {e}")
+        else:
+            print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge skipped (Daily like limit reached: {likes_today}/{daily_like_limit}).")
 
-    # 4. Воронка Дожима — День 4: Last-Chance Ego-List (дожим системным пушем тщеславия)
+    # 3. ВОРОНКА ДОЖИМА — День 3-4: Last-Chance Ego-List (добавление в публичный список)
+    # Списки НЕ тратят лайки! Работают полноценно в дневное время
     if 10 <= now.hour <= 22:
         try:
             from follower import run_funnel_list_batch
@@ -144,23 +190,71 @@ def run_single_session(profile_name: str):
         except Exception as e:
             print(f"[Orchestrator] Day 4 Funnel List notice: {e}")
 
-    # 5. Органический аудит взаимности и отписка от неответивших (72ч дедлайн, равномерно по всем сессиям)
-    _, unfollows_today = get_today_counts()
-    _, stage_data, _ = get_current_ramp_up()
-    daily_unfollow_limit = stage_data["unfollows"]
-    if unfollows_today < daily_unfollow_limit:
-        remaining_unfollows = daily_unfollow_limit - unfollows_today
-        if pruning_priority_mode:
-            unfollow_session_target = min(random.randint(18, 25), remaining_unfollows)
-        else:
-            unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
-        print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
-        try:
-            run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
-        except Exception as e:
-            print(f"[Orchestrator] Mutual/Unfollow batch error: {e}")
+    # 4. ПОДПИСКИ: выполняем ТОЛЬКО если batch_target > 0 (есть лайки и нет блокировки)
+    if batch_target > 0 and follows_today < daily_follow_limit and not likes_exhausted:
+        queue_count = get_queue_count()
+        if queue_count < MIN_QUEUE_BUFFER:
+            needed = max(25, MIN_QUEUE_BUFFER - queue_count + batch_target)
+            print(f"[Orchestrator] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Starting on-demand harvesting (goal: +{needed} leads)...")
+            try:
+                run_harvesting_cycle(profile_name=profile_name, target_queued=needed, max_sources=MAX_HARVEST_SOURCES)
+            except Exception as e:
+                print(f"[Orchestrator] Harvesting warning: {e}")
+                
+            pause_sec = random.randint(45, 75)
+            print(f"[Orchestrator] Human pause between research and follow actions ({pause_sec}s)...")
+            time.sleep(pause_sec)
 
-    # 6. Быстрая фоновая синхронизация взаимных подписчиков (1 запрос на 3 секунды)
+        queue_count = get_queue_count()
+        if queue_count > 0:
+            actual_batch = min(batch_target, queue_count)
+            print(f"[Orchestrator] Executing follow batch of {actual_batch} top-scored candidates...")
+            try:
+                run_follow_batch(profile_name=profile_name, batch_size=actual_batch)
+            except Exception as e:
+                print(f"[Orchestrator] Follow batch error: {e}")
+        else:
+            print("[Orchestrator] No qualified candidates found in this cycle. Will retry in next session.")
+    else:
+        if likes_exhausted:
+            print("[Orchestrator] ⏸️ Follow batch SKIPPED (Tri-Touch Cascade requires likes. Preserving conversion).")
+        elif batch_target == 0:
+            print("[Orchestrator] ⏸️ Follow batch SKIPPED (Balance Equalizer active).")
+        else:
+            print(f"[Orchestrator] Daily follow limit ({daily_follow_limit}) reached. Following skipped.")
+
+    # 5. ПОИСК КАНДИДАТОВ В ПУЛ ПОДПИСОК (Harvesting):
+    # Если подписки заморожены, но мы в дневном окне — держим пул полным на завтра!
+    if (likes_exhausted or follows_exhausted) and is_work_hours():
+        queue_count = get_queue_count()
+        if queue_count < 120:
+            target_harvest = min(20, 120 - queue_count)
+            print(f"\n[Orchestrator] 🔍 Daytime maintenance: Harvesting candidate pool for tomorrow (Queue: {queue_count}, target: +{target_harvest})...")
+            try:
+                run_harvesting_cycle(profile_name=profile_name, target_queued=target_harvest, max_sources=MAX_HARVEST_SOURCES)
+            except Exception as e:
+                print(f"[Orchestrator] Harvesting pool notice: {e}")
+
+    # 6. КОНТЕНТНЫЙ ПАЙПЛАЙН: задел под постинг, репостинг, комментинг
+    try:
+        run_content_pipeline(profile_name=profile_name)
+    except Exception as e:
+        print(f"[Orchestrator] Content pipeline notice: {e}")
+
+    # 7. ПЛАНОВЫЕ ОТПИСКИ (если не запускались на шаге 1)
+    if not should_unfollow_first:
+        _, unfollows_today = get_today_counts()
+        if unfollows_today < daily_unfollow_limit:
+            remaining_unfollows = daily_unfollow_limit - unfollows_today
+            unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
+            print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
+            try:
+                run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
+                sync_target_profile_stats(profile_name=profile_name, account=TARGET_ACCOUNT)
+            except Exception as e:
+                print(f"[Orchestrator] Mutual/Unfollow batch error: {e}")
+
+    # 8. СИНХРОНИЗАЦИЯ ВЗАИМНЫХ ПОДПИСЧИКОВ (1 раз в конце сессии)
     pw = ctx = None
     try:
         from follower import sync_mutual_followers
@@ -205,70 +299,10 @@ def sleep_until(target_dt: datetime.datetime, reason: str = "Break"):
 
 def run_passive_intelligence_session(profile_name: str):
     """
-    Режим «Активной разведки»: запускается днем, когда лимит подписок уже исчерпан.
-    Занимается безопасными действиями чтения и удержания аудитории (Read Actions):
-    1. Пополняет очередь до 45+ лидов, чтобы на утро были самые свежие супер-лайкеры.
-    2. Синхронизирует взаимных подписчиков (детекция новых mutuals в реальном времени).
-    3. Запускает дожим через Ego-List или Nudge, если суточные квоты списков еще не исчерпаны.
+    Режим «Активной разведки и удержания»:
+    Вызывает сессию обслуживания (все процессы кроме подписок).
     """
-    print("\n" + "=" * 65)
-    print(f"  🔍 ACTIVE INTELLIGENCE & RETENTION MODE")
-    print(f"  Profile: @{profile_name}  |  Daily follow limit reached, but daytime is active!")
-    print("=" * 65)
-    
-    # 1. Пополнение очереди до буфера
-    queue_count = get_queue_count()
-    if queue_count < MIN_QUEUE_BUFFER:
-        target_harvest = min(15, MIN_QUEUE_BUFFER - queue_count)
-        print(f"[Intelligence] Queue has {queue_count} leads (< buffer {MIN_QUEUE_BUFFER}). Harvesting +{target_harvest} top creators...")
-        try:
-            run_harvesting_cycle(profile_name=profile_name, target_queued=target_harvest)
-        except Exception as e:
-            print(f"[Intelligence] Harvesting notice: {e}")
-            
-    # 2. Дожим через списки тщеславия (Ego-List), если квота еще свободна
-    now = datetime.datetime.now()
-    if 13 <= now.hour <= 22:
-        try:
-            from follower import run_funnel_list_batch
-            print("[Intelligence] Day 4 Funnel Ego-List review...")
-            run_funnel_list_batch(profile_name=profile_name, batch_size=random.randint(2, 3))
-        except Exception as e:
-            print(f"[Intelligence] Funnel list notice: {e}")
-            
-    # 3. Синхронизация взаимных
-    pw = ctx = None
-    try:
-        from follower import sync_mutual_followers
-        from browser import get_browser_context
-        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=True)
-        sync_mutual_followers(page)
-    except Exception as e:
-        print(f"[Intelligence] Mutual sync notice: {e}")
-    finally:
-        if ctx:
-            try:
-                ctx.close()
-            except Exception:
-                pass
-        if pw:
-            try:
-                pw.stop()
-            except Exception:
-                pass
-
-    # 4. Безопасная планомерная отписка от неответивших в дневном фоновом режиме
-    _, unfollows_today = get_today_counts()
-    _, stage_data, _ = get_current_ramp_up()
-    daily_unfollow_limit = stage_data["unfollows"]
-    if unfollows_today < daily_unfollow_limit:
-        remaining_unfollows = daily_unfollow_limit - unfollows_today
-        unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
-        print(f"\n[Intelligence] Paced Unfollow review (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit})...")
-        try:
-            run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
-        except Exception as e:
-            print(f"[Intelligence] Unfollow batch notice: {e}")
+    run_single_session(profile_name)
 
 def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
     """
@@ -294,9 +328,14 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
                 sleep_until(morning, reason="Night Rest")
                 continue
                 
-            # Проверка суточной квоты подписок
+            # Проверка суточной квоты подписок и лайков
             follows_today, _ = get_today_counts()
-            if follows_today >= DAILY_FOLLOW_LIMIT:
+            likes_today = get_today_likes()
+            _, stage_data, _ = get_current_ramp_up()
+            daily_follow_limit = stage_data["follows"]
+            daily_like_limit = stage_data["likes"]
+
+            if follows_today >= daily_follow_limit or likes_today >= daily_like_limit:
                 # Если наступила ночь (00:00 - 07:00) — спим до утра
                 if not is_work_hours():
                     morning = now.replace(hour=WORK_START_HOUR, minute=0, second=0, microsecond=0)
@@ -308,25 +347,33 @@ def run_daemon_loop(profile_name: str, ignore_work_hours: bool = False):
                     continue
                 else:
                     # Дневное активное время (07:00 - 00:00): НЕ засыпаем на полдня!
-                    # Запускаем режим «Активной разведки и удержания» (Passive Intelligence)
-                    run_passive_intelligence_session(profile_name)
-                    _, stage_data, _ = get_current_ramp_up()
-                    p_min, p_max = stage_data["pause"]
-                    pause_minutes = random.randint(p_min, p_max)
+                    # Запускаем сессию дневного обслуживания (отписки, поиск кандидатов, списки, mutuals)
+                    run_single_session(profile_name)
+                    
+                    pause_minutes = random.randint(10, 16)
                     next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
-                    print(f"\n[Intelligence Cycle Done] Break for {pause_minutes}m. Next check at: {next_time.strftime('%H:%M:%S')}\n")
-                    sleep_until(next_time, reason="Passive Mode Break")
+                    print(f"\n[Maintenance Cycle Done] Break for {pause_minutes}m. Next maintenance check at: {next_time.strftime('%H:%M:%S')}\n")
+                    sleep_until(next_time, reason="Maintenance Break")
                     continue
                 
-            # Выполняем дневную сессию
+            # Выполняем обычную дневную сессию
             run_single_session(profile_name)
             
-            # Рассчитываем человеческий перерыв между сессиями согласно активному этапу разгона
-            _, stage_data, _ = get_current_ramp_up()
-            p_min, p_max = stage_data["pause"]
-            pause_minutes = random.randint(p_min, p_max)
+            # Рассчитываем человеческий перерыв между сессиями
+            acc_followers, acc_following = get_account_stats(TARGET_ACCOUNT)
+            gap = acc_following - acc_followers
+            is_imbalanced = (acc_following > 0 and acc_followers > 0 and ((acc_following / max(1, acc_followers)) > 1.05 or gap > 15))
+
+            if is_imbalanced:
+                pause_minutes = random.randint(8, 14)
+                print(f"\n[Session Complete] ⚖️ Equalizer Pacing: break for {pause_minutes} minutes (Gap: +{gap}, focusing on parity).")
+            else:
+                _, stage_data, _ = get_current_ramp_up()
+                p_min, p_max = stage_data["pause"]
+                pause_minutes = random.randint(p_min, p_max)
+                print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes ({stage_data['name']}).")
+
             next_time = datetime.datetime.now() + datetime.timedelta(minutes=pause_minutes)
-            print(f"\n[Session Complete] Taking organic break for {pause_minutes} minutes ({stage_data['name']}).")
             print(f"Next active session planned at: {next_time.strftime('%H:%M:%S')}\n")
             sleep_until(next_time, reason="Session Break")
             
