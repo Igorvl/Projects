@@ -181,7 +181,9 @@ DAILY_LIKE_LIMIT = CURRENT_STAGE_DATA["likes"]
 LIKE_PROBABILITY = 0.90        # Высокая вероятность теплого касания
 MIN_DELAY_SECONDS = 20         # Минимальная пауза между целями (регламент 20–45с)
 MAX_DELAY_SECONDS = 45         # Максимальная пауза между целями
-UNFOLLOW_AFTER_DAYS = 3        # 72 часа (3 суток) дедлайн взаимности
+UNFOLLOW_AFTER_DAYS = 2        # 48 часов (2 суток) дедлайн взаимности
+FUNNEL_NUDGE_HOURS = 20        # Этап 2: Дожим-лайк (Nudge) через 20 часов
+FUNNEL_LIST_HOURS = 34         # Этап 3: Добавление в Ego-List через 34 часа
 MAX_HOURLY_MUTATIONS = 40      # Жесткий предохранитель антиспама: не более 40 мутаций (follow + unfollow) в любой скользящий 1 час
 
 # Настройки Схемы 1: «Дифференцированный каскад касаний»

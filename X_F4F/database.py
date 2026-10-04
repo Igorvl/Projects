@@ -579,15 +579,19 @@ def check_hourly_mutation_governor(limit: int = 40, target_safe: int = 28) -> di
         "resume_time": resume_time
     }
 
-def get_candidates_for_nudge(days: int = 1, limit: int = 5) -> list:
+def get_candidates_for_nudge(hours: int = 20, limit: int = 5, days: float = None) -> list:
     """
-    Returns candidates followed N+ days ago (Day 2 Nudge: 24h+) who haven't received
+    Returns candidates followed N+ hours ago (Funnel Stage 2 Nudge: 20h+) who haven't received
     a second-wave nudge like yet and haven't followed back.
     """
     conn = get_connection()
     cur = conn.cursor()
     ph = "?" if DB_TYPE == "sqlite" else "%s"
-    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    if days is not None:
+        delta = datetime.timedelta(days=days)
+    else:
+        delta = datetime.timedelta(hours=hours)
+    cutoff = (datetime.datetime.now() - delta).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT * FROM candidates
         WHERE status = 'followed'
@@ -600,9 +604,9 @@ def get_candidates_for_nudge(days: int = 1, limit: int = 5) -> list:
     conn.close()
     return rows
 
-def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
+def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: float = None) -> list:
     """
-    Returns candidates followed N+ days ago (Day 3 Ego-List: 48h+) who haven't received
+    Returns candidates followed N+ hours ago (Funnel Stage 3 Ego-List: 34h+) who haven't received
     a list addition yet and haven't followed back.
     STRICT FILTER: Guarantees that candidates are verified designers (design keywords in bio/breakdown).
     Excludes candidates with 3+ failed list add attempts.
@@ -610,7 +614,11 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
     conn = get_connection()
     cur = conn.cursor()
     ph = "?" if DB_TYPE == "sqlite" else "%s"
-    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    if days is not None:
+        delta = datetime.timedelta(days=days)
+    else:
+        delta = datetime.timedelta(hours=hours)
+    cutoff = (datetime.datetime.now() - delta).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT * FROM candidates
         WHERE status = 'followed'
@@ -655,7 +663,7 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
 
     return verified_designers
 
-def get_stale_unfollow_count(days: int = 3) -> int:
+def get_stale_unfollow_count(days: int = 2) -> int:
     """
     Returns count of candidates followed N+ days ago who have not followed back
     and have fewer than 3 failed unfollow attempts.

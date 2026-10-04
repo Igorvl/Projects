@@ -1058,27 +1058,27 @@ def nudge_user_like(page, username: str) -> bool:
 
 def run_nudge_batch(profile_name="test_igorvl777", batch_size=3):
     """
-    Executes Day 3 Second-Wave Nudge for candidates followed 3-4 days ago.
+    Executes Funnel Stage 2 Second-Wave Nudge for candidates followed 20h+ ago.
     """
     from database import get_candidates_for_nudge
-    from config import DAILY_LIKE_LIMIT
+    from config import DAILY_LIKE_LIMIT, FUNNEL_NUDGE_HOURS
 
     today_likes = get_today_likes()
     if today_likes >= DAILY_LIKE_LIMIT:
         print(f"[Nudge] Daily like limit reached ({today_likes}/{DAILY_LIKE_LIMIT}). Postponing nudge batch.")
         return
 
-    candidates = get_candidates_for_nudge(days=1, limit=batch_size)
+    candidates = get_candidates_for_nudge(hours=FUNNEL_NUDGE_HOURS, limit=batch_size)
     if not candidates:
-        print("[Nudge] No candidates currently due for Day 2 Nudge.")
+        print("[Nudge] No candidates currently due for Stage 2 Nudge.")
         return
 
-    print(f"[Nudge] Starting Day 2 Nudge batch for {len(candidates)} candidates...")
+    print(f"[Nudge] Starting Stage 2 Nudge batch ({FUNNEL_NUDGE_HOURS}h+) for {len(candidates)} candidates...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     try:
         for c in candidates:
             u = c["username"]
-            print(f"\n[Nudge] Processing Day 2 Nudge for @{u} (Score: {c.get('score', 0)})...")
+            print(f"\n[Nudge] Processing Stage 2 Nudge for @{u} (Score: {c.get('score', 0)})...")
             success = nudge_user_like(page, u)
             if success:
                 delay = random.randint(MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)
@@ -1088,14 +1088,14 @@ def run_nudge_batch(profile_name="test_igorvl777", batch_size=3):
     finally:
         ctx.close()
         pw.stop()
-        print("\n[Nudge] Day 2 Nudge batch completed.")
+        print("\n[Nudge] Stage 2 Nudge batch completed.")
 
 def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
     """
-    Executes Day 3 Last-Chance Ego-List addition for candidates followed 2+ days ago (48h+).
+    Executes Funnel Stage 3 Last-Chance Ego-List addition for candidates followed 34h+ ago.
     """
     from database import get_candidates_for_funnel_list_add, get_today_list_adds
-    from config import DAILY_LIST_ADD_LIMIT, EGO_LIST_DEFAULT_NAME
+    from config import DAILY_LIST_ADD_LIMIT, EGO_LIST_DEFAULT_NAME, FUNNEL_LIST_HOURS
     import importlib
     import list_bomber
     try:
@@ -1109,12 +1109,12 @@ def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
         print(f"[Funnel List] Daily list add limit reached ({today_adds}/{DAILY_LIST_ADD_LIMIT}). Postponing.")
         return
 
-    candidates = get_candidates_for_funnel_list_add(days=2, limit=batch_size)
+    candidates = get_candidates_for_funnel_list_add(hours=FUNNEL_LIST_HOURS, limit=batch_size)
     if not candidates:
-        print("[Funnel List] No candidates currently due for Day 4 Ego-List addition.")
+        print("[Funnel List] No candidates currently due for Stage 3 Ego-List addition.")
         return
 
-    print(f"[Funnel List] Starting Day 4 Ego-List batch for {len(candidates)} candidates...")
+    print(f"[Funnel List] Starting Stage 3 Ego-List batch ({FUNNEL_LIST_HOURS}h+) for {len(candidates)} candidates...")
     pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
     try:
         if not ensure_ego_list_exists(page, EGO_LIST_DEFAULT_NAME):
@@ -1123,7 +1123,7 @@ def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
 
         for c in candidates:
             u = c["username"]
-            print(f"\n[Funnel List] Checking Day 4 Ego-List addition for @{u}...")
+            print(f"\n[Funnel List] Checking Stage 3 Ego-List addition for @{u}...")
             # Check mutual first
             is_mutual = check_is_mutual(page, u)
             if is_mutual:

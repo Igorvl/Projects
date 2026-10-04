@@ -187,7 +187,7 @@ def run_single_session(profile_name: str):
     elif pruning_priority_mode:
         max_by_likes = remaining_likes // 2
         batch_target = min(random.randint(8, 12), remaining_follows, max_by_likes)
-        print(f"[Orchestrator] ⚖️ Pruning Priority Mode: {stale_unfollow_backlog} candidates waiting (72h+). Follow target: {batch_target}.")
+        print(f"[Orchestrator] ⚖️ Pruning Priority Mode: {stale_unfollow_backlog} candidates waiting (48h+). Follow target: {batch_target}.")
     else:
         max_by_likes = remaining_likes // 2
         batch_target = min(random.randint(min_b, max_b), remaining_follows, max_by_likes)
@@ -207,30 +207,30 @@ def run_single_session(profile_name: str):
         except Exception as e:
             print(f"[Orchestrator] Priority Unfollow error: {e}")
 
-    # 2. ВОРОНКА ДОЖИМА — День 2-3: Second-Wave Nudge (повторный лайк на свежий твит)
+    # 2. ВОРОНКА ДОЖИМА — Этап 2: Second-Wave Nudge (повторный лайк на свежий твит через 20ч+)
     now = datetime.datetime.now()
     if 10 <= now.hour <= 22:
         if not likes_exhausted:
             try:
                 from follower import run_nudge_batch
                 nudge_batch = random.randint(4, 7) if pruning_priority_mode else random.randint(2, 4)
-                print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge review ({nudge_batch} candidates)...")
+                print(f"\n[Orchestrator] Funnel Stage 2: Second-Wave Nudge review 20h+ ({nudge_batch} candidates)...")
                 run_nudge_batch(profile_name=profile_name, batch_size=nudge_batch)
             except Exception as e:
-                print(f"[Orchestrator] Day 3 Nudge notice: {e}")
+                print(f"[Orchestrator] Stage 2 Nudge notice: {e}")
         else:
-            print(f"\n[Orchestrator] Funnel Stage 2: Day 3 Nudge skipped (Daily like limit reached: {likes_today}/{daily_like_limit}).")
+            print(f"\n[Orchestrator] Funnel Stage 2: Stage 2 Nudge skipped (Daily like limit reached: {likes_today}/{daily_like_limit}).")
 
-    # 3. ВОРОНКА ДОЖИМА — День 3-4: Last-Chance Ego-List (добавление в публичный список)
+    # 3. ВОРОНКА ДОЖИМА — Этап 3: Last-Chance Ego-List (добавление в публичный список через 34ч+)
     # Списки НЕ тратят лайки! Работают полноценно в дневное время
     if 10 <= now.hour <= 22:
         try:
             from follower import run_funnel_list_batch
             list_batch = random.randint(3, 5) if pruning_priority_mode else random.randint(2, 3)
-            print(f"\n[Orchestrator] Funnel Stage 3: Day 4 Ego-List review ({list_batch} candidates)...")
+            print(f"\n[Orchestrator] Funnel Stage 3: Ego-List review 34h+ ({list_batch} candidates)...")
             run_funnel_list_batch(profile_name=profile_name, batch_size=list_batch)
         except Exception as e:
-            print(f"[Orchestrator] Day 4 Funnel List notice: {e}")
+            print(f"[Orchestrator] Stage 3 Funnel List notice: {e}")
 
     # 4. ПОДПИСКИ: выполняем ТОЛЬКО если batch_target > 0 (есть лайки и нет блокировки)
     if batch_target > 0 and follows_today < daily_follow_limit and not likes_exhausted:
