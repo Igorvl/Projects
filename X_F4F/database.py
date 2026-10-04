@@ -918,12 +918,12 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_mf and info_mf["last_scraped_at"])
             })
 
-    # 7. Viral Reposts: high-performing weekly design work of top mutuals and curated donors (cooldown 36h)
+    # 7. Viral Reposts: high-performing weekly design work of top mutuals and curated donors (cooldown 72h)
     viral_seeds = []
     for m in mutual_seeds[:15]:
-        viral_seeds.append((m, 36))
+        viral_seeds.append((m, 72))
     for d in TARGET_DONORS[:10]:
-        viral_seeds.append((d, 36))
+        viral_seeds.append((d, 72))
 
     for s_user, c_hours in viral_seeds:
         clean_s = s_user.replace("@", "").strip()
