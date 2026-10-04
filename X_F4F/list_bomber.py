@@ -8,6 +8,12 @@ high-priority system push notifications to target creators.
 import random
 import time
 import sys
+import os
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 from browser import (
     get_browser_context,
     human_delay,
@@ -271,106 +277,134 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             human_delay(1.5, 2.5)
 
         # 2. In dropdown menu, locate 'Add/remove from Lists' item
-        menu_loc = page.locator('div[role="menu"], div[data-testid="Dropdown"]')
+        # We verified in live DOM: <a href="/i/lists/add_member"> with text 'Add/remove from Lists'
+        menu_loc = page.locator('div[role="menu"], div[data-testid="Dropdown"]').first
         list_menu_item = None
 
-        candidates_loc = menu_loc.locator(
-            '[data-testid="listAddRemove"], '
-            '[data-testid*="list" i], '
-            '[role="menuitem"]:has-text("Lists"), '
-            '[role="menuitem"]:has-text("lists"), '
-            '[role="menuitem"]:has-text("Add/remove"), '
-            '[role="menuitem"]:has-text("списк"), '
-            '[role="menuitem"]:has-text("Списк"), '
-            'a[href*="/lists" i], '
-            'div:has-text("Add/remove"), '
-            'span:has-text("Lists"), '
-            'span:has-text("списк")'
-        )
+        # Priority 1: Check direct href '/i/lists/add_member' or testid 'listAddRemove'
+        primary_match = menu_loc.locator('a[href*="/lists/add_member"], [data-testid="listAddRemove"]').first
+        if primary_match.count() > 0 and primary_match.is_visible():
+            list_menu_item = primary_match
 
-        if candidates_loc.count() > 0:
-            for i in range(candidates_loc.count()):
-                el = candidates_loc.nth(i)
-                txt = el.inner_text().lower()
-                if any(w in txt for w in ["add", "remove", "внести", "добавить", "удалить", "списк"]) or "lists" in txt:
-                    list_menu_item = el
-                    break
+        # Priority 2: Scan all menuitems with strict exclusion of 'View Lists'
+        if not list_menu_item:
+            menu_items = menu_loc.locator('[role="menuitem"]')
+            count = menu_items.count()
+            for i in range(count):
+                mi = menu_items.nth(i)
+                try:
+                    txt = mi.inner_text().strip().lower()
+                    href = mi.get_attribute("href") or ""
+                except Exception:
+                    continue
 
-        if not list_menu_item or not list_menu_item.is_visible():
-            menu_items = page.query_selector_all('div[role="menu"] [role="menuitem"], div[data-testid="Dropdown"] [role="menuitem"]')
-            for mi in menu_items:
-                mi_txt = mi.inner_text().lower()
-                if "list" in mi_txt or "списк" in mi_txt or "add" in mi_txt or "внести" in mi_txt:
+                # STRICT EXCLUSION: Skip navigation links to user's lists (e.g. /{user}/lists)
+                if href.endswith("/lists") or "view lists" in txt or "посмотреть списки" in txt:
+                    continue
+
+                # STRICT INCLUSION: Must be Add/Remove or Внести/Удалить из списков
+                is_add_remove = any(w in txt for w in ["add/remove", "add from list", "remove from list", "внести", "добавить в список", "удалить из списка"]) or href.endswith("/add_member")
+
+                if is_add_remove:
                     list_menu_item = mi
                     break
 
         if not list_menu_item:
-            print(f"  [List Bomber] ⚠️ 'Lists' menu option not found for @{clean_user}")
+            print(f"  [List Bomber] [Warning] 'Add/remove from Lists' menu option not found for @{clean_user}")
             page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="menu_item_not_found")
             return False
 
         print(f"  [List Bomber] Opening Lists modal for @{clean_user}...")
-        human_click(page, list_menu_item)
-        human_delay(2.0, 3.0)
-
-        # 3. Wait for modal dialog using multi-selector
-        dialog_selector = 'div[role="dialog"], div[aria-modal="true"], div[data-testid="sheetDialog"], div[data-testid="listAddRemoveSheet"]'
+        initial_url = page.url
         try:
-            page.wait_for_selector(dialog_selector, timeout=5000)
+            # Native click on menuitem avoids mouse-sweep blur
+            list_menu_item.click(timeout=3000)
+        except Exception:
+            human_click(page, list_menu_item)
+        human_delay(1.5, 2.5)
+
+        # Detect accidental navigation
+        if page.url != initial_url and "/lists" in page.url and "/add_member" not in page.url:
+            print(f"  [List Bomber] [Warning] Accidental navigation to {page.url}, returning to profile...")
+            page.go_back(wait_until="domcontentloaded")
+            human_delay(2.0, 3.0)
+            log_action(clean_user, "list_add", success=False, error="navigated_away")
+            return False
+
+        # 3. Explicitly wait for modal dialog to mount in DOM
+        dialog_selector = 'div[role="dialog"]'
+        try:
+            page.wait_for_selector(dialog_selector, timeout=8000)
         except Exception:
             pass
 
-        modal = page.locator(dialog_selector)
-        if modal.count() == 0 or not modal.first.is_visible():
-            # Fallback: force click on list menu item / data-testid="listAddRemove"
+        modal = page.locator(dialog_selector).first
+        if modal.count() == 0 or not modal.is_visible():
+            print(f"  [List Bomber] List selection dialog did not open for @{clean_user}")
             try:
-                if hasattr(list_menu_item, 'click'):
-                    list_menu_item.click(force=True)
-                elif hasattr(list_menu_item, 'first'):
-                    list_menu_item.first.click(force=True)
-                human_delay(2.0, 3.0)
+                err_shot = os.path.join(BASE_DIR, "branding", f"list_dialog_err_{clean_user}.png")
+                page.screenshot(path=err_shot)
             except Exception:
                 pass
-            modal = page.locator(dialog_selector)
-
-        if modal.count() == 0 or not modal.first.is_visible():
-            print(f"  [List Bomber] List selection dialog did not open for @{clean_user}")
             page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="dialog_not_found")
             return False
 
-        # Strictly target our own public ego list: '✦ Top 1% Designers 2026'
-        # Explicit exclusion: DO NOT touch 'TALENT POOL / 2026' (belongs to Ksar, not Gerrit Brandt)
-        list_entry = modal.locator(f'div:has-text("{list_name}")')
-        if list_entry.count() == 0:
-            list_entry = modal.locator('div:has-text("Top 1% Designers"), span:has-text("Top 1% Designers")')
+        human_delay(1.0, 2.0)
 
-        if list_entry.count() == 0:
-            print(f"  [List Bomber] List '{list_name}' not available in selection modal for @{clean_user}")
-            close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]')
-            if close_btn.count() > 0 and close_btn.first.is_visible():
-                human_click(page, close_btn.first)
+        # 4. Strictly target our public ego list row: 'Top 1% Designers'
+        # In live DOM: <div role="checkbox" data-testid="listCell">
+        clean_target_keyword = "Top 1% Designers"
+        list_row = modal.locator('div[role="checkbox"][data-testid="listCell"], div[role="checkbox"]').filter(has_text=clean_target_keyword).first
+        if list_row.count() == 0:
+            list_row = modal.locator('[role="button"], div[data-testid*="list" i]').filter(has_text=clean_target_keyword).first
+
+        if list_row.count() == 0 or not list_row.is_visible():
+            print(f"  [List Bomber] List '{clean_target_keyword}' not found in modal for @{clean_user}")
+            close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]').first
+            if close_btn.count() > 0 and close_btn.is_visible():
+                close_btn.click()
+            else:
+                page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="list_not_in_modal")
             return False
 
-        print(f"  [List Bomber] Toggling ego list checkbox for @{clean_user}...")
-        human_click(page, list_entry.first)
-        human_delay(1.0, 2.0)
+        # Check aria-checked attribute to avoid toggling off
+        checked = list_row.get_attribute("aria-checked")
+        if checked == "true":
+            print(f"  [List Bomber] [Info] @{clean_user} is ALREADY in list '{list_name}'!")
+        else:
+            print(f"  [List Bomber] Toggling ego list checkbox for @{clean_user}...")
+            try:
+                list_row.click(timeout=3000)
+            except Exception:
+                human_click(page, list_row)
+            human_delay(1.0, 1.8)
 
-        # 4. Click Save button in modal
-        save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Save"), button:has-text("Done"), button:has-text("Сохранить"), button:has-text("Готово")')
-        if save_btn.count() > 0 and save_btn.first.is_visible():
-            human_click(page, save_btn.first)
+        # 5. Click Save button in modal
+        save_btn = modal.locator('button[role="button"], button').filter(has_text="Save").first
+        if save_btn.count() == 0:
+            save_btn = modal.locator('button[role="button"], button').filter(has_text="Сохранить").first
+        if save_btn.count() == 0:
+            save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Done")').first
+
+        if save_btn.count() > 0 and save_btn.is_visible():
+            try:
+                save_btn.click(timeout=3000)
+            except Exception:
+                human_click(page, save_btn)
             human_delay(1.5, 2.5)
-            print(f"  [List Bomber] 🏆 Added @{clean_user} to public list '{list_name}'! (Push notification triggered)")
+            print(f"  [List Bomber] [Success] Added @{clean_user} to public list '{list_name}'! (Push notification triggered)")
             log_action(clean_user, "list_add", success=True)
             return True
         else:
-            close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]')
-            if close_btn.count() > 0 and close_btn.first.is_visible():
-                human_click(page, close_btn.first)
-            print(f"  [List Bomber] 🏆 Added @{clean_user} to list (auto-close applied)!")
+            close_btn = modal.locator('button[aria-label="Close"], [data-testid="app-bar-close"]').first
+            if close_btn.count() > 0 and close_btn.is_visible():
+                close_btn.click()
+            else:
+                page.keyboard.press("Escape")
+            print(f"  [List Bomber] [Success] Added @{clean_user} to list (auto-close applied)!")
             log_action(clean_user, "list_add", success=True)
             return True
 
