@@ -1502,6 +1502,9 @@ HTML_PAGE = """<!DOCTYPE html>
                     } catch(e) {}
                     const isConnect = bd.connect_intent_bonus || (bd.connect_matched && bd.connect_matched.length > 0);
                     const connectBadge = isConnect ? `<div style="margin-top:4px;"><span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-size:10px; padding:2px 6px;">🤝 Mutuals</span></div>` : '';
+                    const isPortfolio = bd.bio_link_sniffer_bonus || (bd.portfolio_matched && bd.portfolio_matched.length > 0);
+                    const portfolioDomain = (bd.portfolio_matched && bd.portfolio_matched.length > 0) ? ` (${esc(bd.portfolio_matched[0])})` : '';
+                    const portfolioBadge = isPortfolio ? `<div style="margin-top:4px;"><span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:10px; padding:2px 6px;">🌐 Portfolio${portfolioDomain}</span></div>` : '';
 
                     return `
                     <tr>
@@ -1510,6 +1513,7 @@ HTML_PAGE = """<!DOCTYPE html>
                                 <span class="user-name">${esc(c.name || c.username)}</span>
                                 <a class="user-handle" href="https://x.com/${esc(c.username)}" target="_blank" rel="noopener noreferrer">@${esc(c.username)}</a>
                                 ${connectBadge}
+                                ${portfolioBadge}
                             </div>
                         </td>
                         <td><div class="bio-text">${c.bio ? esc(c.bio) : '<i style="color:#555">Без описания</i>'}</div></td>

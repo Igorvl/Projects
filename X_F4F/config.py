@@ -83,11 +83,28 @@ NEGATIVE_KEYWORDS = [
     "nft project", "web3 creator", "100x"
 ]
 
-# Ссылки на дизайнерские портфолио в Bio/URL (+15 очков)
+# Bio Link Sniffer: Ссылки на профессиональные дизайнерские портфолио в Bio/URL (+30 очков)
 PORTFOLIO_DOMAINS = [
-    "behance.net", "layers.to", "framer.website", "framer.com",
-    "readymag.site", "dribbble.com", "cosmos.so", "bento.me",
-    "are.na", "contra.com", "github.com", "notion.site"
+    "framer.website", "framer.app", "framer.com", "framer.photos", "framer.ai",
+    "readymag.site", "readymag.com",
+    "layers.to",
+    "bento.me",
+    "behance.net",
+    "dribbble.com",
+    "contra.com",
+    "cosmos.so",
+    "are.na",
+    "cargo.site", "cargocollective.com",
+    "format.com",
+    "webflow.io", "webflow.com",
+    "notion.site",
+    "polywork.com",
+    "savee.it"
+]
+
+# Профессиональные TLD-домены для персональных дизайн-сайтов
+PORTFOLIO_TLDS = [
+    ".design", ".studio", ".works", ".graphics", ".art"
 ]
 
 # Минимальный проходной балл скоринга для постановки в очередь на подписку

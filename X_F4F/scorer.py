@@ -13,6 +13,7 @@ from config import (
     KEYWORDS_CONNECT,
     KEYWORDS_LAUNCH_FREELANCE,
     PORTFOLIO_DOMAINS,
+    PORTFOLIO_TLDS,
     MIN_FOLLOWERS,
     MAX_FOLLOWERS,
     MIN_RATIO,
@@ -64,6 +65,7 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "connect_intent_bonus": False,
         "launch_freelance_bonus": False,
         "mutual_friend_bonus": False,
+        "bio_link_sniffer_bonus": False,
         "hard_gates_passed": True,
         "reject_reasons": []
     }
@@ -77,9 +79,9 @@ def evaluate_candidate(profile_data: dict) -> dict:
             breakdown["reject_reasons"].append(f"Spam filter: '{neg}'")
             break
 
-    # Проверка наличия ссылки на портфолио
+    # Bio Link Sniffer: Проверка наличия ссылки на подтвержденное портфолио
     combined_text = f"{bio} {url}"
-    has_portfolio = any(domain in combined_text for domain in PORTFOLIO_DOMAINS)
+    has_portfolio = any(domain in combined_text for domain in PORTFOLIO_DOMAINS) or any(tld in combined_text for tld in PORTFOLIO_TLDS)
 
     # Гибкий нижний порог подписчиков:
     # Обычный порог MIN_FOLLOWERS (40), но если есть подтвержденное дизайнерское портфолио — допускаем от 25
@@ -136,13 +138,18 @@ def evaluate_candidate(profile_data: dict) -> dict:
     if breakdown["engagement_matched"]:
         score += 25 + min(15, (len(breakdown["engagement_matched"]) - 1) * 5)
 
-    # Портфолио / Ссылки (+15 очков)
+    # Bio Link Sniffer: Портфолио / Профессиональные ссылки (+30 очков VIP Boost)
+    # Наличие реального дизайн-портфолио (framer, readymag, layers, bento, behance, .design, .studio и т.д.)
     combined_text = f"{bio} {url}"
     for domain in PORTFOLIO_DOMAINS:
         if domain in combined_text:
             breakdown["portfolio_matched"].append(domain)
+    for tld in PORTFOLIO_TLDS:
+        if tld in combined_text and tld not in breakdown["portfolio_matched"]:
+            breakdown["portfolio_matched"].append(tld)
     if breakdown["portfolio_matched"]:
-        score += 15
+        score += 30
+        breakdown["bio_link_sniffer_bonus"] = True
 
     # Кластер E: Маркеры взаимности (Connect & Mutuals) - Механизм 1 (+25 очков за готовность к нетворкингу)
     # Проверяем как в Bio, так и в закрепленных / свежих твитах
