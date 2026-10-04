@@ -118,20 +118,10 @@ def enforce_hourly_safety_governor() -> bool:
 
 def run_content_pipeline(profile_name: str = "test_igorvl777"):
     """
-    Automated content operations:
-    - Pinned Tweet Manifesto verification and publishing
-    - Post creation / scheduling
-    - Curated quote tweeting and reposting
-    Integrated into the 24/7 orchestration lifecycle.
+    Slot for future manual or scheduled content operations:
+    (Manifesto tweet EXOMETRIC – STRATOSPHERE_DELTA is already published manually with 48 likes & 1.1k views).
     """
-    marker_path = os.path.join(BASE_DIR, "branding", "pinned_tweet", "manifesto_published.json")
-    if not os.path.exists(marker_path):
-        print(f"\n[Orchestrator] 🎨 [Content Pipeline] Pinned manifesto not yet published! Launching manifesto publisher...")
-        try:
-            from publish_pinned_tweet import publish_and_pin_manifesto
-            publish_and_pin_manifesto(profile_name=profile_name)
-        except Exception as e:
-            print(f"[Orchestrator] Pinned manifesto publishing notice: {e}")
+    pass
 
 def run_single_session(profile_name: str):
     """
