@@ -454,6 +454,116 @@ def run_list_bombing_batch(profile_name="test_igorvl777", batch_size=8, list_nam
         except Exception:
             pass
 
+def remove_user_from_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME) -> bool:
+    """
+    Removes candidate from designated Twitter list if present.
+    Resets database tracking (list_add_sent = 0).
+    """
+    clean_user = username.replace("@", "").strip()
+    url = f"https://x.com/{clean_user}"
+    print(f"\n[List Bomber] Removing @{clean_user} from '{list_name}'...")
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        wait_for_x_page_load(page, ready_selector='div[data-testid="primaryColumn"], main[role="main"]', max_wait_sec=6.0, max_retries=1)
+        handle_x_retry_button(page)
+        human_delay(1.0, 2.0)
+
+        main_container = page.locator('main[role="main"], div[data-testid="primaryColumn"]').first
+        if main_container.count() > 0 and main_container.is_visible():
+            actions_btn = main_container.locator('button[data-testid="userActions"], div[data-testid="userActions"]').first
+        else:
+            actions_btn = page.locator('button[data-testid="userActions"], div[data-testid="userActions"]').first
+
+        if actions_btn.count() == 0 or not actions_btn.is_visible():
+            return False
+
+        try:
+            actions_btn.click(timeout=3000)
+        except Exception:
+            human_click(page, actions_btn)
+        human_delay(1.5, 2.5)
+
+        add_item = page.locator('[role="menuitem"][href="/i/lists/add_member"], [role="menuitem"]:has-text("Add/remove"), [role="menuitem"]:has-text("Внести")').first
+        if add_item.count() == 0 or not add_item.is_visible():
+            menu_items = page.locator('[role="menuitem"]').all()
+            for mi in menu_items:
+                try:
+                    txt = mi.inner_text().strip().lower()
+                    href = mi.get_attribute("href") or ""
+                    if ("lists" in txt or "списк" in txt) and "view" not in txt and not href.endswith("/lists"):
+                        add_item = mi
+                        break
+                except Exception:
+                    continue
+
+        if not add_item or add_item.count() == 0 or not add_item.is_visible():
+            page.keyboard.press("Escape")
+            return False
+
+        try:
+            add_item.click(timeout=3000)
+        except Exception:
+            human_click(page, add_item)
+        human_delay(1.5, 2.5)
+
+        modal = None
+        dialogs = page.locator('div[role="dialog"]').all()
+        for d in dialogs:
+            if d.is_visible():
+                modal = d
+                break
+
+        if not modal:
+            page.keyboard.press("Escape")
+            return False
+
+        clean_target_keyword = "Top 1% Designers"
+        list_row = modal.locator('div[role="checkbox"], [data-testid="listCell"]').filter(has_text=clean_target_keyword).first
+        if list_row.count() == 0:
+            list_row = modal.locator('[role="button"], div[data-testid*="list" i]').filter(has_text=clean_target_keyword).first
+
+        if list_row.count() == 0 or not list_row.is_visible():
+            page.keyboard.press("Escape")
+            return False
+
+        checked = list_row.get_attribute("aria-checked")
+        if checked == "true":
+            print(f"  [List Bomber] Unchecking '{list_name}' for @{clean_user}...")
+            try:
+                list_row.click(timeout=3000)
+            except Exception:
+                human_click(page, list_row)
+            human_delay(1.0, 1.8)
+
+            save_btn = modal.locator('button[role="button"], button').filter(has_text="Save").first
+            if save_btn.count() == 0:
+                save_btn = modal.locator('button[role="button"], button').filter(has_text="Сохранить").first
+            if save_btn.count() == 0:
+                save_btn = modal.locator('button[data-testid="listSaveButton"], button:has-text("Done")').first
+
+            if save_btn.count() > 0 and save_btn.is_visible():
+                try:
+                    save_btn.click(timeout=3000)
+                except Exception:
+                    human_click(page, save_btn)
+                human_delay(1.5, 2.5)
+                print(f"  [List Bomber] Successfully removed @{clean_user} from list '{list_name}'.")
+        else:
+            print(f"  [List Bomber] @{clean_user} was not in list '{list_name}'.")
+            page.keyboard.press("Escape")
+
+        # Update DB
+        from database import get_connection
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE candidates SET list_add_sent = 0 WHERE username = ?", (clean_user,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"  [List Bomber] Error removing @{clean_user}: {e}")
+        return False
+
 if __name__ == "__main__":
     profile = "test_igorvl777"
     count = 5

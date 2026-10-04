@@ -19,7 +19,9 @@ from config import (
     MIN_RATIO,
     MAX_DAYS_INACTIVE,
     MIN_SCORE_THRESHOLD,
-    NEGATIVE_KEYWORDS
+    NEGATIVE_KEYWORDS,
+    KEYWORDS_FOUNDERS_BUSINESS,
+    KEYWORDS_DESIGN_CORE
 )
 
 def contains_keyword(text: str, kw: str) -> bool:
@@ -60,6 +62,11 @@ def evaluate_candidate(profile_data: dict) -> dict:
         "portfolio_matched": [],
         "connect_matched": [],
         "launch_freelance_matched": [],
+        "founders_matched": [],
+        "is_designer": False,
+        "is_founder": False,
+        "target_track": "unrelated",
+        "founder_bonus": False,
         "hungry_talent_bonus": False,
         "super_engager_bonus": False,
         "connect_intent_bonus": False,
@@ -107,6 +114,29 @@ def evaluate_candidate(profile_data: dict) -> dict:
         breakdown["hard_gates_passed"] = False
         breakdown["reject_reasons"].append(f"Inactive ({days_inactive}d > {MAX_DAYS_INACTIVE}d)")
 
+    # D. Проверка специализации (Target Relevance Gate):
+    # Кандидат ОБЯЗАН быть либо Дизайнером, либо Фаундером / Бизнесом!
+    # Отсекает случайный шум (медиков, мем-аккаунты, футбольных фанатов, трейдеров, аниме)
+    recent_tweets = (profile_data.get("recent_tweets") or "").lower()
+    full_text = f"{bio} {url} {recent_tweets}"
+
+    is_designer = (
+        has_portfolio or
+        any(contains_keyword(bio, role) for role in KEYWORDS_ROLES) or
+        any(contains_keyword(bio, style) for style in KEYWORDS_STYLE) or
+        any(contains_keyword(full_text, d_kw) for d_kw in KEYWORDS_DESIGN_CORE)
+    )
+
+    is_founder = any(contains_keyword(full_text, f_kw) for f_kw in KEYWORDS_FOUNDERS_BUSINESS)
+
+    breakdown["is_designer"] = is_designer
+    breakdown["is_founder"] = is_founder
+    breakdown["target_track"] = "designer" if is_designer else ("founder" if is_founder else "unrelated")
+
+    if not is_designer and not is_founder:
+        breakdown["hard_gates_passed"] = False
+        breakdown["reject_reasons"].append("No design or business/founder relevance")
+
     # 3. Скоринг совпадений
     score = 0
 
@@ -116,6 +146,14 @@ def evaluate_candidate(profile_data: dict) -> dict:
             breakdown["roles_matched"].append(role)
     if breakdown["roles_matched"]:
         score += 35 + min(15, (len(breakdown["roles_matched"]) - 1) * 5)
+
+    # Кластер H: Фаундеры, предприниматели и бизнес (+35 за первое, +5 за доп.)
+    for f_kw in KEYWORDS_FOUNDERS_BUSINESS:
+        if contains_keyword(bio, f_kw):
+            breakdown["founders_matched"].append(f_kw)
+    if breakdown["founders_matched"]:
+        score += 35 + min(15, (len(breakdown["founders_matched"]) - 1) * 5)
+        breakdown["founder_bonus"] = True
 
     # Кластер B: Стили и эстетика (+30 за первое, +5 за доп.)
     for style in KEYWORDS_STYLE:

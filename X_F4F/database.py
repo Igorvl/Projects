@@ -632,14 +632,25 @@ def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: fl
     raw_rows = [dict(r) for r in cur.fetchall()]
     conn.close()
 
-    DESIGN_KEYWORDS = (
-        "design", "ui", "ux", "art", "creative", "brand", "visual", "typography",
-        "3d", "render", "architect", "studio", "framer", "figma", "blender",
-        "motion", "identity", "graphic", "product designer", "creator", "portfolio"
+    from config import NEGATIVE_KEYWORDS, PORTFOLIO_DOMAINS, PORTFOLIO_TLDS
+
+    DESIGN_ROLES_STRICT = (
+        "designer", "art director", "creative director", "design lead", "head of design",
+        "brand designer", "visual designer", "motion designer", "type designer", "typography",
+        "ui/ux", "product designer", "graphic designer", "design engineer", "3d artist",
+        "brand identity", "visual identity", "design system", "design systems"
     )
 
     verified_designers = []
     for c in raw_rows:
+        bio_lower = (c.get("bio") or "").lower()
+        url_lower = (c.get("url") or "").lower()
+        combined_text = f"{bio_lower} {url_lower}"
+
+        # 1. Stop words check: drop any casual, meme, sports or spam accounts
+        if any(neg in combined_text for neg in NEGATIVE_KEYWORDS):
+            continue
+
         breakdown = {}
         try:
             if isinstance(c.get("score_breakdown"), str):
@@ -649,14 +660,15 @@ def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: fl
         except Exception:
             pass
 
-        has_role = bool(breakdown.get("roles_matched"))
-        has_style = bool(breakdown.get("styles_matched"))
-        has_portfolio = bool(breakdown.get("portfolio_matched"))
-        bio_lower = (c.get("bio") or "").lower()
-        has_kw = any(kw in bio_lower for kw in DESIGN_KEYWORDS)
+        has_portfolio = bool(breakdown.get("portfolio_matched")) or any(p in combined_text for p in PORTFOLIO_DOMAINS) or any(tld in combined_text for tld in PORTFOLIO_TLDS)
+        has_role = bool(breakdown.get("roles_matched")) or any(role in bio_lower for role in DESIGN_ROLES_STRICT)
+        has_style = bool(breakdown.get("styles_matched")) or any(s in bio_lower for s in ("framer", "figma", "blender", "cinema4d", "spline", "typography", "brutalism", "swiss design", "3d design"))
+        is_verified = bool(c.get("is_verified", 0))
 
-        # STRICT DESIGNER CHECK: Must have design role, design style, design portfolio, or design keyword in bio
-        if has_role or has_style or has_portfolio or has_kw:
+        # 2. Strict elite gate:
+        # A. Must be a confirmed designer (has role, design style, or portfolio)
+        # B. Pure founders / business owners WITHOUT design credentials are kept for client acquisition, but EXCLUDED from the Designers List!
+        if (has_portfolio or has_role or has_style) and (has_portfolio or is_verified or has_role):
             verified_designers.append(c)
             if len(verified_designers) >= limit:
                 break

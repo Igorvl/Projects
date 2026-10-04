@@ -71,7 +71,27 @@ KEYWORDS_LAUNCH_FREELANCE = [
 ]
 
 
-# Негативные стоп-слова (боты, спам, криптоскам, офферы) - Жесткий бан
+# Кластер H: Фаундеры, предприниматели и бизнес (Потенциальные высокочековые заказчики) - Вес: +35
+KEYWORDS_FOUNDERS_BUSINESS = [
+    "founder", "co-founder", "cofounder", "founding", "ceo", "building",
+    "indie hacker", "indiehacker", "bootstrapped", "agency owner", "studio founder",
+    "startup", "solopreneur", "entrepreneur", "buildinpublic", "building in public",
+    "cto", "cpo", "head of product", "product manager", "saas", "micro-saas",
+    "tech founder", "b2b saas", "software founder", "creator economy", "business owner",
+    "agency", "founder @", "ceo @", "building @"
+]
+
+# Ключевые слова специализации в дизайне (Core Design Identity)
+KEYWORDS_DESIGN_CORE = [
+    "design", "designer", "art director", "creative director", "design lead",
+    "head of design", "brand director", "product designer", "graphic designer",
+    "brand designer", "visual designer", "motion designer", "type designer",
+    "ui/ux designer", "ui designer", "ux designer", "web designer", "ui/ux",
+    "typography", "branding", "brand identity", "visual identity", "design system",
+    "3d design", "3d artist", "framer", "figma", "spline", "blender", "cinema4d"
+]
+
+# Негативные стоп-слова (боты, спам, криптоскам, офферы, нерелевантные сферы) - Жесткий бан
 NEGATIVE_KEYWORDS = [
     "crypto", "airdrop", "solana", "memecoin", "forex", "trading",
     "pump & dump", "pump and dump", "crypto pump",
@@ -80,7 +100,12 @@ NEGATIVE_KEYWORDS = [
     "maga", "trump", "politician", "onlyfans", "nsfw", "porn", "casino",
     "18+", "dropshipping", "dm for paid", "prompt engineer",
     "tips/note", "brain/tips", "earn daily", "make money", "passive income",
-    "nft project", "web3 creator", "100x"
+    "nft project", "web3 creator", "100x",
+    # Непрофессиональные маркеры, локальные спам-поды и нерелевантный шум
+    "semo", "bread and semo", "manchester united", "arsenal fan", "chelsea fan",
+    "football fan", "arteta propaganda", "meme connoisseur", "cruise vibes",
+    "furry", "asmr", "asmrtist", "single 18", "hng internship", "hng i14",
+    "dm for promo", "cashapp", "fansly", "sugar daddy", "sugar baby", "whatsapp group"
 ]
 
 # Bio Link Sniffer: Ссылки на профессиональные дизайнерские портфолио в Bio/URL (+30 очков)
