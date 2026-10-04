@@ -1066,6 +1066,12 @@ def run_funnel_list_batch(profile_name="test_igorvl777", batch_size=3):
     """
     from database import get_candidates_for_funnel_list_add, get_today_list_adds
     from config import DAILY_LIST_ADD_LIMIT, EGO_LIST_DEFAULT_NAME
+    import importlib
+    import list_bomber
+    try:
+        importlib.reload(list_bomber)
+    except Exception:
+        pass
     from list_bomber import add_user_to_list, ensure_ego_list_exists
 
     today_adds = get_today_list_adds()
