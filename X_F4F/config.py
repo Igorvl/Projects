@@ -184,9 +184,10 @@ MAX_DELAY_SECONDS = 45         # Максимальная пауза между 
 UNFOLLOW_AFTER_DAYS = 3        # 72 часа (3 суток) дедлайн взаимности
 MAX_HOURLY_MUTATIONS = 40      # Жесткий предохранитель антиспама: не более 40 мутаций (follow + unfollow) в любой скользящий 1 час
 
-# Настройки Схемы 1: «Каскадный Tri-Touch»
-TRI_TOUCH_ENABLED = True       # Включение 2-этапного лайкинга + Dwell Time
-TRI_TOUCH_MIN_SCORE = 60       # Порог для активации каскада из 2 лайков
+# Настройки Схемы 1: «Дифференцированный каскад касаний»
+TRI_TOUCH_ENABLED = True       # Включение многоэтапного лайкинга + Dwell Time
+TRI_TOUCH_VIP_SCORE = 75       # Порог для VIP-каскада из 2 лайков (Score >= 75 или Blue Checkmark)
+TRI_TOUCH_MIN_SCORE = 75       # Синоним для обратной совместимости
 TRI_TOUCH_PAUSE_BETWEEN_LIKES = (10, 20) # Органическая пауза чтения и скролла между лайками
 TRI_TOUCH_PAUSE_BEFORE_FOLLOW = (6, 12)  # Финальная пауза перед кликом Follow
 

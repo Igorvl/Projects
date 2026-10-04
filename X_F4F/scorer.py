@@ -198,6 +198,11 @@ def evaluate_candidate(profile_data: dict) -> dict:
         score += 30
         breakdown["mutual_friend_bonus"] = True
 
+    # Blue Checkmark Hunter: Верифицированный аккаунт X Premium / синяя галочка (+25 очков VIP)
+    if profile_data.get("is_verified") or profile_data.get("has_blue_badge"):
+        score += 25
+        breakdown["blue_checkmark_bonus"] = True
+
     # Итоговый статус
     is_qualified = breakdown["hard_gates_passed"] and (score >= MIN_SCORE_THRESHOLD)
     status = "queued" if is_qualified else "ignored"

@@ -113,6 +113,20 @@ def inspect_user_profile(page, username: str) -> dict:
         name_el = page.query_selector('div[data-testid="UserName"]')
         if name_el:
             name = name_el.inner_text().split("\n")[0]
+
+        # Blue Checkmark Hunter: detect verified badge / X Premium
+        is_verified = False
+        try:
+            verified_badge = (
+                page.query_selector('div[data-testid="UserName"] [data-testid="icon-verified"]') or
+                page.query_selector('div[data-testid="UserName"] svg[data-testid="icon-verified"]') or
+                page.query_selector('a[href$="/verified_followers" i]') or
+                page.query_selector('[data-testid="icon-verified"]')
+            )
+            if verified_badge:
+                is_verified = True
+        except Exception:
+            pass
             
         bio = ""
         bio_el = page.query_selector('div[data-testid="UserDescription"]')
@@ -243,7 +257,8 @@ def inspect_user_profile(page, username: str) -> dict:
             "following_count": following_count,
             "days_inactive": days_inactive,
             "last_active": last_active_str,
-            "recent_tweets": recent_tweets_text
+            "recent_tweets": recent_tweets_text,
+            "is_verified": 1 if is_verified else 0
         }
     except Exception as e:
         print(f"Error inspecting @{clean_user}: {e}")
@@ -1137,7 +1152,8 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
             else:
                 status_emoji = "ignored"
             reasons_str = f" ({', '.join(evaluation['breakdown']['reject_reasons'])})" if evaluation['breakdown']['reject_reasons'] else ""
-            print(f"  @{username} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}{reasons_str}")
+            badge_str = " 🔷[Verified]" if candidate_record.get("is_verified") else ""
+            print(f"  @{username}{badge_str} | Score: {evaluation['score']} | Ratio: {evaluation['ratio']} | Status: {status_emoji}{reasons_str}")
             
             # Snowball Discovery: If candidate has high score, check bio mentions for new potential donors
             IGNORED_BIO_MENTIONS = {

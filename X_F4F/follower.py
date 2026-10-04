@@ -77,12 +77,12 @@ def get_today_likes() -> int:
         return row[0]
     return 0
 
-def execute_engagement_cascade(page, username: str, candidate_score: int = 0, is_hungry_talent: bool = False) -> int:
+def execute_engagement_cascade(page, username: str, candidate_score: int = 0, is_hungry_talent: bool = False, is_verified: bool = False, is_mutuals_source: bool = False) -> int:
     """
-    Executes Scheme 1: Micro-Engagement Cascade.
-    For high-priority candidates (hungry talents or score >= TRI_TOUCH_MIN_SCORE),
-    performs a dense 2-like cascade (Fresh thought + Media/Portfolio) separated by organic Dwell Time.
-    For standard candidates, executes a single warm-touch like.
+    Executes Scheme 1: Differentiated Micro-Engagement Cascade.
+    VIP candidates (Score >= TRI_TOUCH_MIN_SCORE [75] OR verified Blue Checkmark) receive
+    a dense 2-like cascade (Fresh thought + Media/Portfolio) separated by organic Dwell Time.
+    Standard candidates and mutuals-seeking authors receive a single warm-touch like.
     Strictly enforces DAILY_LIKE_LIMIT to safeguard account quotas.
     Returns: count of likes executed (0, 1, or 2).
     """
@@ -96,21 +96,19 @@ def execute_engagement_cascade(page, username: str, candidate_score: int = 0, is
     likes_remaining = daily_like_limit - likes_today
     
     # Check if candidate qualifies for dense Tri-Touch cascade (2 likes)
+    # VIP RULE: (Score >= 75 OR verified blue checkmark) AND NOT seeking mutuals (mutuals-seekers get 1 like)
     qualifies_for_cascade = (
         TRI_TOUCH_ENABLED and 
-        (is_hungry_talent or candidate_score >= TRI_TOUCH_MIN_SCORE) and 
+        (is_verified or candidate_score >= TRI_TOUCH_MIN_SCORE) and 
+        not is_mutuals_source and
         likes_remaining >= 2
     )
 
     max_likes_target = 2 if qualifies_for_cascade else 1
-    
-    # Organic probability check for single-like tier
-    if not qualifies_for_cascade and random.random() > LIKE_PROBABILITY:
-        print(f"  [Cascade] Skipped like for @{username} (organic variance / preserving quota).")
-        return 0
 
-    mode_label = "Tri-Touch Cascade (2 likes + Dwell)" if qualifies_for_cascade else "Single Warm Touch"
-    print(f"  [Cascade] Mode: {mode_label} for @{username} (Score: {candidate_score}, Quota remaining: {likes_remaining})")
+    mode_label = "VIP Tri-Touch (2 likes + Dwell)" if qualifies_for_cascade else "Single-Touch (1 like + Follow)"
+    verified_label = " 🔷[Verified]" if is_verified else ""
+    print(f"  [Cascade] Mode: {mode_label} for @{username}{verified_label} (Score: {candidate_score}, Quota remaining: {likes_remaining})")
 
     likes_placed = 0
 
@@ -226,8 +224,14 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
     
     candidate_score = 0
     is_hungry_talent = False
+    is_verified = False
+    is_mutuals_source = False
     if candidate_meta:
         candidate_score = candidate_meta.get("score", 0)
+        is_verified = bool(candidate_meta.get("is_verified", 0))
+        source = (candidate_meta.get("source") or "").lower()
+        if any(term in source for term in ["mutual", "moot", "connect"]):
+            is_mutuals_source = True
         breakdown = candidate_meta.get("score_breakdown", {})
         if isinstance(breakdown, str):
             import json
@@ -237,6 +241,8 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
                 breakdown = {}
         if isinstance(breakdown, dict):
             is_hungry_talent = breakdown.get("hungry_talent_bonus", False)
+            if breakdown.get("blue_checkmark_bonus"):
+                is_verified = True
     
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=20000)
@@ -248,6 +254,21 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
         )
         handle_x_retry_button(page)
         human_delay(1.5, 3.0)
+
+        # Live Blue Checkmark Hunter detection on profile
+        try:
+            badge = (
+                page.query_selector('div[data-testid="UserName"] [data-testid="icon-verified"]') or
+                page.query_selector('div[data-testid="UserName"] svg[data-testid="icon-verified"]') or
+                page.query_selector('a[href$="/verified_followers" i]')
+            )
+            if badge and not is_verified:
+                is_verified = True
+                from database import update_candidate_verified
+                update_candidate_verified(clean_user, True)
+                print(f"  [Follower] 🔷 Detected live Blue Checkmark for @{clean_user}! Upgraded to VIP.")
+        except Exception:
+            pass
 
         # Wait up to 5s for follow/unfollow buttons to mount in DOM
         try:
@@ -294,8 +315,15 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
                 log_action(clean_user, "follow", success=False, error="button_not_found")
             return False
 
-        # 1. Execute Engagement Cascade (Tri-Touch: 2 likes + Dwell Time or single warm touch)
-        likes_placed = execute_engagement_cascade(page, clean_user, candidate_score=candidate_score, is_hungry_talent=is_hungry_talent)
+        # 1. Execute Engagement Cascade (VIP Tri-Touch: 2 likes or Single-Touch: 1 like)
+        likes_placed = execute_engagement_cascade(
+            page, 
+            clean_user, 
+            candidate_score=candidate_score, 
+            is_hungry_talent=is_hungry_talent,
+            is_verified=is_verified,
+            is_mutuals_source=is_mutuals_source
+        )
         
         # СТРОГОЕ ПРАВИЛО: Подписываться на кандидатов без лайков бессмысленно (теряется конверсия)!
         # Если лимит лайков исчерпан или каскад не смог поставить лайк — ПОДПИСКА ОТМЕНЯЕТСЯ!
@@ -334,7 +362,9 @@ def follow_user(page, username: str, candidate_meta: dict = None) -> bool:
             # Human smooth click with Bezier trajectory
             clicked = human_click(page, follow_btn)
             if clicked:
-                print(f"  [Follower] 🎯 Successfully followed @{clean_user}! (Tri-Touch complete, {likes_placed} likes)")
+                mode_tag = "VIP Tri-Touch, 2 likes" if likes_placed >= 2 else f"Single-Touch, {likes_placed} like"
+                verified_tag = " 🔷[Verified]" if is_verified else ""
+                print(f"  [Follower] 🎯 Successfully followed @{clean_user}{verified_tag}! ({mode_tag})")
                 log_action(clean_user, "follow", success=True)
                 
                 # Human lingering

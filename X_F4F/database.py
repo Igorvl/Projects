@@ -61,7 +61,8 @@ def init_db():
             ("followed_at", "TIMESTAMP"),
             ("nudge_sent", "INTEGER DEFAULT 0"),
             ("list_add_sent", "INTEGER DEFAULT 0"),
-            ("list_add_attempts", "INTEGER DEFAULT 0")
+            ("list_add_attempts", "INTEGER DEFAULT 0"),
+            ("is_verified", "INTEGER DEFAULT 0")
         ]:
             try:
                 cur.execute(f"ALTER TABLE candidates ADD COLUMN {col} {col_def}")
@@ -225,12 +226,14 @@ def upsert_candidate(data: dict):
     
     last_active = data.get("last_active")
     
+    is_verified = 1 if data.get("is_verified") else 0
+    
     if DB_TYPE == "sqlite":
         cur.execute("""
             INSERT INTO candidates (
                 username, name, bio, url, followers_count, following_count,
-                ratio, score, score_breakdown, source, status, last_active, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ratio, score, score_breakdown, source, status, last_active, updated_at, is_verified
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
                 name=excluded.name,
                 bio=excluded.bio,
@@ -240,6 +243,7 @@ def upsert_candidate(data: dict):
                 ratio=excluded.ratio,
                 score=excluded.score,
                 score_breakdown=excluded.score_breakdown,
+                is_verified=CASE WHEN excluded.is_verified = 1 THEN 1 ELSE candidates.is_verified END,
                 last_active=COALESCE(excluded.last_active, candidates.last_active),
                 -- НЕ перетираем статус у followed/mutual/unfollowed/failed_unfollow — бот не должен подписываться дважды
                 status=CASE
@@ -260,15 +264,16 @@ def upsert_candidate(data: dict):
             data.get("source", ""),
             data.get("status", "discovered"),
             last_active,
-            now
+            now,
+            is_verified
         ))
     else:
         # PostgreSQL — placeholder %s, score_breakdown как JSONB
         cur.execute("""
             INSERT INTO candidates (
                 username, name, bio, url, followers_count, following_count,
-                ratio, score, score_breakdown, source, status, last_active, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)
+                ratio, score, score_breakdown, source, status, last_active, updated_at, is_verified
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s, %s)
             ON CONFLICT(username) DO UPDATE SET
                 name=EXCLUDED.name,
                 bio=EXCLUDED.bio,
@@ -278,6 +283,7 @@ def upsert_candidate(data: dict):
                 ratio=EXCLUDED.ratio,
                 score=EXCLUDED.score,
                 score_breakdown=EXCLUDED.score_breakdown::jsonb,
+                is_verified=CASE WHEN EXCLUDED.is_verified = 1 THEN 1 ELSE candidates.is_verified END,
                 last_active=COALESCE(EXCLUDED.last_active, candidates.last_active),
                 -- НЕ перетираем статус у followed/mutual/unfollowed/failed_unfollow
                 status=CASE
@@ -298,8 +304,20 @@ def upsert_candidate(data: dict):
             data.get("source", ""),
             data.get("status", "discovered"),
             last_active,
-            now
+            now,
+            is_verified
         ))
+    conn.commit()
+    conn.close()
+
+def update_candidate_verified(username: str, is_verified: bool = True):
+    """Sets is_verified = 1 for a candidate in the database."""
+    conn = get_connection()
+    cur = conn.cursor()
+    clean_user = username.lower().replace("@", "").strip()
+    val = 1 if is_verified else 0
+    ph = "?" if DB_TYPE == "sqlite" else "%s"
+    cur.execute(f"UPDATE candidates SET is_verified = {ph}, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (val, clean_user))
     conn.commit()
     conn.close()
 
@@ -316,7 +334,7 @@ def get_queue_count(min_score: int = None) -> int:
     return count
 
 def get_candidates_for_follow(limit: int = 10, min_score: int = None):
-    """Retrieves highest scored candidates ready to follow."""
+    """Retrieves highest scored candidates ready to follow, prioritizing verified users."""
     if min_score is None:
         min_score = MIN_SCORE_THRESHOLD
     conn = get_connection()
@@ -325,7 +343,7 @@ def get_candidates_for_follow(limit: int = 10, min_score: int = None):
     cur.execute(f"""
         SELECT * FROM candidates 
         WHERE status = 'queued' AND score >= {ph} 
-        ORDER BY score DESC, ratio DESC 
+        ORDER BY is_verified DESC, score DESC, ratio DESC 
         LIMIT {ph}
     """, (min_score, limit))
     rows = [dict(r) for r in cur.fetchall()]
@@ -586,6 +604,7 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
     """
     Returns candidates followed N+ days ago (Day 3 Ego-List: 48h+) who haven't received
     a list addition yet and haven't followed back.
+    STRICT FILTER: Guarantees that candidates are verified designers (design keywords in bio/breakdown).
     Excludes candidates with 3+ failed list add attempts.
     """
     conn = get_connection()
@@ -597,13 +616,44 @@ def get_candidates_for_funnel_list_add(days: int = 2, limit: int = 5) -> list:
         WHERE status = 'followed'
           AND COALESCE(list_add_sent, 0) = 0
           AND COALESCE(list_add_attempts, 0) < 3
+          AND COALESCE(score, 0) >= 50
           AND COALESCE(followed_at, updated_at) <= {ph}
-        ORDER BY score DESC, COALESCE(followed_at, updated_at) ASC
+        ORDER BY is_verified DESC, score DESC, COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}
-    """, (cutoff, limit))
-    rows = [dict(r) for r in cur.fetchall()]
+    """, (cutoff, limit * 3))
+    raw_rows = [dict(r) for r in cur.fetchall()]
     conn.close()
-    return rows
+
+    DESIGN_KEYWORDS = (
+        "design", "ui", "ux", "art", "creative", "brand", "visual", "typography",
+        "3d", "render", "architect", "studio", "framer", "figma", "blender",
+        "motion", "identity", "graphic", "product designer", "creator", "portfolio"
+    )
+
+    verified_designers = []
+    for c in raw_rows:
+        breakdown = {}
+        try:
+            if isinstance(c.get("score_breakdown"), str):
+                breakdown = json.loads(c.get("score_breakdown") or "{}")
+            elif isinstance(c.get("score_breakdown"), dict):
+                breakdown = c["score_breakdown"]
+        except Exception:
+            pass
+
+        has_role = bool(breakdown.get("roles_matched"))
+        has_style = bool(breakdown.get("styles_matched"))
+        has_portfolio = bool(breakdown.get("portfolio_matched"))
+        bio_lower = (c.get("bio") or "").lower()
+        has_kw = any(kw in bio_lower for kw in DESIGN_KEYWORDS)
+
+        # STRICT DESIGNER CHECK: Must have design role, design style, design portfolio, or design keyword in bio
+        if has_role or has_style or has_portfolio or has_kw:
+            verified_designers.append(c)
+            if len(verified_designers) >= limit:
+                break
+
+    return verified_designers
 
 def get_stale_unfollow_count(days: int = 3) -> int:
     """
