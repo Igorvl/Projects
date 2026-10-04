@@ -26,6 +26,7 @@ from browser import (
     wait_for_x_channel_recovery
 )
 from config import (
+    BASE_DIR,
     DAILY_LIST_ADD_LIMIT,
     EGO_LIST_DEFAULT_NAME,
     EGO_LIST_MIN_SCORE,
@@ -249,67 +250,49 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             wait_for_x_channel_recovery(page, max_standby_min=10, check_interval_sec=15)
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
+        # Robust wait for profile to load (UserName in main container)
+        try:
+            page.wait_for_selector('div[data-testid="UserName"]', timeout=15000)
+        except Exception:
+            pass
         wait_for_x_page_load(page, ready_selector='div[data-testid="UserName"]', max_wait_sec=8.0)
         handle_x_retry_button(page)
-        human_delay(1.5, 3.0)
+        human_delay(1.0, 2.0)
 
-        # 1. Locate user actions '...' button in profile header
-        actions_btn = (
-            page.query_selector('button[data-testid="userActions"]') or
-            page.query_selector('div[data-testid="userActions"]') or
-            page.query_selector('button[aria-label*="More" i]') or
-            page.query_selector('button[aria-label*="Еще" i]') or
-            page.query_selector('button[aria-label*="Ещё" i]')
-        )
-        if not actions_btn:
+        # 1. Locate user actions '...' button in profile header (scoped to primary column / main)
+        main_container = page.locator('main[role="main"], div[data-testid="primaryColumn"]').first
+        if main_container.count() > 0 and main_container.is_visible():
+            actions_btn = main_container.locator('button[data-testid="userActions"], div[data-testid="userActions"]').first
+        else:
+            actions_btn = page.locator('button[data-testid="userActions"], div[data-testid="userActions"]').first
+
+        if actions_btn.count() == 0 or not actions_btn.is_visible():
             print(f"  [List Bomber] Actions button '...' not found on @{clean_user}")
             log_action(clean_user, "list_add", success=False, error="actions_button_not_found")
             return False
 
-        human_click(page, actions_btn)
-        human_delay(1.5, 2.5)
-
-        # Wait for dropdown menu hydration in DOM (div[role="menu"] / [data-testid="Dropdown"])
         try:
-            page.wait_for_selector('div[role="menu"], div[data-testid="Dropdown"]', timeout=4000)
+            actions_btn.click(timeout=3000)
         except Exception:
             human_click(page, actions_btn)
-            human_delay(1.5, 2.5)
+        human_delay(1.5, 2.5)
 
         # 2. In dropdown menu, locate 'Add/remove from Lists' item
-        # We verified in live DOM: <a href="/i/lists/add_member"> with text 'Add/remove from Lists'
-        menu_loc = page.locator('div[role="menu"], div[data-testid="Dropdown"]').first
-        list_menu_item = None
-
-        # Priority 1: Check direct href '/i/lists/add_member' or testid 'listAddRemove'
-        primary_match = menu_loc.locator('a[href*="/lists/add_member"], [data-testid="listAddRemove"]').first
-        if primary_match.count() > 0 and primary_match.is_visible():
-            list_menu_item = primary_match
-
-        # Priority 2: Scan all menuitems with strict exclusion of 'View Lists'
-        if not list_menu_item:
-            menu_items = menu_loc.locator('[role="menuitem"]')
-            count = menu_items.count()
-            for i in range(count):
-                mi = menu_items.nth(i)
+        # Live DOM: <a href="/i/lists/add_member" role="menuitem"> with text 'Add/remove from Lists'
+        add_item = page.locator('[role="menuitem"][href="/i/lists/add_member"], [role="menuitem"]:has-text("Add/remove"), [role="menuitem"]:has-text("Внести")').first
+        if add_item.count() == 0 or not add_item.is_visible():
+            menu_items = page.locator('[role="menuitem"]').all()
+            for mi in menu_items:
                 try:
                     txt = mi.inner_text().strip().lower()
                     href = mi.get_attribute("href") or ""
+                    if ("lists" in txt or "списк" in txt) and "view" not in txt and not href.endswith("/lists"):
+                        add_item = mi
+                        break
                 except Exception:
                     continue
 
-                # STRICT EXCLUSION: Skip navigation links to user's lists (e.g. /{user}/lists)
-                if href.endswith("/lists") or "view lists" in txt or "посмотреть списки" in txt:
-                    continue
-
-                # STRICT INCLUSION: Must be Add/Remove or Внести/Удалить из списков
-                is_add_remove = any(w in txt for w in ["add/remove", "add from list", "remove from list", "внести", "добавить в список", "удалить из списка"]) or href.endswith("/add_member")
-
-                if is_add_remove:
-                    list_menu_item = mi
-                    break
-
-        if not list_menu_item:
+        if not add_item or add_item.count() == 0 or not add_item.is_visible():
             print(f"  [List Bomber] [Warning] 'Add/remove from Lists' menu option not found for @{clean_user}")
             page.keyboard.press("Escape")
             log_action(clean_user, "list_add", success=False, error="menu_item_not_found")
@@ -318,10 +301,9 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
         print(f"  [List Bomber] Opening Lists modal for @{clean_user}...")
         initial_url = page.url
         try:
-            # Native click on menuitem avoids mouse-sweep blur
-            list_menu_item.click(timeout=3000)
+            add_item.click(timeout=3000)
         except Exception:
-            human_click(page, list_menu_item)
+            human_click(page, add_item)
         human_delay(1.5, 2.5)
 
         # Detect accidental navigation
@@ -332,15 +314,21 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             log_action(clean_user, "list_add", success=False, error="navigated_away")
             return False
 
-        # 3. Explicitly wait for modal dialog to mount in DOM
-        dialog_selector = 'div[role="dialog"]'
+        # 3. Explicitly wait for VISIBLE modal dialog to mount in DOM
+        # Note: Twitter renders multiple div[role="dialog"] containers; only one is visible.
         try:
-            page.wait_for_selector(dialog_selector, timeout=8000)
+            page.wait_for_selector('div[role="dialog"]', timeout=8000)
         except Exception:
             pass
 
-        modal = page.locator(dialog_selector).first
-        if modal.count() == 0 or not modal.is_visible():
+        modal = None
+        dialogs = page.locator('div[role="dialog"]').all()
+        for d in dialogs:
+            if d.is_visible():
+                modal = d
+                break
+
+        if not modal or not modal.is_visible():
             print(f"  [List Bomber] List selection dialog did not open for @{clean_user}")
             try:
                 err_shot = os.path.join(BASE_DIR, "branding", f"list_dialog_err_{clean_user}.png")
@@ -351,12 +339,12 @@ def add_user_to_list(page, username: str, list_name: str = EGO_LIST_DEFAULT_NAME
             log_action(clean_user, "list_add", success=False, error="dialog_not_found")
             return False
 
-        human_delay(1.0, 2.0)
+        human_delay(1.0, 1.8)
 
         # 4. Strictly target our public ego list row: 'Top 1% Designers'
-        # In live DOM: <div role="checkbox" data-testid="listCell">
+        # In live DOM: <div role="checkbox" data-testid="listCell"> or [role="checkbox"]
         clean_target_keyword = "Top 1% Designers"
-        list_row = modal.locator('div[role="checkbox"][data-testid="listCell"], div[role="checkbox"]').filter(has_text=clean_target_keyword).first
+        list_row = modal.locator('div[role="checkbox"], [data-testid="listCell"]').filter(has_text=clean_target_keyword).first
         if list_row.count() == 0:
             list_row = modal.locator('[role="button"], div[data-testid*="list" i]').filter(has_text=clean_target_keyword).first
 
