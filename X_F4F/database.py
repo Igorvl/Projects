@@ -918,12 +918,43 @@ def get_available_sources() -> list:
                 "has_scraped": bool(info_mf and info_mf["last_scraped_at"])
             })
 
+    # 7. Viral Reposts: high-performing weekly design work of top mutuals and curated donors (cooldown 36h)
+    viral_seeds = []
+    for m in mutual_seeds[:15]:
+        viral_seeds.append((m, 36))
+    for d in TARGET_DONORS[:10]:
+        viral_seeds.append((d, 36))
+
+    for s_user, c_hours in viral_seeds:
+        clean_s = s_user.replace("@", "").strip()
+        id_vr = f"viral_reposts:{clean_s}"
+        info_vr = tracking_map.get(id_vr)
+        is_ready_vr = True
+        if info_vr and info_vr["last_scraped_at"]:
+            try:
+                eff_cooldown = info_vr.get("cooldown_hours") or c_hours
+                last_dt = datetime.datetime.fromisoformat(str(info_vr["last_scraped_at"]).replace("Z", ""))
+                if (now - last_dt).total_seconds() < eff_cooldown * 3600:
+                    is_ready_vr = False
+            except Exception:
+                pass
+        if is_ready_vr:
+            all_candidates.append({
+                "type": "viral_reposts",
+                "target": clean_s,
+                "identifier": id_vr,
+                "cooldown": c_hours,
+                "yield": info_vr["leads_yielded"] if info_vr else 0,
+                "has_scraped": bool(info_vr and info_vr["last_scraped_at"])
+            })
+
     # Smart Prioritization:
-    # 1. Base weight by source ROI type (mutual_friends & peer_commenters lead)
+    # 1. Base weight by source ROI type (mutual_friends, viral_reposts & peer_commenters lead)
     # 2. Historical yield bonus
     # 3. Fresh unscraped bonus
     TYPE_WEIGHT = {
         "mutual_friends": 95,   # НАИВЫСШАЯ КОНВЕРСИЯ (Triadic Closure - 'Followed by @mutual you know')
+        "viral_reposts": 90,    # ВЫСОКИЙ ROI - активные дизайнеры, репостящие работы в нише
         "peer_commenters": 85,  # НАИВЫСШИЙ ROI - живые собеседники наших зафолловленных дизайнеров
         "search": 75,
         "donor_replies": 70,

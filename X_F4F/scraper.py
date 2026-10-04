@@ -492,32 +492,60 @@ def harvest_from_peer_commenters(page, peer_username: str, max_users: int = 8) -
         print(f"Error harvesting commenters to peer @{clean_peer}: {e}")
         return 0
 
-def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 7) -> int:
+def extract_tweet_engagement(tw) -> dict:
     """
-    Algorithm 5b: Opportunistic Live Thread Scouting on Follow (Commenters + Reposters).
-    Immediately after following a creator, naturally inspects up to 2 recent original posts (<= 14 days old),
-    gathers:
-      1. Up to 5-7 active peer commenters talking in the discussion.
-      2. Up to 10 fresh reposters (retweeters) who amplified the creator's post within the last 14 days.
-    Mimics a designer thoroughly exploring and networking within a newly followed creator's ecosystem.
+    Extracts reposts, replies, and like counts from a tweet element in the feed.
+    Returns dictionary with counts and combined total score.
+    """
+    reposts = 0
+    replies = 0
+    likes = 0
+    try:
+        rt_el = tw.query_selector('div[data-testid="retweet"], button[data-testid="retweet"]')
+        if rt_el:
+            reposts = parse_stat_number(rt_el.inner_text() or rt_el.get_attribute("aria-label") or "")
+    except Exception:
+        pass
+    try:
+        rep_el = tw.query_selector('div[data-testid="reply"], button[data-testid="reply"]')
+        if rep_el:
+            replies = parse_stat_number(rep_el.inner_text() or rep_el.get_attribute("aria-label") or "")
+    except Exception:
+        pass
+    try:
+        lk_el = tw.query_selector('div[data-testid="like"], button[data-testid="like"]')
+        if lk_el:
+            likes = parse_stat_number(lk_el.inner_text() or lk_el.get_attribute("aria-label") or "")
+    except Exception:
+        pass
+    return {"reposts": reposts, "replies": replies, "likes": likes, "total": (reposts * 2) + replies + likes}
+
+def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int = 10) -> int:
+    """
+    Algorithm 5b: Sniper Live Thread Scouting on Follow (Commenters + Reposters + Quoters).
+    Scans the creator's profile timeline over the last 7 days.
+    Identifies posts with active engagement (reposts > 0, replies > 0) and prioritizes up to top 3
+    posts with highest engagement. Zero-engagement posts are skipped without opening,
+    drastically cutting session runtime and avoiding anti-fraud traps while maximizing leads.
     """
     clean_peer = peer_username.lower().replace("@", "").strip()
     total_added = 0
     try:
         now_utc = datetime.datetime.now(datetime.timezone.utc)
-        # 1. Look for up to 2 original tweet status links on the creator's profile page (<= 14 days old)
+        # 1. Look for original tweets on creator's profile page (<= 7 days old)
         tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
-        target_posts = []
-        for tw in tweet_elements[:8]:
-            # Skip retweets/reposts
+        candidate_posts = []
+        for tw in tweet_elements[:12]:
+            # Skip retweets/reposts by creator
             sc = tw.query_selector('[data-testid="socialContext"]')
             if sc:
                 sc_text = sc.inner_text().lower()
                 if "repost" in sc_text or "ретвит" in sc_text:
                     continue
 
-            # Check post age: must be <= 14 days old
+            # Check post age: must be <= 7 days old (fresh engagement window)
             time_el = tw.query_selector('time')
+            age_days = 999.0
             if time_el:
                 dt_str = time_el.get_attribute('datetime')
                 if dt_str:
@@ -525,8 +553,8 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                         clean_dt = dt_str.replace("Z", "+00:00")
                         post_dt = datetime.datetime.fromisoformat(clean_dt)
                         age_days = (now_utc - post_dt).total_seconds() / 86400.0
-                        if age_days > 14.0:
-                            continue  # Older than 14 days, skip
+                        if age_days > 7.0:
+                            continue  # Older than 7 days, skip
                     except Exception:
                         pass
 
@@ -536,30 +564,50 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                 m = re.search(rf"/{clean_peer}/status/(\d+)", href, re.IGNORECASE)
                 if m:
                     u_status = f"https://x.com/{clean_peer}/status/{m.group(1)}"
-                    if u_status not in [p["url"] for p in target_posts]:
-                        target_posts.append({"url": u_status, "id": m.group(1)})
-                        if len(target_posts) >= 2:
-                            break
+                    if u_status not in [p["url"] for p in candidate_posts]:
+                        eng = extract_tweet_engagement(tw)
+                        candidate_posts.append({
+                            "url": u_status,
+                            "id": m.group(1),
+                            "age_days": age_days,
+                            "engagement": eng
+                        })
                             
-        if not target_posts:
+        if not candidate_posts:
             return 0
+
+        # Smart Sniper Selection:
+        # Prioritize posts with active reposts or replies; skip dead posts
+        posts_with_engagement = [p for p in candidate_posts if p["engagement"]["reposts"] > 0 or p["engagement"]["replies"] > 0]
+        posts_with_engagement.sort(
+            key=lambda p: (p["engagement"]["reposts"], p["engagement"]["replies"], -p["age_days"]), 
+            reverse=True
+        )
+
+        if posts_with_engagement:
+            target_posts = posts_with_engagement[:3]  # Up to top 3 active posts
+        else:
+            # If no post has visible engagement counters, inspect only the single freshest post
+            candidate_posts.sort(key=lambda p: p["age_days"])
+            target_posts = candidate_posts[:1]
 
         existing_users = get_existing_candidate_usernames()
         found_commenters = []
         found_reposters = []
-        max_target_commenters = max_leads
+        max_target_commenters = min(6, max_leads)
         max_target_reposters = 10
 
-        # 2. Inspect threads of up to 2 original fresh posts
+        # 2. Inspect threads of prioritized posts
         for s_idx, post_item in enumerate(target_posts, 1):
             target_status_url = post_item["url"]
-            print(f"  [Thread Scout] 💬 Glancing at @{peer_username}'s fresh discussion & reposts ({s_idx}/{len(target_posts)})...")
+            eng_summary = f"{post_item['engagement']['reposts']} 🔄, {post_item['engagement']['replies']} 💬"
+            print(f"  [Thread Scout] 🎯 Sniper glancing at @{peer_username}'s post ({s_idx}/{len(target_posts)}) [{eng_summary}]...")
             page.goto(target_status_url, wait_until="domcontentloaded", timeout=15000)
             wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=6.0)
             handle_x_retry_button(page)
-            human_delay(1.5, 2.5)
-            human_scroll(page, steps=random.randint(1, 2))
-            human_delay(1.0, 1.8)
+            human_delay(1.2, 2.2)
+            human_scroll(page, steps=1)
+            human_delay(0.8, 1.5)
             
             # A) Gather Commenters from thread
             reply_tweets = page.query_selector_all('article[data-testid="tweet"]')
@@ -592,12 +640,10 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                 if thread_commenters_found > 0:
                     print(f"  [Thread Scout] 💬 Added {thread_commenters_found} fresh commenter(s) from thread {s_idx}")
 
-            # B) Gather Reposters & Quoters (up to 10)
+            # B) Gather Reposters & Quoters
             try:
-                # Look for repost link on the active post page first
                 repost_link = page.query_selector('a[href*="/retweets"], a[href*="/reposts"]')
                 has_repost_link = repost_link is not None
-
                 retweets_url = f"{target_status_url}/retweets"
                 opened_modal = False
 
@@ -607,16 +653,16 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                         print(f"  [Thread Scout] 🔄 Reposts detected on post ({repost_label}). Opening reposters list...")
                         human_click(page, repost_link)
                         wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=5.0)
-                        human_delay(1.2, 2.0)
+                        human_delay(1.0, 1.8)
                         opened_modal = True
                     except Exception:
                         opened_modal = False
 
-                if not opened_modal:
+                if not opened_modal and post_item["engagement"]["reposts"] > 0:
                     page.goto(retweets_url, wait_until="domcontentloaded", timeout=12000)
                     handle_x_retry_button(page)
                     wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=6.0)
-                    human_delay(1.5, 2.5)
+                    human_delay(1.2, 2.0)
 
                 cells = page.query_selector_all('div[data-testid="UserCell"]')
                 if cells:
@@ -636,7 +682,7 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                                     print(f"  [Thread Scout] 🎯 Found candidate reposter: @{u}")
                                     if len(found_reposters) >= max_target_reposters:
                                         break
-                else:
+                elif post_item["engagement"]["reposts"] > 0:
                     print(f"  [Thread Scout] ℹ️ Post {s_idx}: 0 active reposters visible in list")
 
                 # C) Gather Quote tweets (quoted retweets with comments)
@@ -647,7 +693,7 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                         page.goto(quotes_url, wait_until="domcontentloaded", timeout=12000)
                         handle_x_retry_button(page)
                         wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=5.0)
-                        human_delay(1.2, 2.0)
+                        human_delay(1.0, 1.8)
                         q_tweets = page.query_selector_all('article[data-testid="tweet"]')
                         for q_tw in q_tweets:
                             u_link = q_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
@@ -664,7 +710,7 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
                                         print(f"  [Thread Scout] 🎯 Found candidate quoter: @{u}")
                                         if len(found_reposters) >= max_target_reposters:
                                             break
-                    except Exception as q_err:
+                    except Exception:
                         pass
 
             except Exception as r_err:
@@ -678,7 +724,7 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
         else:
             print(f"  [Thread Scout] 💬 No fresh commenters to evaluate for @{peer_username}")
 
-        # 4. Store Reposters (<= 14 days old, up to 10)
+        # 4. Store Reposters & Quoters
         if found_reposters:
             print(f"  [Thread Scout] 🔄 Discovered {len(found_reposters)} fresh reposter/quoter candidate(s) amplifying @{peer_username}!")
             added_r = _evaluate_and_store_users(page, found_reposters, max_users=len(found_reposters), source_label=f"peer_reposters:@{clean_peer}")
@@ -691,6 +737,159 @@ def scout_thread_commenters_on_follow(page, peer_username: str, max_leads: int =
     except Exception as e:
         print(f"  [Thread Scout] Notice: {e}")
         return total_added
+
+def harvest_from_viral_reposts(page, seed_username: str, max_users: int = 15) -> int:
+    """
+    Algorithm 5c: Deep Viral Repost Harvester
+    Visits a high-signal design creator or mutual friend (@seed_username), scans their timeline
+    from the last 7 days, detects their most amplified/viral posts (reposts >= 1),
+    and harvests the cluster of designers and creators who reposted or quoted them.
+    Returns count of newly queued candidates.
+    """
+    clean_seed = seed_username.replace("@", "").strip()
+    print(f"\n[Scraper] [Algorithm 5c] Harvesting viral reposters from: @{clean_seed}")
+    url = f"https://x.com/{clean_seed}"
+    
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(2.0, 3.5)
+        
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        viral_posts = []
+        
+        # Scan timeline across 2 scrolls
+        for scroll_i in range(3):
+            tweet_elements = page.query_selector_all('article[data-testid="tweet"]')
+            for tw in tweet_elements:
+                sc = tw.query_selector('[data-testid="socialContext"]')
+                if sc and any(w in sc.inner_text().lower() for w in ["repost", "ретвит"]):
+                    continue
+                
+                # Check age <= 7 days
+                time_el = tw.query_selector('time')
+                age_days = 999.0
+                if time_el:
+                    dt_str = time_el.get_attribute('datetime')
+                    if dt_str:
+                        try:
+                            clean_dt = dt_str.replace("Z", "+00:00")
+                            post_dt = datetime.datetime.fromisoformat(clean_dt)
+                            age_days = (now_utc - post_dt).total_seconds() / 86400.0
+                            if age_days > 7.0:
+                                continue
+                        except Exception:
+                            pass
+                
+                status_link = tw.query_selector('a[href*="/status/"]')
+                if status_link:
+                    href = status_link.get_attribute("href") or ""
+                    m = re.search(rf"/{clean_seed}/status/(\d+)", href, re.IGNORECASE)
+                    if m:
+                        u_status = f"https://x.com/{clean_seed}/status/{m.group(1)}"
+                        if u_status not in [p["url"] for p in viral_posts]:
+                            eng = extract_tweet_engagement(tw)
+                            if eng["reposts"] >= 1 or eng["likes"] >= 5:
+                                viral_posts.append({
+                                    "url": u_status,
+                                    "id": m.group(1),
+                                    "age_days": age_days,
+                                    "reposts": eng["reposts"],
+                                    "engagement": eng
+                                })
+            if len(viral_posts) >= 4:
+                break
+            human_scroll(page, steps=1)
+            time.sleep(1.5)
+
+        if not viral_posts:
+            print(f"  [Scraper] No viral/amplified posts found for @{clean_seed} in the last 7 days. Skipping.")
+            return 0
+
+        # Sort by reposts count descending
+        viral_posts.sort(key=lambda p: (p["reposts"], p["engagement"]["total"]), reverse=True)
+        top_posts = viral_posts[:2]
+        print(f"  [Scraper] Found {len(viral_posts)} amplified posts. Inspecting top {len(top_posts)} viral threads...")
+
+        existing_users = get_existing_candidate_usernames()
+        fresh_reposters = []
+
+        for p_idx, post_item in enumerate(top_posts, 1):
+            p_url = post_item["url"]
+            print(f"  [Viral Reposts] Deep-scouting post {p_idx}/{len(top_posts)} ({post_item['reposts']} reposts): {p_url}")
+            
+            # Open /retweets
+            retweets_url = f"{p_url}/retweets"
+            try:
+                page.goto(retweets_url, wait_until="domcontentloaded", timeout=15000)
+                handle_x_retry_button(page)
+                wait_for_x_page_load(page, ready_selector='div[data-testid="UserCell"]', max_wait_sec=6.0)
+                human_delay(1.5, 2.5)
+
+                # Modal scroll for deeper extraction
+                for m_scroll in range(2):
+                    cells = page.query_selector_all('div[data-testid="UserCell"]')
+                    for cell in cells:
+                        u_link = cell.query_selector('a[href^="/"]')
+                        if u_link:
+                            href = u_link.get_attribute("href") or ""
+                            u = href.replace("/", "").strip()
+                            if u and u.lower() != clean_seed.lower() and len(u) < 30 and "/" not in u:
+                                if is_obvious_brand_or_bot(u):
+                                    continue
+                                if u.lower() in existing_users:
+                                    pass
+                                elif u not in fresh_reposters:
+                                    fresh_reposters.append(u)
+                                    print(f"  [Viral Reposts] 🎯 Found fresh reposter candidate: @{u}")
+                                    if len(fresh_reposters) >= max_users:
+                                        break
+                    if len(fresh_reposters) >= max_users or len(cells) < 5:
+                        break
+                    page.mouse.wheel(0, 400)
+                    time.sleep(1.2)
+            except Exception as e:
+                print(f"  [Viral Reposts] Notice on retweets: {e}")
+
+            # Also check /quotes
+            if len(fresh_reposters) < max_users:
+                try:
+                    quotes_url = f"{p_url}/quotes"
+                    page.goto(quotes_url, wait_until="domcontentloaded", timeout=12000)
+                    handle_x_retry_button(page)
+                    wait_for_x_page_load(page, ready_selector='article[data-testid="tweet"]', max_wait_sec=5.0)
+                    human_delay(1.2, 2.0)
+                    q_tweets = page.query_selector_all('article[data-testid="tweet"]')
+                    for q_tw in q_tweets:
+                        u_link = q_tw.query_selector('div[data-testid="User-Name"] a[href^="/"]')
+                        if u_link:
+                            href = u_link.get_attribute("href") or ""
+                            u = href.replace("/", "").strip()
+                            if u and u.lower() != clean_seed.lower() and len(u) < 30 and "/" not in u:
+                                if is_obvious_brand_or_bot(u):
+                                    continue
+                                if u.lower() not in existing_users and u not in fresh_reposters:
+                                    fresh_reposters.append(u)
+                                    print(f"  [Viral Reposts] 🎯 Found fresh quoter candidate: @{u}")
+                                    if len(fresh_reposters) >= max_users:
+                                        break
+                except Exception:
+                    pass
+
+            if len(fresh_reposters) >= max_users:
+                break
+
+        if fresh_reposters:
+            print(f"[Scraper] Discovered {len(fresh_reposters)} fresh amplificators from @{clean_seed}. Starting evaluation...")
+            return _evaluate_and_store_users(page, fresh_reposters, max_users=len(fresh_reposters), source_label=f"viral_reposts:@{clean_seed}")
+        else:
+            print(f"[Scraper] All reposters of @{clean_seed} are already known in DB. Skipping.")
+            return 0
+            
+    except Exception as e:
+        print(f"Error harvesting viral reposts from @{clean_seed}: {e}")
+        return 0
 
 def harvest_from_donor_followers(page, donor_username: str, max_users: int = 15) -> int:
     """
@@ -1016,6 +1215,8 @@ def run_harvesting_cycle(profile_name="test_igorvl777", target_queued=10, max_so
             queued_this_source = 0
             if stype == "mutual_friends":
                 queued_this_source = harvest_from_mutual_friends(page, target, max_users=10)
+            elif stype == "viral_reposts":
+                queued_this_source = harvest_from_viral_reposts(page, target, max_users=15)
             elif stype == "peer_commenters":
                 queued_this_source = harvest_from_peer_commenters(page, target, max_users=8)
             elif stype == "donor_replies":
