@@ -675,21 +675,30 @@ def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: fl
 
     return verified_designers
 
-def get_stale_unfollow_count(days: int = 2) -> int:
+def get_stale_unfollow_count(regular_hours: int = 48, verified_hours: int = 30, days: int = None) -> int:
     """
-    Returns count of candidates followed N+ days ago who have not followed back
-    and have fewer than 3 failed unfollow attempts.
+    Returns count of candidates followed who have not followed back
+    and have exceeded the reciprocity deadline (48h regular, 30h verified).
     """
+    if days is not None:
+        regular_hours = days * 24
+        verified_hours = min(30, regular_hours)
     conn = get_connection()
     cur = conn.cursor()
     ph = "?" if DB_TYPE == "sqlite" else "%s"
-    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.datetime.now()
+    cutoff_reg = (now - datetime.timedelta(hours=regular_hours)).strftime("%Y-%m-%d %H:%M:%S")
+    cutoff_ver = (now - datetime.timedelta(hours=verified_hours)).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT COUNT(*) FROM candidates
         WHERE status = 'followed'
           AND COALESCE(unfollow_attempts, 0) < 3
-          AND COALESCE(followed_at, updated_at) <= {ph}
-    """, (cutoff,))
+          AND (
+              (COALESCE(is_verified, 0) = 1 AND COALESCE(followed_at, updated_at) <= {ph})
+              OR
+              (COALESCE(is_verified, 0) = 0 AND COALESCE(followed_at, updated_at) <= {ph})
+          )
+    """, (cutoff_ver, cutoff_reg))
     row = cur.fetchone()
     conn.close()
     return row[0] if row else 0

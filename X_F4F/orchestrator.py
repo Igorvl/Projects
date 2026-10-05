@@ -35,6 +35,10 @@ from config import (
     MIN_SCORE_THRESHOLD,
     TARGET_ACCOUNT,
     UNFOLLOW_AFTER_DAYS,
+    UNFOLLOW_REGULAR_HOURS,
+    UNFOLLOW_VERIFIED_HOURS,
+    UNFOLLOW_SESSION_RANGE,
+    FOLLOW_SESSION_RANGE,
     MAX_HOURLY_MUTATIONS,
     get_current_ramp_up
 )
@@ -149,7 +153,7 @@ def run_single_session(profile_name: str):
     daily_like_limit = stage_data["likes"]
     
     acc_followers, acc_following = get_account_stats(TARGET_ACCOUNT)
-    stale_unfollow_backlog = get_stale_unfollow_count(days=UNFOLLOW_AFTER_DAYS)
+    stale_unfollow_backlog = get_stale_unfollow_count(regular_hours=UNFOLLOW_REGULAR_HOURS, verified_hours=UNFOLLOW_VERIFIED_HOURS)
     
     ratio = (acc_following / max(1, acc_followers)) if acc_followers > 0 else 1.0
     gap = acc_following - acc_followers
@@ -179,18 +183,18 @@ def run_single_session(profile_name: str):
         print(f"[Orchestrator] 🎯 Daily follow limit reached ({follows_today}/{daily_follow_limit}). Follows completed.")
         print(f"[Orchestrator] ⚡ Focusing on remaining quotas: Unfollows ({unfollows_today}/{daily_unfollow_limit}), Harvesting, Ego-Lists.")
     elif is_imbalanced:
-        # При дисбалансе: подписки идут малым темпом, отписки максимальным
+        # При дисбалансе: подписки идут размеренным темпом (9–15), отписки (12–20)
         max_by_likes = remaining_likes // 2
-        batch_target = min(random.randint(6, 10), remaining_follows, max_by_likes)
+        batch_target = min(random.randint(FOLLOW_SESSION_RANGE[0], FOLLOW_SESSION_RANGE[1]), remaining_follows, max_by_likes)
         print(f"[Orchestrator] ⚖️ Ratio Balancing ACTIVE: Following ({acc_following}) > Followers ({acc_followers}) [Gap: +{gap}].")
-        print(f"[Orchestrator] 🚀 Paced convergence: {batch_target} follows vs target 18-25 unfollows (gradual parity).")
+        print(f"[Orchestrator] 🚀 Paced convergence: {batch_target} follows vs target {UNFOLLOW_SESSION_RANGE[0]}-{UNFOLLOW_SESSION_RANGE[1]} unfollows (gradual parity).")
     elif pruning_priority_mode:
         max_by_likes = remaining_likes // 2
-        batch_target = min(random.randint(8, 12), remaining_follows, max_by_likes)
-        print(f"[Orchestrator] ⚖️ Pruning Priority Mode: {stale_unfollow_backlog} candidates waiting (48h+). Follow target: {batch_target}.")
+        batch_target = min(random.randint(FOLLOW_SESSION_RANGE[0], FOLLOW_SESSION_RANGE[1]), remaining_follows, max_by_likes)
+        print(f"[Orchestrator] ⚖️ Pruning Priority Mode: {stale_unfollow_backlog} candidates waiting (48h regular / 30h verified). Follow target: {batch_target}.")
     else:
         max_by_likes = remaining_likes // 2
-        batch_target = min(random.randint(min_b, max_b), remaining_follows, max_by_likes)
+        batch_target = min(random.randint(FOLLOW_SESSION_RANGE[0], FOLLOW_SESSION_RANGE[1]), remaining_follows, max_by_likes)
 
     if batch_target > 0:
         print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_follows}, Likes left: {remaining_likes})")
@@ -199,7 +203,7 @@ def run_single_session(profile_name: str):
     # Выполняем в первую очередь, если включен приоритет разгрузки ИЛИ если подписки остановлены (нет лайков/лимит подписок)!
     should_unfollow_first = pruning_priority_mode or likes_exhausted or follows_exhausted
     if should_unfollow_first and unfollows_today < daily_unfollow_limit:
-        unfollow_session_target = min(random.randint(18, 25), remaining_unfollows)
+        unfollow_session_target = min(random.randint(UNFOLLOW_SESSION_RANGE[0], UNFOLLOW_SESSION_RANGE[1]), remaining_unfollows)
         print(f"\n[Orchestrator] 🧹 [Priority Step 1] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
         try:
             run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)
@@ -289,7 +293,7 @@ def run_single_session(profile_name: str):
         _, unfollows_today = get_today_counts()
         if unfollows_today < daily_unfollow_limit:
             remaining_unfollows = daily_unfollow_limit - unfollows_today
-            unfollow_session_target = min(random.randint(10, 16), remaining_unfollows)
+            unfollow_session_target = min(random.randint(UNFOLLOW_SESSION_RANGE[0], UNFOLLOW_SESSION_RANGE[1]), remaining_unfollows)
             print(f"\n[Orchestrator] Reciprocity & Unfollow check (Session target: {unfollow_session_target}, Today: {unfollows_today}/{daily_unfollow_limit}, Backlog: {stale_unfollow_backlog})...")
             try:
                 run_unfollow_batch(profile_name=profile_name, batch_size=unfollow_session_target)

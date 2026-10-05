@@ -35,6 +35,8 @@ from config import (
     MIN_DELAY_SECONDS,
     MAX_DELAY_SECONDS,
     UNFOLLOW_AFTER_DAYS,
+    UNFOLLOW_REGULAR_HOURS,
+    UNFOLLOW_VERIFIED_HOURS,
     TARGET_ACCOUNT,
     TRI_TOUCH_ENABLED,
     TRI_TOUCH_MIN_SCORE,
@@ -623,24 +625,40 @@ def unfollow_user(page, username: str) -> bool:
         log_action(clean_user, "unfollow", success=False, error=str(e))
         return False
 
-def get_candidates_for_unfollow(days: int = UNFOLLOW_AFTER_DAYS, limit: int = 20) -> list:
+def get_candidates_for_unfollow(
+    regular_hours: int = UNFOLLOW_REGULAR_HOURS,
+    verified_hours: int = UNFOLLOW_VERIFIED_HOURS,
+    days: int = None,
+    limit: int = 20
+) -> list:
     """
-    Returns users we followed N+ days ago who still haven't followed back.
-    Prioritizes fresh candidates (0 failed attempts) and oldest follow dates first.
+    Returns users we followed who still haven't followed back:
+    - Regular authors: older than regular_hours (48h)
+    - Verified authors (Blue badge): older than verified_hours (30h)
+    Prioritizes fresh candidates (0 failed attempts) and oldest follow dates first (followed_at ASC).
     Excludes candidates with 3+ failed unfollow attempts.
     """
+    if days is not None:
+        regular_hours = days * 24
+        verified_hours = min(30, regular_hours)
     conn = get_connection()
     cur = conn.cursor()
     ph = "?" if DB_TYPE == "sqlite" else "%s"
-    cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.datetime.now()
+    cutoff_reg = (now - datetime.timedelta(hours=regular_hours)).strftime("%Y-%m-%d %H:%M:%S")
+    cutoff_ver = (now - datetime.timedelta(hours=verified_hours)).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
         SELECT username FROM candidates
         WHERE status = 'followed' 
           AND COALESCE(unfollow_attempts, 0) < 3
-          AND COALESCE(followed_at, updated_at) <= {ph}
+          AND (
+              (COALESCE(is_verified, 0) = 1 AND COALESCE(followed_at, updated_at) <= {ph})
+              OR
+              (COALESCE(is_verified, 0) = 0 AND COALESCE(followed_at, updated_at) <= {ph})
+          )
         ORDER BY COALESCE(unfollow_attempts, 0) ASC, COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}
-    """, (cutoff, limit))
+    """, (cutoff_ver, cutoff_reg, limit))
     rows = [r[0] for r in cur.fetchall()]
     conn.close()
     return rows
@@ -944,7 +962,11 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
         print(f"[Follower] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting.")
         return
 
-    candidates = get_candidates_for_unfollow(days=UNFOLLOW_AFTER_DAYS, limit=batch_size)
+    candidates = get_candidates_for_unfollow(
+        regular_hours=UNFOLLOW_REGULAR_HOURS,
+        verified_hours=UNFOLLOW_VERIFIED_HOURS,
+        limit=batch_size
+    )
     if not candidates:
         print("[Follower] No candidates pending unfollow check.")
         return
