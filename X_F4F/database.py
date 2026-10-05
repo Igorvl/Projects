@@ -635,10 +635,18 @@ def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: fl
     from config import NEGATIVE_KEYWORDS, PORTFOLIO_DOMAINS, PORTFOLIO_TLDS
 
     DESIGN_ROLES_STRICT = (
-        "designer", "art director", "creative director", "design lead", "head of design",
-        "brand designer", "visual designer", "motion designer", "type designer", "typography",
-        "ui/ux", "product designer", "graphic designer", "design engineer", "3d artist",
-        "brand identity", "visual identity", "design system", "design systems"
+        "art director", "creative director", "design lead", "head of design",
+        "brand director", "brand designer", "visual designer", "motion designer",
+        "type designer", "typography", "ui/ux", "product designer", "graphic designer",
+        "design engineer", "3d artist", "brand identity", "visual identity",
+        "design system", "design systems", "web designer", "framer dev"
+    )
+
+    NON_DESIGN_STOPWORDS = (
+        "crypto", "trader", "bitcoin", "haircare", "hair care", "heavy equipment",
+        "construction", "health educator", "counseling", "fashion designer",
+        "clothing brand", "dragon", "semo", "swe", "backend engineer",
+        "software engineer", "devops", "fullstack", "full stack"
     )
 
     verified_designers = []
@@ -647,28 +655,18 @@ def get_candidates_for_funnel_list_add(hours: int = 34, limit: int = 5, days: fl
         url_lower = (c.get("url") or "").lower()
         combined_text = f"{bio_lower} {url_lower}"
 
-        # 1. Stop words check: drop any casual, meme, sports or spam accounts
-        if any(neg in combined_text for neg in NEGATIVE_KEYWORDS):
+        # 1. Stop words check: drop any casual, meme, sports, non-design, or spam accounts
+        if any(neg in combined_text for neg in NEGATIVE_KEYWORDS) or any(stop in combined_text for stop in NON_DESIGN_STOPWORDS):
             continue
 
-        breakdown = {}
-        try:
-            if isinstance(c.get("score_breakdown"), str):
-                breakdown = json.loads(c.get("score_breakdown") or "{}")
-            elif isinstance(c.get("score_breakdown"), dict):
-                breakdown = c["score_breakdown"]
-        except Exception:
-            pass
-
-        has_portfolio = bool(breakdown.get("portfolio_matched")) or any(p in combined_text for p in PORTFOLIO_DOMAINS) or any(tld in combined_text for tld in PORTFOLIO_TLDS)
-        has_role = bool(breakdown.get("roles_matched")) or any(role in bio_lower for role in DESIGN_ROLES_STRICT)
-        has_style = bool(breakdown.get("styles_matched")) or any(s in bio_lower for s in ("framer", "figma", "blender", "cinema4d", "spline", "typography", "brutalism", "swiss design", "3d design"))
+        has_portfolio = any(p in combined_text for p in PORTFOLIO_DOMAINS) or any(tld in combined_text for tld in PORTFOLIO_TLDS)
+        has_role = any(role in bio_lower for role in DESIGN_ROLES_STRICT)
+        has_style = any(s in bio_lower for s in ("framer", "figma", "blender", "cinema4d", "spline", "typography", "brutalism", "swiss design", "3d design"))
         is_verified = bool(c.get("is_verified", 0))
 
         # 2. Strict elite gate:
-        # A. Must be a confirmed designer (has role, design style, or portfolio)
-        # B. Pure founders / business owners WITHOUT design credentials are kept for client acquisition, but EXCLUDED from the Designers List!
-        if (has_portfolio or has_role or has_style) and (has_portfolio or is_verified or has_role):
+        # Must have an actual design role or design portfolio (not just generic founder/software builder)
+        if (has_portfolio or has_role) and (has_portfolio or is_verified or has_style or has_role):
             verified_designers.append(c)
             if len(verified_designers) >= limit:
                 break
