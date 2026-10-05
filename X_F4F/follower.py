@@ -917,30 +917,16 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
                 log_action(actual_user, "mutual", success=True)
                 mutual_found += 1
 
-        # Only proceed with stale cleanup and churn if virtually entire follower list was captured
-        # (Otherwise Twitter's DOM virtualization hides users below scroll 12, causing false churn!)
-        if len(all_handles) >= 220:
-            # 2. Cleanup stale test mutuals from old accounts (where followed_at was NULL and user is not in all_handles)
+        # Clean up stale test mutuals from old test accounts (where followed_at was NULL and user is not in all_handles)
+        if len(all_handles) >= 400:
             cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NULL")
             stale_rows = cur.fetchall()
             for s_row in stale_rows:
                 u_name = s_row[0]
-                if u_name.lower() not in all_handles:
+                if u_name.lower() not in all_handles and not is_whitelisted_account(u_name):
                     print(f"  [Follower Sync] Reclassifying legacy test profile @{u_name} from previous test account to ignored.")
                     cur.execute(f"UPDATE candidates SET status = 'ignored', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
             conn.commit()
-
-            # 3. Detect true churn only on full scans
-            cur.execute(f"SELECT username FROM candidates WHERE status = 'mutual' AND followed_at IS NOT NULL")
-            active_mutual_rows = cur.fetchall()
-            for m_row in active_mutual_rows:
-                u_name = m_row[0]
-                if u_name.lower() not in all_handles:
-                    print(f"  [Follower Sync] [CHURN] Candidate @{u_name} confirmed unfollowed us.")
-                    cur.execute(f"UPDATE candidates SET status = 'unfollowed_me', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (u_name,))
-            conn.commit()
-        else:
-            print(f"  [Follower Sync] Partial scroll scan ({len(all_handles)} followers). Skipping churn check to protect mutuals.")
 
         conn.close()
         print(f"[Follower Sync] Sync complete. Newly promoted mutuals: {mutual_found}")
@@ -953,6 +939,168 @@ def sync_mutual_followers(page=None, profile_name="test_igorvl777") -> int:
                 pw.stop()
 
     return mutual_found
+
+
+def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl777", max_checks=6) -> int:
+    """
+    Step 0 of Orchestrator Cycle:
+    Checks for users who quietly unfollowed us ("отписались втихую").
+    1. Updates our account profile stats (followers, following) and compares against prior DB stats.
+    2. Scans recent followers to catch mutual candidates who vanished from the top.
+    3. Directly visits profile to verify reciprocity ('Follows you' badge missing) with zero false positives.
+    4. Immediately executes retaliatory unfollow on confirmed traitors on the spot!
+    5. Updates DB status to 'unfollowed_me' and logs retaliatory unfollow.
+    """
+    import re
+    should_close = False
+    pw = ctx = None
+    if page is None:
+        pw, ctx, page = get_browser_context(profile_name=profile_name, headless=False)
+        should_close = True
+
+    retaliations = 0
+    try:
+        from database import get_account_stats
+        prev_followers, prev_following = get_account_stats(TARGET_ACCOUNT)
+        
+        # 1. Update target profile stats
+        curr_stats = sync_target_profile_stats(page=page, account=TARGET_ACCOUNT)
+        curr_followers = curr_stats.get("followers_count", prev_followers)
+        
+        churn_detected = max(0, prev_followers - curr_followers) if prev_followers > 0 else 0
+        if churn_detected > 0:
+            print(f"\n[Silent Hunter] 🚨 CHURN DETECTED: Followers dropped from {prev_followers} to {curr_followers} (-{churn_detected})!")
+            print(f"[Silent Hunter] Initiating emergency silent-unfollower audit...")
+            session_max_checks = max(max_checks, churn_detected + 4)
+        else:
+            print(f"\n[Silent Hunter] 🔍 Routine Reciprocity Audit (Followers: {curr_followers}, Prior: {prev_followers})...")
+            session_max_checks = max_checks
+
+        # 2. Quick scan top recent followers (6-8 scrolls = ~120-160 users)
+        url = f"https://x.com/{TARGET_ACCOUNT}/followers"
+        page.goto(url, wait_until="domcontentloaded", timeout=25000)
+        wait_for_x_page_load(page, ready_selector='[data-testid="UserCell"]', max_wait_sec=8.0, max_retries=2)
+        handle_x_retry_button(page)
+        human_delay(1.5, 2.5)
+
+        recent_followers = set()
+        for _ in range(8):
+            cells = page.locator('[data-testid="UserCell"]')
+            count = cells.count()
+            for i in range(count):
+                try:
+                    cell_text = cells.nth(i).inner_text()
+                    handles = re.findall(r'@([A-Za-z0-9_]+)', cell_text)
+                    if handles:
+                        recent_followers.add(handles[0].lower())
+                except Exception:
+                    pass
+            page.mouse.wheel(0, 800)
+            time.sleep(0.8)
+
+        print(f"[Silent Hunter] Scanned {len(recent_followers)} top recent followers on X.")
+
+        # 3. Form suspect pool from DB
+        conn = get_connection()
+        cur = conn.cursor()
+        ph = "?" if DB_TYPE == "sqlite" else "%s"
+
+        # A. Also update any 'followed' candidates who are currently in recent_followers -> 'mutual'
+        for h in recent_followers:
+            cur.execute(f"SELECT username, status FROM candidates WHERE LOWER(username) = LOWER({ph})", (h,))
+            r = cur.fetchone()
+            if r and r[1] == "followed":
+                print(f"  [Silent Hunter] Detected fresh follow-back from @{r[0]} -> marked MUTUAL ✅")
+                cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (h,))
+                log_action(r[0], "mutual", success=True)
+        conn.commit()
+
+        # B. Get recent mutuals (followed back recently, e.g. in last 14 days)
+        cur.execute(f"""
+            SELECT username, name, updated_at, followed_at 
+            FROM candidates 
+            WHERE status = 'mutual'
+            ORDER BY updated_at DESC 
+            LIMIT 50
+        """)
+        recent_mutuals = cur.fetchall()
+
+        suspects = []
+        for m in recent_mutuals:
+            u = m[0]
+            if is_whitelisted_account(u, m[1] or ""):
+                continue
+            if u.lower() not in recent_followers:
+                suspects.append(u)
+
+        # C. If suspects list is small, add oldest checked mutuals to ensure continuous rotation
+        if len(suspects) < session_max_checks:
+            cur.execute(f"""
+                SELECT username, name FROM candidates 
+                WHERE status = 'mutual'
+                ORDER BY COALESCE(last_active, '2000-01-01') ASC, updated_at ASC
+                LIMIT {ph}
+            """, (session_max_checks - len(suspects),))
+            for om in cur.fetchall():
+                ou = om[0]
+                if not is_whitelisted_account(ou, om[1] or "") and ou not in suspects:
+                    suspects.append(ou)
+
+        print(f"[Silent Hunter] Identified {len(suspects)} suspect(s) for reciprocity verification.")
+
+        # 4. In-flight verification & immediate retaliatory unfollow
+        _, stage_data, _ = get_current_ramp_up()
+        daily_unfollow_limit = stage_data["unfollows"]
+
+        for u in suspects[:session_max_checks]:
+            _, unfollows_today = get_today_counts()
+            if unfollows_today >= daily_unfollow_limit:
+                print(f"[Silent Hunter] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting audit.")
+                break
+
+            clean_user = u.replace("@", "").strip()
+            print(f"\n[Silent Hunter] Investigating suspected traitor @{clean_user}...")
+
+            is_mutual = check_is_mutual(page, clean_user)
+            if is_mutual is None:
+                print(f"  [Silent Hunter] ⚠️ Connection lag inspecting @{clean_user}. Skipping without penalty.")
+                continue
+
+            if is_mutual is False:
+                # CONFIRMED SILENT UNFOLLOWER!
+                print(f"  ⚔️ [Silent Hunter] BUSTED! @{clean_user} was MUTUAL but silently UNFOLLOWED us!")
+                print(f"  ⚡ Executing immediate retaliatory unfollow...")
+                ok = unfollow_user_on_current_page(page, clean_user)
+                if ok:
+                    cur.execute(f"""
+                        UPDATE candidates 
+                        SET status = 'unfollowed_me', unfollow_attempts = 0, updated_at = CURRENT_TIMESTAMP 
+                        WHERE LOWER(username) = LOWER({ph})
+                    """, (clean_user,))
+                    conn.commit()
+                    log_action(clean_user, "unfollow", success=True, error="silent_unfollower_retaliation")
+                    retaliations += 1
+                    print(f"  🎯 Retaliatory unfollow completed for @{clean_user} (status -> 'unfollowed_me').")
+                human_delay(2.0, 3.5)
+            else:
+                # Loyal mutual! Just not at the top of the scroll
+                print(f"  ✅ Verified: @{clean_user} is still a loyal MUTUAL. Updating last_active.")
+                cur.execute(f"UPDATE candidates SET last_active = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (clean_user,))
+                conn.commit()
+                human_delay(1.0, 2.0)
+
+        conn.close()
+        print(f"\n[Silent Hunter] Audit finished. Retaliatory unfollows executed: {retaliations}")
+
+    except Exception as e:
+        print(f"[Silent Hunter] Warning during audit: {e}")
+    finally:
+        if should_close and ctx:
+            ctx.close()
+            if pw:
+                pw.stop()
+
+    return retaliations
 
 
 def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):

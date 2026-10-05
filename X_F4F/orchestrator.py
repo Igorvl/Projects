@@ -199,6 +199,19 @@ def run_single_session(profile_name: str):
     if batch_target > 0:
         print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_follows}, Likes left: {remaining_likes})")
 
+    # 0. ОХОТНИК ЗА ПРЕДАТЕЛЯМИ (Silent Unfollower / Traitor Hunter):
+    # Проверка в начале каждого цикла на отписавшихся втихую — отписываемся сразу и в первую очередь!
+    try:
+        from follower import hunt_and_retaliate_silent_unfollowers
+        retaliated = hunt_and_retaliate_silent_unfollowers(profile_name=profile_name, max_checks=6)
+        if retaliated > 0:
+            print(f"[Orchestrator] ⚔️ Traitor Hunter executed {retaliated} immediate retaliatory unfollow(s).")
+            # Refresh unfollow count for current session
+            _, unfollows_today = get_today_counts()
+            remaining_unfollows = daily_unfollow_limit - unfollows_today
+    except Exception as e:
+        print(f"[Orchestrator] Silent hunter notice: {e}")
+
     # 1. ОТПИСКИ (Reciprocity & Unfollow Pruning):
     # Выполняем в первую очередь, если включен приоритет разгрузки ИЛИ если подписки остановлены (нет лайков/лимит подписок)!
     should_unfollow_first = pruning_priority_mode or likes_exhausted or follows_exhausted
