@@ -5,6 +5,7 @@ Contains scoring matrices, search queries, safety limits, and database settings.
 """
 
 import os
+import re
 
 # ==========================================
 # 1. СКОРИНГОВАЯ МАТРИЦА КЛЮЧЕВЫХ СЛОВ (BIO)
@@ -364,3 +365,31 @@ NTFY_URL = os.getenv("NTFY_URL", "")  # e.g. http://inux-job:9080/x-growth-alert
 
 # Целевой аккаунт (тестовый или продовый)
 TARGET_ACCOUNT = os.getenv("TARGET_ACCOUNT", "GerritBrandt777")
+
+# ==========================================
+# 6. НЕПРИКОСНОВЕННЫЙ БЕЛЫЙ СПИСОК (NEVER UNFOLLOW WHITELIST)
+# ==========================================
+# Аккаунты и паттерны, от которых СТРОГО ЗАПРЕЩЕНО отписываться ни при каких условиях (свои проекты / персоны)
+UNFOLLOW_WHITELIST_PATTERNS = [
+    r'\bksar(me|lab|_lab)?\b',
+    r'\bk\.?s\.?a\.?r\.?\b',
+    r'\bksar\s*lab\b',
+    r'\bkseniya\s+artman\b',
+    r'\bksar\b',
+    r'^ksar'
+]
+
+def is_whitelisted_account(username: str, name: str = "", bio: str = "") -> bool:
+    """
+    Проверяет, относится ли аккаунт к неприкосновенному белому списку (свои проекты/люди).
+    Проверка нечувствительна к регистру, точкам и пробелам.
+    """
+    clean_u = (username or "").lower().replace("@", "").strip()
+    clean_n = (name or "").lower().strip()
+    clean_b = (bio or "").lower().strip()
+    full_text = f"{clean_u} {clean_n} {clean_b}"
+    
+    for pat in UNFOLLOW_WHITELIST_PATTERNS:
+        if re.search(pat, full_text, re.IGNORECASE):
+            return True
+    return False

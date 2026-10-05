@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 from browser import get_browser_context, human_delay, wait_for_x_page_load, handle_x_retry_button
-from config import TARGET_ACCOUNT, DB_TYPE
+from config import TARGET_ACCOUNT, DB_TYPE, is_whitelisted_account
 from database import get_connection, log_action
 
 def sync_legacy_following(profile_name="test_igorvl777", max_scrolls=60):
@@ -112,6 +112,20 @@ def sync_legacy_following(profile_name="test_igorvl777", max_scrolls=60):
     for handle, data in scanned_users.items():
         orig_handle = data["original_handle"]
         is_mutual = data["is_mutual"]
+
+        # 0. Check Whitelist (never unfollow)
+        if is_whitelisted_account(orig_handle, data.get("name", "")):
+            cur.execute(f"SELECT id, status FROM candidates WHERE LOWER(username) = LOWER({ph})", (handle,))
+            row = cur.fetchone()
+            if row:
+                cur.execute(f"UPDATE candidates SET status = 'whitelisted', updated_at = CURRENT_TIMESTAMP WHERE id = {ph}", (row[0],))
+            else:
+                cur.execute(f"""
+                    INSERT INTO candidates (username, name, status, score, source, created_at, updated_at)
+                    VALUES ({ph}, {ph}, 'whitelisted', 100, 'whitelist_protect', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, (orig_handle, data["name"]))
+            print(f"  🛡️ [Whitelist] Protected @{orig_handle} (never unfollow)")
+            continue
 
         cur.execute(f"SELECT id, username, status, followed_at FROM candidates WHERE LOWER(username) = LOWER({ph})", (handle,))
         row = cur.fetchone()

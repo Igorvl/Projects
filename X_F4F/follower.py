@@ -37,6 +37,7 @@ from config import (
     UNFOLLOW_AFTER_DAYS,
     UNFOLLOW_REGULAR_HOURS,
     UNFOLLOW_VERIFIED_HOURS,
+    is_whitelisted_account,
     TARGET_ACCOUNT,
     TRI_TOUCH_ENABLED,
     TRI_TOUCH_MIN_SCORE,
@@ -467,6 +468,11 @@ def unfollow_user_on_current_page(page, clean_user: str):
     - Returns None if channel/network lag prevented verifying the button (NO PENALTY!)
     - Returns False only on real logic failure
     """
+    if is_whitelisted_account(clean_user):
+        print(f"  [Follower] 🛡️ Account @{clean_user} is in WHITELIST (свои). Unfollow strictly forbidden!")
+        log_action(clean_user, "whitelist_protect", success=True)
+        return True
+
     try:
         page_text = ""
         try:
@@ -659,7 +665,7 @@ def get_candidates_for_unfollow(
         ORDER BY COALESCE(unfollow_attempts, 0) ASC, COALESCE(followed_at, updated_at) ASC
         LIMIT {ph}
     """, (cutoff_ver, cutoff_reg, limit))
-    rows = [r[0] for r in cur.fetchall()]
+    rows = [r[0] for r in cur.fetchall() if not is_whitelisted_account(r[0])]
     conn.close()
     return rows
 
@@ -977,6 +983,10 @@ def run_unfollow_batch(profile_name="test_igorvl777", batch_size=10):
     try:
         for username in candidates:
             clean_user = username.replace("@", "").strip()
+            if is_whitelisted_account(clean_user):
+                print(f"\n[Follower] 🛡️ Account @{clean_user} is in WHITELIST (свои). Skipping unfollow.")
+                continue
+
             print(f"\n[Follower] Inspecting @{clean_user} for reciprocity / unfollow...")
 
             # 1. Заходим на профиль и проверяем взаимность (один переход вместо двух!)
