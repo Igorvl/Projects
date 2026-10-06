@@ -800,9 +800,9 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
 
 
-        <!-- 6 SMART TELEMETRY GAUGES -->
+        <!-- 7 SMART TELEMETRY GAUGES -->
         <div class="section-header">
-            <div class="section-title"><span>✦</span> Продвинутые градусники & Телеметрия безопасности</div>
+            <div class="section-title"><span>✦</span> 7 Продвинутых Градусников & Телеметрия Аудитории</div>
             <div style="font-size:12px; color:var(--text-dim); font-family:'JetBrains Mono', monospace;" id="ramp-badge">Автоматический разгон: 4 этапа по 2 дня</div>
         </div>
 
@@ -928,6 +928,39 @@ HTML_PAGE = """<!DOCTYPE html>
                     <span>Кулдауны доноров 48ч</span>
                 </div>
             </div>
+
+            <!-- Gauge 7: Verified Blue Checkmark (VIP Audience Breakdown) -->
+            <div class="gauge-card">
+                <div class="gauge-top">
+                    <div class="gauge-name">🔷 Аудитория с Галкой (Verified vs Regular)</div>
+                    <div class="gauge-badge safe" id="gauge-verified-badge" style="color:#1d9bf0; background:rgba(29, 155, 240, 0.15); border:1px solid rgba(29, 155, 240, 0.3);">--% VIP</div>
+                </div>
+                <div class="gauge-metric">
+                    <div class="gauge-val-big" id="gauge-verified-val" style="color:#1d9bf0;">-- 🔷</div>
+                    <div class="gauge-val-sub" id="gauge-verified-sub">/ -- взаимных</div>
+                </div>
+                <div class="progress-track" style="height:10px;">
+                    <div class="progress-fill fill-accent" id="gauge-verified-fill" style="width: 0%; box-shadow:0 0 10px rgba(29,155,240,0.5);"></div>
+                </div>
+                <div class="funnel-segments" style="margin-top:8px;">
+                    <div class="funnel-col" title="Взаимных авторов с синей галкой">
+                        <div class="funnel-col-val" id="verified-mutuals" style="color:#1d9bf0">--</div>
+                        <div class="funnel-col-lbl">🔷 Взаимных</div>
+                    </div>
+                    <div class="funnel-col" title="В ожидании ответа (отправленные подписки)">
+                        <div class="funnel-col-val" id="verified-following" style="color:var(--pink)">--</div>
+                        <div class="funnel-col-lbl">⏳ В фолловинге</div>
+                    </div>
+                    <div class="funnel-col" title="Очередь готовых к Tri-Touch каскаду">
+                        <div class="funnel-col-val" id="verified-queue" style="color:var(--purple)">--</div>
+                        <div class="funnel-col-lbl">📥 В очереди</div>
+                    </div>
+                </div>
+                <div class="gauge-meta-row" style="margin-top:10px;">
+                    <span id="gauge-verified-ratio">Доля VIP: --%</span>
+                    <span id="gauge-verified-total">Всего в базе: --</span>
+                </div>
+            </div>
         </div>
 
         <!-- Controls / Filters / Pagination bar -->
@@ -938,6 +971,9 @@ HTML_PAGE = """<!DOCTYPE html>
                 </button>
                 <button class="filter-btn success-btn" id="filter-mutual" onclick="setStatusFilter('mutual')">
                     ⭐ Взаимные <span class="filter-count" id="count-mutual">0</span>
+                </button>
+                <button class="filter-btn" id="filter-verified" onclick="setStatusFilter('verified')" style="border-color:rgba(29, 155, 240, 0.4); color:#38bdf8;">
+                    🔷 С синей галкой <span class="filter-count" id="count-verified">0</span>
                 </button>
                 <button class="filter-btn warning-btn" id="filter-followed" onclick="setStatusFilter('followed')">
                     ⏳ Отправленные <span class="filter-count" id="count-followed">0</span>
@@ -1330,6 +1366,7 @@ HTML_PAGE = """<!DOCTYPE html>
                 document.getElementById('count-queued').innerText = data.queued_count;
                 document.getElementById('count-ignored').innerText = data.ignored_count || 0;
                 document.getElementById('count-failed_unfollow').innerText = data.failed_unfollow_count || 0;
+                if (document.getElementById('count-verified')) document.getElementById('count-verified').innerText = data.verified_count || 0;
 
                 if (data.target_account) {
                     const pill = document.getElementById('target-account');
@@ -1459,6 +1496,29 @@ HTML_PAGE = """<!DOCTYPE html>
                         </div>
                     `).join('');
                 }
+
+                // 7. Verified Badge Breakdown
+                if (g.verified_badge) {
+                    const vb = g.verified_badge;
+                    const valEl = document.getElementById('gauge-verified-val');
+                    if (valEl) valEl.innerHTML = `${vb.mutual_verified} <span style="font-size:16px;">🔷</span>`;
+                    const subEl = document.getElementById('gauge-verified-sub');
+                    if (subEl) subEl.innerText = `/ ${vb.total_mutuals} взаимных (${vb.mutual_regular} без галки)`;
+                    const badgeEl = document.getElementById('gauge-verified-badge');
+                    if (badgeEl) badgeEl.innerText = `${vb.verified_pct}% с галкой`;
+                    const fillEl = document.getElementById('gauge-verified-fill');
+                    if (fillEl) fillEl.style.width = Math.min(100, Math.max(2, vb.verified_pct)) + '%';
+                    const mutEl = document.getElementById('verified-mutuals');
+                    if (mutEl) mutEl.innerText = vb.mutual_verified;
+                    const folEl = document.getElementById('verified-following');
+                    if (folEl) folEl.innerText = vb.followed_verified;
+                    const qEl = document.getElementById('verified-queue');
+                    if (qEl) qEl.innerText = vb.queued_verified;
+                    const ratioEl = document.getElementById('gauge-verified-ratio');
+                    if (ratioEl) ratioEl.innerText = `Доля VIP: ${vb.verified_pct}%`;
+                    const totEl = document.getElementById('gauge-verified-total');
+                    if (totEl) totEl.innerText = `Всего в базе: ${vb.total_verified_in_db} с галкой`;
+                }
             } catch (e) {
                 console.error('Error loading gauges:', e);
             }
@@ -1506,12 +1566,13 @@ HTML_PAGE = """<!DOCTYPE html>
                     const isPortfolio = bd.bio_link_sniffer_bonus || (bd.portfolio_matched && bd.portfolio_matched.length > 0);
                     const portfolioDomain = (bd.portfolio_matched && bd.portfolio_matched.length > 0) ? ` (${esc(bd.portfolio_matched[0])})` : '';
                     const portfolioBadge = isPortfolio ? `<div style="margin-top:4px;"><span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); font-size:10px; padding:2px 6px;">🌐 Portfolio${portfolioDomain}</span></div>` : '';
+                    const verifiedIcon = c.is_verified ? `<span title="Verified Blue Checkmark" style="color:#1d9bf0; font-size:12px; margin-left:4px; vertical-align:middle;">🔷</span>` : '';
 
                     return `
                     <tr>
                         <td>
                             <div class="user-col">
-                                <span class="user-name">${esc(c.name || c.username)}</span>
+                                <span class="user-name">${esc(c.name || c.username)}${verifiedIcon}</span>
                                 <a class="user-handle" href="https://x.com/${esc(c.username)}" target="_blank" rel="noopener noreferrer">@${esc(c.username)}</a>
                                 ${connectBadge}
                                 ${portfolioBadge}
@@ -1930,6 +1991,12 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'failed_unfollow'")
                     stats["failed_unfollow_count"] = cur.fetchone()[0]
 
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE is_verified = 1")
+                    stats["verified_count"] = cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual' AND is_verified = 1")
+                    stats["mutual_verified_count"] = cur.fetchone()[0]
+
                     # Total unique profiles followed by our bot across entire campaign
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status IN ('mutual', 'followed', 'unfollowed', 'failed_unfollow')")
                     stats["total_followed_all_time"] = cur.fetchone()[0]
@@ -2190,6 +2257,57 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         })
                     analytics["gauges"]["source_yield"] = sources
 
+                    # 8. Gauge: Verified vs Regular Audience Breakdown
+                    cur.execute("""
+                        SELECT 
+                            SUM(CASE WHEN is_verified = 1 THEN 1 ELSE 0 END) as mutual_verified,
+                            SUM(CASE WHEN is_verified = 0 OR is_verified IS NULL THEN 1 ELSE 0 END) as mutual_regular,
+                            COUNT(*) as total_mutuals
+                        FROM candidates 
+                        WHERE status = 'mutual'
+                    """)
+                    m_row = dict(cur.fetchone())
+                    m_ver = m_row.get("mutual_verified") or 0
+                    m_reg = m_row.get("mutual_regular") or 0
+                    m_tot = m_row.get("total_mutuals") or 0
+
+                    cur.execute("""
+                        SELECT 
+                            SUM(CASE WHEN is_verified = 1 THEN 1 ELSE 0 END) as followed_verified,
+                            COUNT(*) as total_followed
+                        FROM candidates 
+                        WHERE status = 'followed'
+                    """)
+                    f_row = dict(cur.fetchone())
+                    f_ver = f_row.get("followed_verified") or 0
+                    f_tot = f_row.get("total_followed") or 0
+
+                    cur.execute("""
+                        SELECT 
+                            SUM(CASE WHEN is_verified = 1 THEN 1 ELSE 0 END) as queued_verified,
+                            COUNT(*) as total_queued
+                        FROM candidates 
+                        WHERE status = 'queued'
+                    """)
+                    q_row = dict(cur.fetchone())
+                    q_ver = q_row.get("queued_verified") or 0
+                    q_tot = q_row.get("total_queued") or 0
+
+                    cur.execute("SELECT COUNT(*) FROM candidates WHERE is_verified = 1")
+                    total_ver_all = cur.fetchone()[0]
+
+                    analytics["gauges"]["verified_badge"] = {
+                        "mutual_verified": m_ver,
+                        "mutual_regular": m_reg,
+                        "total_mutuals": m_tot,
+                        "verified_pct": round((m_ver / max(1, m_tot)) * 100, 1) if m_tot > 0 else 0.0,
+                        "followed_verified": f_ver,
+                        "total_followed": f_tot,
+                        "queued_verified": q_ver,
+                        "total_queued": q_tot,
+                        "total_verified_in_db": total_ver_all
+                    }
+
                 except Exception as e:
                     analytics["error"] = str(e)
                 finally:
@@ -2230,7 +2348,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     where_clauses = []
                     params = []
 
-                    if status_filter != "all":
+                    if status_filter == "verified":
+                        where_clauses.append("is_verified = 1")
+                    elif status_filter != "all":
                         where_clauses.append("status = ?")
                         params.append(status_filter)
 
