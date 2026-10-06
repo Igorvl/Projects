@@ -26,6 +26,7 @@ from config import (
     MAX_HOURLY_MUTATIONS,
     get_current_ramp_up
 )
+from database import get_connection
 
 
 HTML_PAGE = """<!DOCTYPE html>
@@ -1903,8 +1904,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             }
             
             if os.path.exists(SQLITE_PATH):
+                conn = None
                 try:
-                    conn = sqlite3.connect(SQLITE_PATH)
+                    conn = get_connection()
                     cur = conn.cursor()
                     
                     cur.execute("SELECT COUNT(*) FROM candidates")
@@ -1950,10 +1952,14 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                     
                     _, stage_data, _ = get_current_ramp_up()
                     stats["daily_like_limit"] = stage_data["likes"]
-                    
-                    conn.close()
                 except Exception as e:
                     stats["error"] = str(e)
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
                     
             self.wfile.write(json.dumps(stats, ensure_ascii=False).encode("utf-8"))
 
@@ -1974,17 +1980,23 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                 res["error"] = str(e)
 
             if not res.get("success") and os.path.exists(SQLITE_PATH):
+                conn = None
                 try:
-                    conn = sqlite3.connect(SQLITE_PATH)
+                    conn = get_connection()
                     cur = conn.cursor()
                     cur.execute("SELECT followers_count, following_count FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
                     r = cur.fetchone()
                     if r:
                         res["followers_count"] = r[0] if r[0] is not None else 30
                         res["following_count"] = r[1] if r[1] is not None else 359
-                    conn.close()
                 except Exception:
                     pass
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
             self.wfile.write(json.dumps(res, ensure_ascii=False).encode("utf-8"))
 
@@ -1999,9 +2011,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             }
 
             if os.path.exists(SQLITE_PATH):
+                conn = None
                 try:
-                    conn = sqlite3.connect(SQLITE_PATH)
-                    conn.row_factory = sqlite3.Row
+                    conn = get_connection()
                     cur = conn.cursor()
 
                     # 1. Timeline stats (all recorded days)
@@ -2178,9 +2190,14 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                         })
                     analytics["gauges"]["source_yield"] = sources
 
-                    conn.close()
                 except Exception as e:
                     analytics["error"] = str(e)
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
             self.wfile.write(json.dumps(analytics, ensure_ascii=False).encode("utf-8"))
 
@@ -2205,9 +2222,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             }
 
             if os.path.exists(SQLITE_PATH):
+                conn = None
                 try:
-                    conn = sqlite3.connect(SQLITE_PATH)
-                    conn.row_factory = sqlite3.Row
+                    conn = get_connection()
                     cur = conn.cursor()
 
                     where_clauses = []
@@ -2250,10 +2267,14 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
 
                     cur.execute(f"SELECT * FROM candidates {where_sql} ORDER BY {order_sql} {limit_sql}", params)
                     candidates_data["candidates"] = [dict(r) for r in cur.fetchall()]
-
-                    conn.close()
                 except Exception as e:
                     candidates_data["error"] = str(e)
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
             self.wfile.write(json.dumps(candidates_data, ensure_ascii=False).encode("utf-8"))
         else:
@@ -2277,8 +2298,9 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             fing = int(data.get("following_count", 0))
 
             if os.path.exists(SQLITE_PATH):
+                conn = None
                 try:
-                    conn = sqlite3.connect(SQLITE_PATH)
+                    conn = get_connection()
                     cur = conn.cursor()
                     cur.execute("SELECT id FROM candidates WHERE LOWER(username) = LOWER(?)", (TARGET_ACCOUNT,))
                     if cur.fetchone():
@@ -2293,10 +2315,15 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                             VALUES (?, ?, ?, ?, 'target_profile')
                         """, (TARGET_ACCOUNT, TARGET_ACCOUNT, fol, fing))
                     conn.commit()
-                    conn.close()
                     print(f"[Dashboard API] Successfully updated @{TARGET_ACCOUNT}: {fol} followers, {fing} following")
                 except Exception as e:
                     print(f"[Dashboard API] Error updating profile in DB: {e}")
+                finally:
+                    if conn:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")

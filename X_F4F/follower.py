@@ -50,6 +50,8 @@ from database import (
     get_connection,
     get_candidates_for_follow,
     log_action,
+    update_candidate_status,
+    touch_candidate_last_active,
     check_hourly_mutation_governor,
     DB_TYPE
 )
@@ -585,7 +587,10 @@ def unfollow_user_on_current_page(page, clean_user: str):
                 human_delay(1.0, 2.0)
 
             print(f"  [Follower] 🎯 Successfully unfollowed @{clean_user} (organic click)")
-            log_action(clean_user, "unfollow", success=True)
+            try:
+                log_action(clean_user, "unfollow", success=True)
+            except Exception as db_err:
+                print(f"  [Follower] ⚠️ DB log error for @{clean_user}: {db_err}")
             return True
 
         # 4. Check if already not following (exact Follow button in profile header)
@@ -606,7 +611,10 @@ def unfollow_user_on_current_page(page, clean_user: str):
 
         if already_not_following:
             print(f"  [Follower] Verified: already not following @{clean_user} in profile header. Marking as unfollowed.")
-            log_action(clean_user, "unfollow", success=True, error="already_not_following")
+            try:
+                log_action(clean_user, "unfollow", success=True, error="already_not_following")
+            except Exception as db_err:
+                print(f"  [Follower] ⚠️ DB log error for @{clean_user}: {db_err}")
             return True
 
         # If header rendered but buttons not ready yet -> lag, do not penalize!
@@ -1005,15 +1013,13 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
         cur = conn.cursor()
         ph = "?" if DB_TYPE == "sqlite" else "%s"
 
-        # A. Also update any 'followed' candidates who are currently in recent_followers -> 'mutual'
+        # A. Detect fresh follow-backs among top followers
+        fresh_mutuals = []
         for h in recent_followers:
             cur.execute(f"SELECT username, status FROM candidates WHERE LOWER(username) = LOWER({ph})", (h,))
             r = cur.fetchone()
             if r and r[1] == "followed":
-                print(f"  [Silent Hunter] Detected fresh follow-back from @{r[0]} -> marked MUTUAL ✅")
-                cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (h,))
-                log_action(r[0], "mutual", success=True)
-        conn.commit()
+                fresh_mutuals.append(r[0])
 
         # B. Get recent mutuals (followed back recently, e.g. in last 14 days)
         cur.execute(f"""
@@ -1046,6 +1052,13 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
                 if not is_whitelisted_account(ou, om[1] or "") and ou not in suspects:
                     suspects.append(ou)
 
+        conn.close()
+
+        # Safely log fresh follow-backs without holding an outer uncommitted transaction
+        for fm in fresh_mutuals:
+            print(f"  [Silent Hunter] Detected fresh follow-back from @{fm} -> marked MUTUAL ✅")
+            log_action(fm, "mutual", success=True)
+
         print(f"[Silent Hunter] Identified {len(suspects)} suspect(s) for reciprocity verification.")
 
         # 4. In-flight verification & immediate retaliatory unfollow
@@ -1072,24 +1085,16 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
                 print(f"  ⚡ Executing immediate retaliatory unfollow...")
                 ok = unfollow_user_on_current_page(page, clean_user)
                 if ok:
-                    cur.execute(f"""
-                        UPDATE candidates 
-                        SET status = 'unfollowed_me', unfollow_attempts = 0, updated_at = CURRENT_TIMESTAMP 
-                        WHERE LOWER(username) = LOWER({ph})
-                    """, (clean_user,))
-                    conn.commit()
-                    log_action(clean_user, "unfollow", success=True, error="silent_unfollower_retaliation")
+                    update_candidate_status(clean_user, "unfollowed_me")
                     retaliations += 1
                     print(f"  🎯 Retaliatory unfollow completed for @{clean_user} (status -> 'unfollowed_me').")
                 human_delay(2.0, 3.5)
             else:
                 # Loyal mutual! Just not at the top of the scroll
                 print(f"  ✅ Verified: @{clean_user} is still a loyal MUTUAL. Updating last_active.")
-                cur.execute(f"UPDATE candidates SET last_active = CURRENT_TIMESTAMP WHERE LOWER(username) = LOWER({ph})", (clean_user,))
-                conn.commit()
+                touch_candidate_last_active(clean_user)
                 human_delay(1.0, 2.0)
 
-        conn.close()
         print(f"\n[Silent Hunter] Audit finished. Retaliatory unfollows executed: {retaliations}")
 
     except Exception as e:

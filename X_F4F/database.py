@@ -14,10 +14,11 @@ from config import SQLITE_PATH, DB_TYPE, DATABASE_URL, MIN_SCORE_THRESHOLD
 def get_connection():
     """Returns database connection."""
     if DB_TYPE == "sqlite":
-        conn = sqlite3.connect(SQLITE_PATH, timeout=15)
+        conn = sqlite3.connect(SQLITE_PATH, timeout=60.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA busy_timeout=5000;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA busy_timeout=60000;")
         return conn
     else:
         import psycopg2
@@ -396,64 +397,140 @@ def get_existing_candidate_usernames() -> set:
     return existing
 
 def log_action(username: str, action_type: str, success: bool = True, error: str = ""):
-    """Logs action taken and updates daily stats."""
-    conn = get_connection()
-    cur = conn.cursor()
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
+    """Logs action taken and updates daily stats with SQLite lock resilience."""
+    import time
+    max_retries = 5
+    for attempt in range(max_retries):
+        conn = None
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            today = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    ph = "?" if DB_TYPE == "sqlite" else "%s"  # placeholder по типу БД
+            ph = "?" if DB_TYPE == "sqlite" else "%s"  # placeholder по типу БД
 
-    cur.execute(f"""
-        INSERT INTO actions_history (candidate_username, action_type, success, error_message)
-        VALUES ({ph}, {ph}, {ph}, {ph})
-    """, (username, action_type, 1 if success else 0, error))
+            cur.execute(f"""
+                INSERT INTO actions_history (candidate_username, action_type, success, error_message)
+                VALUES ({ph}, {ph}, {ph}, {ph})
+            """, (username, action_type, 1 if success else 0, error))
 
-    cur.execute(f"""
-        INSERT INTO daily_stats (date, follows_sent, mutual_received, unfollows_done)
-        VALUES ({ph}, 0, 0, 0)
-        ON CONFLICT(date) DO NOTHING
-    """, (today,))
+            cur.execute(f"""
+                INSERT INTO daily_stats (date, follows_sent, mutual_received, unfollows_done)
+                VALUES ({ph}, 0, 0, 0)
+                ON CONFLICT(date) DO NOTHING
+            """, (today,))
 
-    if action_type == "follow" and success:
-        if error != "already_following":
-            cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET status = 'followed', followed_at = COALESCE(followed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
-    elif action_type == "unfollow" and success:
-        if error not in ("already_not_following", "account_unavailable"):
-            cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET status = 'unfollowed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
-    elif action_type == "unfollow" and not success:
-        cur.execute(f"""
-            UPDATE candidates 
-            SET unfollow_attempts = COALESCE(unfollow_attempts, 0) + 1,
-                status = CASE WHEN COALESCE(unfollow_attempts, 0) + 1 >= 3 THEN 'failed_unfollow' ELSE status END,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE username = {ph}
-        """, (username,))
-        cur.execute(f"SELECT unfollow_attempts, status FROM candidates WHERE username = {ph}", (username,))
-        row = cur.fetchone()
-        attempts = row[0] if row else 1
-        curr_status = row[1] if row else 'followed'
-        if curr_status == 'failed_unfollow':
-            print(f"  [Follower] ⚠️ @{username} reached {attempts}/3 failed unfollow attempts -> marked as 'failed_unfollow'. Bot will not touch this account anymore.")
-        else:
-            print(f"  [Follower] Unfollow attempt {attempts}/3 failed for @{username}.")
-    elif action_type == "mutual":
-        cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
-    elif action_type == "nudge_like" and success:
-        cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET nudge_sent = 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
-    elif action_type == "like" and success:
-        cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
-    elif action_type == "list_add" and success:
-        cur.execute(f"UPDATE daily_stats SET list_adds_sent = COALESCE(list_adds_sent, 0) + 1 WHERE date = {ph}", (today,))
-        cur.execute(f"UPDATE candidates SET list_add_sent = 1, list_add_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
-    elif action_type == "list_add" and not success:
-        cur.execute(f"UPDATE candidates SET list_add_attempts = COALESCE(list_add_attempts, 0) + 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            if action_type == "follow" and success:
+                if error != "already_following":
+                    cur.execute(f"UPDATE daily_stats SET follows_sent = follows_sent + 1 WHERE date = {ph}", (today,))
+                cur.execute(f"UPDATE candidates SET status = 'followed', followed_at = COALESCE(followed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            elif action_type == "unfollow" and success:
+                if error not in ("already_not_following", "account_unavailable"):
+                    cur.execute(f"UPDATE daily_stats SET unfollows_done = unfollows_done + 1 WHERE date = {ph}", (today,))
+                cur.execute(f"UPDATE candidates SET status = 'unfollowed', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            elif action_type == "unfollow" and not success:
+                cur.execute(f"""
+                    UPDATE candidates 
+                    SET unfollow_attempts = COALESCE(unfollow_attempts, 0) + 1,
+                        status = CASE WHEN COALESCE(unfollow_attempts, 0) + 1 >= 3 THEN 'failed_unfollow' ELSE status END,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE username = {ph}
+                """, (username,))
+                cur.execute(f"SELECT unfollow_attempts, status FROM candidates WHERE username = {ph}", (username,))
+                row = cur.fetchone()
+                attempts = row[0] if row else 1
+                curr_status = row[1] if row else 'followed'
+                if curr_status == 'failed_unfollow':
+                    print(f"  [Follower] ⚠️ @{username} reached {attempts}/3 failed unfollow attempts -> marked as 'failed_unfollow'. Bot will not touch this account anymore.")
+                else:
+                    print(f"  [Follower] Unfollow attempt {attempts}/3 failed for @{username}.")
+            elif action_type == "mutual":
+                cur.execute(f"UPDATE daily_stats SET mutual_received = mutual_received + 1 WHERE date = {ph}", (today,))
+                cur.execute(f"UPDATE candidates SET status = 'mutual', updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            elif action_type == "nudge_like" and success:
+                cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
+                cur.execute(f"UPDATE candidates SET nudge_sent = 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            elif action_type == "like" and success:
+                cur.execute(f"UPDATE daily_stats SET likes_sent = likes_sent + 1 WHERE date = {ph}", (today,))
+            elif action_type == "list_add" and success:
+                cur.execute(f"UPDATE daily_stats SET list_adds_sent = COALESCE(list_adds_sent, 0) + 1 WHERE date = {ph}", (today,))
+                cur.execute(f"UPDATE candidates SET list_add_sent = 1, list_add_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
+            elif action_type == "list_add" and not success:
+                cur.execute(f"UPDATE candidates SET list_add_attempts = COALESCE(list_add_attempts, 0) + 1, updated_at = CURRENT_TIMESTAMP WHERE username = {ph}", (username,))
 
-    conn.commit()
-    conn.close()
+            conn.commit()
+            return
+        except sqlite3.OperationalError as oe:
+            if "locked" in str(oe).lower() and attempt < max_retries - 1:
+                time.sleep(0.3 * (attempt + 1))
+                continue
+            raise
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+def update_candidate_status(username: str, status: str, unfollow_attempts: int = 0):
+    """Safely updates candidate status and resets/sets unfollow_attempts."""
+    import time
+    max_retries = 5
+    clean_user = username.replace("@", "").strip()
+    for attempt in range(max_retries):
+        conn = None
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            ph = "?" if DB_TYPE == "sqlite" else "%s"
+            cur.execute(f"""
+                UPDATE candidates 
+                SET status = {ph}, unfollow_attempts = {ph}, updated_at = CURRENT_TIMESTAMP 
+                WHERE LOWER(username) = LOWER({ph})
+            """, (status, unfollow_attempts, clean_user))
+            conn.commit()
+            return
+        except sqlite3.OperationalError as oe:
+            if "locked" in str(oe).lower() and attempt < max_retries - 1:
+                time.sleep(0.3 * (attempt + 1))
+                continue
+            raise
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+def touch_candidate_last_active(username: str):
+    """Updates last_active and updated_at for a verified loyal mutual candidate."""
+    import time
+    max_retries = 5
+    clean_user = username.replace("@", "").strip()
+    for attempt in range(max_retries):
+        conn = None
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            ph = "?" if DB_TYPE == "sqlite" else "%s"
+            cur.execute(f"""
+                UPDATE candidates 
+                SET last_active = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+                WHERE LOWER(username) = LOWER({ph})
+            """, (clean_user,))
+            conn.commit()
+            return
+        except sqlite3.OperationalError as oe:
+            if "locked" in str(oe).lower() and attempt < max_retries - 1:
+                time.sleep(0.3 * (attempt + 1))
+                continue
+            raise
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
 def get_today_list_adds() -> int:
     """Gets count of list adds executed today to enforce DAILY_LIST_ADD_LIMIT."""
