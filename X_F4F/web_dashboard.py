@@ -1628,13 +1628,14 @@ HTML_PAGE = """<!DOCTYPE html>
                 const currentFollowers = totalFollowersData[totalFollowersData.length - 1] || 36;
                 const currentMutuals = cumMutualsData[cumMutualsData.length - 1] || 21;
                 const currentOrganic = cumOrganicData[cumOrganicData.length - 1] || Math.max(0, currentFollowers - currentMutuals);
-                const currentChurn = cumUnfollowedMeData[cumUnfollowedMeData.length - 1] || 1;
+                const currentChurn = cumUnfollowedMeData[cumUnfollowedMeData.length - 1] || 0;
+                const todayChurn = tl[tl.length - 1] ? (tl[tl.length - 1].unfollowed_me || 0) : 0;
 
                 document.getElementById('chart-mutual-summary').innerText = `Всего подтверждено: ${currentMutuals}`;
                 document.getElementById('chart-organic-summary').innerText = `Органика (всего): ${currentOrganic}`;
 
                 document.getElementById('chart-cumulative-summary').innerHTML = 
-                    `Подписчиков в профиле: <b style="color:#00d26a; font-size:14px;">${currentFollowers}</b> &nbsp;|&nbsp; Взаимных (F4F): <b style="color:#38bdf8">${currentMutuals}</b> &nbsp;|&nbsp; Органика: <b style="color:#a78bfa">${currentOrganic}</b> &nbsp;|&nbsp; Отписались от меня: <b style="color:#ff4d4f">${currentChurn}</b>`;
+                    `Подписчиков в профиле: <b style="color:#00d26a; font-size:14px;">${currentFollowers}</b> &nbsp;|&nbsp; Взаимных (F4F): <b style="color:#38bdf8">${currentMutuals}</b> &nbsp;|&nbsp; Органика: <b style="color:#a78bfa">${currentOrganic}</b> &nbsp;|&nbsp; Отписались от меня: <b style="color:#ff4d4f">${currentChurn}</b> <span style="font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono', monospace;">(сегодня: ${todayChurn})</span>`;
 
                 // Chart.js global dark theme defaults
                 Chart.defaults.color = '#8b949e';
@@ -2099,49 +2100,83 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
 
                     # Exact confirmed counts from candidates table
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'mutual'")
-                    actual_mutual_count = cur.fetchone()[0] # 231
+                    actual_mutual_count = cur.fetchone()[0] # 499
                     cur.execute("SELECT COUNT(*) FROM candidates WHERE status = 'unfollowed_me'")
-                    actual_churn_count = cur.fetchone()[0]
+                    actual_churn_count = cur.fetchone()[0] # 40
 
-                    # Net organic = total followers - active mutuals (277 - 231 = 46)
+                    # Exact churn distribution by detection date
+                    cur.execute("SELECT DATE(updated_at) as dt, COUNT(*) as cnt FROM candidates WHERE status = 'unfollowed_me' GROUP BY DATE(updated_at)")
+                    churn_by_date = {r[0]: r[1] for r in cur.fetchall()}
+
+                    # Net organic = total followers - active mutuals (e.g. 624 - 499 = 125)
                     net_organic_total = max(0, target_total_followers - actual_mutual_count)
-                    baseline_organic = min(10, net_organic_total)
+                    baseline_organic = 10
+                    org_to_distribute = max(0, net_organic_total - baseline_organic)
 
-                    num_days = len(timeline_rows)
-                    running_mutuals = 0
-                    prev_cum_org = 0
+                    # Distribute organic gain across days weighted by actual engagement activity
+                    # (more likes/follows/mutuals on a day -> more profile visits -> natural organic follow-backs)
+                    activities = []
+                    for r in timeline_rows:
+                        f = r.get("follows_sent") or 0
+                        l = r.get("likes_sent") or 0
+                        m = r.get("mutual_received") or 0
+                        act = (f * 0.4) + (l * 0.6) + (m * 1.5)
+                        activities.append(act)
+
+                    total_act = sum(activities)
+                    daily_org_list = []
+                    for idx, act in enumerate(activities):
+                        if idx == 0:
+                            daily_org_list.append(baseline_organic)
+                        else:
+                            weight = act / total_act if total_act > 0 else 0
+                            daily_org_list.append(org_to_distribute * weight)
+
+                    int_org = [baseline_organic]
+                    remainder = 0.0
+                    for val in daily_org_list[1:]:
+                        val_with_rem = val + remainder
+                        rounded = round(val_with_rem)
+                        int_org.append(rounded)
+                        remainder = val_with_rem - rounded
+
+                    diff = net_organic_total - sum(int_org)
+                    int_org[-1] += diff
+
+                    gross_mutuals_total = sum(r.get("mutual_received", 0) for r in timeline_rows)
+                    scale_m = actual_mutual_count / gross_mutuals_total if gross_mutuals_total > 0 else 1.0
+
+                    running_gross_m = 0
+                    running_churn = 0
+                    cum_org = 0
 
                     for idx, r in enumerate(timeline_rows):
                         d = r["date"]
                         f = r.get("follows_sent") or 0
                         m = r.get("mutual_received") or 0
-                        r["conversion_rate"] = min(100.0, round((m / f * 100), 1)) if f > 0 else 0.0
+                        unf_today = churn_by_date.get(d, 0)
+                        running_churn += unf_today
+                        running_gross_m += m
 
-                        running_mutuals += m
-                        cum_m = min(actual_mutual_count, running_mutuals)
+                        day_org = int_org[idx]
+                        cum_org += day_org
 
-                        # Smooth realistic organic progression from baseline up to net_organic_total
-                        if num_days > 1:
-                            cum_org = round(baseline_organic + (net_organic_total - baseline_organic) * (idx / (num_days - 1)))
+                        if idx == len(timeline_rows) - 1:
+                            cum_m = actual_mutual_count
+                            cum_unf = actual_churn_count
+                            tot_fol = target_total_followers
                         else:
-                            cum_org = net_organic_total
+                            cum_m = round(running_gross_m * scale_m)
+                            cum_unf = running_churn
+                            tot_fol = cum_m + cum_org
 
-                        daily_org = cum_org if idx == 0 else max(0, cum_org - prev_cum_org)
-                        prev_cum_org = cum_org
-
-                        r["organic_followers"] = daily_org
-                        r["unfollowed_me"] = 0
+                        r["conversion_rate"] = min(100.0, round((m / f * 100), 1)) if f > 0 else 0.0
+                        r["organic_followers"] = day_org
+                        r["unfollowed_me"] = unf_today
                         r["cum_mutuals"] = cum_m
                         r["cum_organic"] = cum_org
-                        r["cum_unfollowed_me"] = actual_churn_count if idx == num_days - 1 else 0
-                        r["total_followers_count"] = cum_m + cum_org
-
-                    if timeline_rows:
-                        last = timeline_rows[-1]
-                        last["total_followers_count"] = target_total_followers
-                        last["cum_mutuals"] = actual_mutual_count
-                        last["cum_organic"] = net_organic_total
-                        last["cum_unfollowed_me"] = actual_churn_count
+                        r["cum_unfollowed_me"] = cum_unf
+                        r["total_followers_count"] = tot_fol
 
                     analytics["daily_timeline"] = timeline_rows
 

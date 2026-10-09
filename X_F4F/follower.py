@@ -658,7 +658,7 @@ def get_candidates_for_unfollow(
     conn = get_connection()
     cur = conn.cursor()
     ph = "?" if DB_TYPE == "sqlite" else "%s"
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc)
     cutoff_reg = (now - datetime.timedelta(hours=regular_hours)).strftime("%Y-%m-%d %H:%M:%S")
     cutoff_ver = (now - datetime.timedelta(hours=verified_hours)).strftime("%Y-%m-%d %H:%M:%S")
     cur.execute(f"""
