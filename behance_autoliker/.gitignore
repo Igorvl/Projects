@@ -19,3 +19,5 @@ __pycache__/
 
 # Local data
 likes_log.csv
+
+sessions/

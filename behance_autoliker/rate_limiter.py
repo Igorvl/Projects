@@ -47,7 +47,9 @@ MAX_SESSION_DURATION = timedelta(hours=2)
 class RateLimiter:
     """Считает лайки и управляет расписанием сессий по МСК-суткам."""
 
-    def __init__(self):
+    def __init__(self, state_file: str = STATE_FILE, account_id: str = "default"):
+        self.state_file: str                  = state_file
+        self.account_id: str                  = account_id
         self.session_likes: int               = 0
         self.session_number: int              = 1
         self.cycle_likes: int                 = 0
@@ -375,10 +377,10 @@ class RateLimiter:
         self._save()
 
     def _load(self):
-        if not os.path.exists(STATE_FILE):
+        if not os.path.exists(self.state_file):
             return
         try:
-            with open(STATE_FILE, encoding="utf-8") as f:
+            with open(self.state_file, encoding="utf-8") as f:
                 d = json.load(f)
             self.session_likes      = int(d.get("session_likes", 0))
             self.session_number     = int(d.get("session_number", 1))
@@ -417,7 +419,9 @@ class RateLimiter:
             logger.warning(f"Ne udalos zagruzit state: {e}. Startuyem zanovo.")
 
     def _save(self):
-        os.makedirs("session", exist_ok=True)
+        parent_dir = os.path.dirname(os.path.abspath(self.state_file))
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
         data = {
             "utc_date":          self.utc_date,
             "session_likes":     self.session_likes,
@@ -430,5 +434,5 @@ class RateLimiter:
                 self.session1_earliest.isoformat() if self.session1_earliest else None
             ),
         }
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
+        with open(self.state_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

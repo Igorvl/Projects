@@ -94,7 +94,17 @@ def _resolve_redirect(url: str, timeout: float = 6.0) -> str | None:
 
 class BehanceLiker:
 
-    def __init__(self):
+    def __init__(
+        self,
+        cookies_file: str = SESSION_FILE,
+        browser_proxy: str | None = None,
+        headless: bool = HEADLESS,
+        account_id: str = "default",
+    ):
+        self.cookies_file = cookies_file
+        self.browser_proxy = browser_proxy
+        self.headless = headless
+        self.account_id = account_id
         self._playwright = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
@@ -103,21 +113,33 @@ class BehanceLiker:
     async def init(self):
         """Zapustit Chromium s sohranennoy sessiey Behance."""
 
-        if not os.path.exists(SESSION_FILE):
+        if not os.path.exists(self.cookies_file):
             print()
-            print("  OSHIBKA: Fayl sessii ne naydyon!")
-            print(f"  Ozhidaetsya: {SESSION_FILE}")
+            print(f"  [{self.account_id}] OSHIBKA: Fayl sessii ne naydyon!")
+            print(f"  Ozhidaetsya: {self.cookies_file}")
             print()
-            print("  Snachala zapustite:")
-            print("    python setup_session.py")
+            print(f"  Snachala nastrojte sessiyu dlya {self.account_id}")
             print()
             sys.exit(1)
 
-        proxy_config = _get_browser_proxy()
+        proxy_config = None
+        if self.browser_proxy:
+            import socket
+            try:
+                clean = self.browser_proxy.split("://")[-1]
+                host, port_str = clean.split(":")
+                with socket.create_connection((host, int(port_str)), timeout=0.3):
+                    logger.info(f"[{self.account_id}] [PROXY] Podklyuchayu brauzer k {self.browser_proxy}")
+                    proxy_config = {"server": self.browser_proxy}
+            except Exception:
+                logger.info(f"[{self.account_id}] [PROXY] Ukazanny proksi nedostupen, probuyu obshiy.")
+                proxy_config = _get_browser_proxy()
+        else:
+            proxy_config = _get_browser_proxy()
 
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
-            headless=HEADLESS,
+            headless=self.headless,
             proxy=proxy_config,
             args=[
                 "--no-sandbox",
@@ -127,7 +149,7 @@ class BehanceLiker:
         )
 
         self._context = await self._browser.new_context(
-            storage_state=SESSION_FILE,
+            storage_state=self.cookies_file,
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "

@@ -1,31 +1,31 @@
 """
-Behance AutoLiker -- точка входа.
+main.py -- Главная точка входа Behance AutoLiker (Multi-Account).
 
-Запуск:
-    python main.py
+Использование:
+    python main.py                     # Автозапуск готовых аккаунтов
+    python main.py --account ksar_lab  # Запуск только KSAR Lab (Igor Kotov)
+    python main.py --account ksar_be   # Запуск только Ksar Be (Ksar Tg)
+    python main.py --all               # Принудительный запуск обоих
 """
 
+import sys
+import os
+import argparse
 import asyncio
 import logging
-import sys
+from typing import List
 
-# Фикс для Windows: принудительно UTF-8 в консоли (иначе эмодзи ломают вывод)
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+# Принудительно UTF-8 для консоли
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr.encoding != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from behance_liker import BehanceLiker
-from tg_listener import start_telegram_listener
+from accounts_config import get_account_config, ALL_ACCOUNTS, AccountConfig
+from behance_worker import BehanceAccountWorker
 
-
-# ---------------------------------------------------------------------------
-# Фильтр шума от внутреннего reconnect-механизма Telethon
-# ---------------------------------------------------------------------------
-
-# Паттерны которые ПОЛНОСТЬЮ подавляются (не выводятся в консоль)
 _TELETHON_SUPPRESS = (
-    "Attempt ",                                    # "Attempt N at connecting failed"
+    "Attempt ",
     "at connecting failed",
     "Closing current connection to begin reconnect",
     "Connection closed while receiving data",
@@ -36,42 +36,25 @@ _TELETHON_SUPPRESS = (
     "Not disconnecting",
     "Failed reconnection attempt",
     "Future exception was never retrieved",
-    "Automatic reconnection failed",               # заменяем своим сообщением
+    "Automatic reconnection failed",
 )
 
-_tg_net_logger = logging.getLogger("tg.net")      # наш лаконичный логгер
+_tg_net_logger = logging.getLogger("tg.net")
 
 
 class _TelethonNoiseFilter(logging.Filter):
-    """
-    Перехватывает внутренние сообщения Telethon о переподключении:
-      - подавляет спам "Attempt N / Failed reconnection / ..."
-      - при "Automatic reconnection failed" выводит ОДНО краткое предупреждение
-    """
-
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
-
-        # Финальное сообщение об исчерпании попыток -> наше краткое предупреждение
         if "Automatic reconnection failed" in msg:
             _tg_net_logger.warning(
-                "[TG-NET] Telegram nedostupen — vse popytki ispolzovany (proverte VPN/TUN). "
-                "Zhdu 60s pered povtornym podklyucheniem..."
+                "[TG-NET] Telegram nedostupen -- proveryayu soedinenie... "
+                "Ozhidanie 60s pered perepodklyucheniem."
             )
-            return False  # оригинал подавляем
-
-        # Остальные шумные паттерны — молча отбрасываем
+            return False
         for pat in _TELETHON_SUPPRESS:
             if pat in msg:
                 return False
-
         return True
-
-
-def _install_telethon_filter() -> None:
-    """Устанавливает фильтр на все суб-логгеры Telethon."""
-    f = _TelethonNoiseFilter()
-    logging.getLogger("telethon").addFilter(f)
 
 
 def setup_logging() -> None:
@@ -85,45 +68,99 @@ def setup_logging() -> None:
             logging.FileHandler("autoliker.log", encoding="utf-8"),
         ],
     )
-    # Фильтруем шум от Telethon ПОСЛЕ basicConfig
-    _install_telethon_filter()
+    logging.getLogger("telethon").addFilter(_TelethonNoiseFilter())
 
 
-async def main() -> None:
+async def run_worker_supervisor(config: AccountConfig) -> None:
+    logger = logging.getLogger(__name__)
+    worker = BehanceAccountWorker(config)
+
+    while True:
+        try:
+            await worker.start()
+            await worker.run_until_stopped()
+            break
+        except asyncio.CancelledError:
+            await worker.stop()
+            break
+        except ConnectionError as conn_err:
+            logger.warning(
+                f"[{config.account_id}] [RECONNECT] Poterya soedineniya: {conn_err}. "
+                f"Povtornoe podklyuchenie cherez 60s..."
+            )
+            await worker.stop()
+            await asyncio.sleep(60)
+        except Exception as exc:
+            logger.error(f"[{config.account_id}] Kriticheskaya oshibka: {exc}", exc_info=True)
+            await worker.stop()
+            await asyncio.sleep(30)
+
+
+async def main():
     setup_logging()
     logger = logging.getLogger(__name__)
 
-    logger.info("=" * 55)
-    logger.info("   [START] Behance AutoLiker zapuskaetsya...")
-    logger.info("=" * 55)
+    parser = argparse.ArgumentParser(description="Behance AutoLiker Multi-Account Engine")
+    parser.add_argument(
+        "--account",
+        choices=ALL_ACCOUNTS,
+        help="Zapustit konkretny account (ksar_lab ili ksar_be)",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Zapustit vse accounty parallelno",
+    )
 
-    liker = BehanceLiker()
+    args = parser.parse_args()
+
+    # Opredelenie spiska zapuskaemyh accountov
+    target_accounts: List[str] = []
+    if args.account:
+        target_accounts = [args.account]
+    elif args.all:
+        target_accounts = ALL_ACCOUNTS
+    else:
+        for acc_id in ALL_ACCOUNTS:
+            cfg = get_account_config(acc_id)
+            if os.path.exists(cfg.behance_cookies_path) and os.path.exists(cfg.tg_session_path):
+                target_accounts.append(acc_id)
+
+        if not target_accounts:
+            logger.error("Ni odin account ne nastroen! Vypolnite: python setup_account.py --status")
+            return
+
+    logger.info("=" * 65)
+    logger.info("   [ENGINE] Behance AutoLiker Multi-Account Engine")
+    logger.info(f"   Celevye accounty: {', '.join(target_accounts)}")
+    logger.info("=" * 65)
+
+    tasks = []
+    for acc_id in target_accounts:
+        cfg = get_account_config(acc_id)
+        if not os.path.exists(cfg.behance_cookies_path) or not os.path.exists(cfg.tg_session_path):
+            logger.warning(
+                f"[SKIP] Propuskayu {cfg.name} ({acc_id}): "
+                f"ne nayden tg.session ili behance_cookies.json!"
+            )
+            continue
+        tasks.append(asyncio.create_task(run_worker_supervisor(cfg)))
+
+    if not tasks:
+        logger.error("Net gotovyh k zapusku zadach.")
+        return
+
     try:
-        logger.info("Initializiruyu brauzer Behance...")
-        await liker.init()
-        logger.info("[OK] Brauzer gotov! Zhdu zadaniy ot bota...")
-
-        # Reconnect loop: при сетевых сбоях ждём 60с и переподключаемся
-        while True:
-            try:
-                await start_telegram_listener(liker)
-                break  # нормальное завершение (например Ctrl+C поднимется выше)
-            except ConnectionError as conn_err:
-                logger.warning(
-                    f"[TG] Poterya soedineniya: {conn_err}. "
-                    f"Povtornoe podklyuchenie cherez 60 sekund..."
-                )
-                await asyncio.sleep(60)
-
-    except KeyboardInterrupt:
-        logger.info("[STOP] Ostanovleno polzovatelem (Ctrl+C).")
-    except Exception as exc:
-        logger.error(f"Kriticheskaya oshibka: {exc}", exc_info=True)
-    finally:
-        logger.info("Zakryvayu brauzer...")
-        await liker.close()
-        logger.info("[BYE] Do svidaniya!")
+        await asyncio.gather(*tasks)
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("[STOP] Ostanovka po komande polzovatelya...")
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n[STOP] Process zavershyon polzovatelem.")
