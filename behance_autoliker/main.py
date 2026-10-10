@@ -111,6 +111,11 @@ async def main():
         action="store_true",
         help="Zapustit vse accounty parallelno",
     )
+    parser.add_argument(
+        "--visible",
+        action="store_true",
+        help="Otkryt vidimoe okno brauzera (ne headless)",
+    )
 
     args = parser.parse_args()
 
@@ -138,6 +143,8 @@ async def main():
     tasks = []
     for acc_id in target_accounts:
         cfg = get_account_config(acc_id)
+        if args.visible:
+            cfg.headless = False
         if not os.path.exists(cfg.behance_cookies_path) or not os.path.exists(cfg.tg_session_path):
             logger.warning(
                 f"[SKIP] Propuskayu {cfg.name} ({acc_id}): "

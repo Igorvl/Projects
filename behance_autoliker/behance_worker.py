@@ -418,23 +418,32 @@ class BehanceAccountWorker:
                 self._log("info", f"[EDIT-TASK] Dobavleno v ochered: {u}")
                 await self.task_queue.put((msg, u))
 
-        # Catchup: proverka nedavnih soobshcheniy bota
+        # Catchup: proverka aktivnyh i nedavnih zadaniy bota
         try:
             self._log("info", "Proveryayu poslednie soobshcheniya bota...")
-            messages = await self.client.get_messages(bot_username, limit=3)
+            messages = await self.client.get_messages(bot_username, limit=10)
             now_utc = datetime.now(timezone.utc)
             found_any = False
+            
+            # Ishchem samoe svezhee zadanie s aktivnymi knopkami [Gotovo / Propustit]
             for m in messages:
                 if not m.date:
                     continue
-                msg_age = now_utc - m.date.replace(tzinfo=timezone.utc)
-                if msg_age > CATCHUP_MAX_AGE:
-                    continue
                 urls = _extract_urls(m)
-                for u in urls:
-                    self._log("info", f"[CATCHUP] Naydeno svezhee zadaniye: {u}")
-                    await self.task_queue.put((m, u))
-                    found_any = True
+                if urls and m.buttons:
+                    has_action_btn = any(
+                        any("готово" in btn.text.lower() or "gotovo" in btn.text.lower()
+                            or "пропустить" in btn.text.lower() or "propustit" in btn.text.lower()
+                            for btn in row)
+                        for row in m.buttons
+                    )
+                    if has_action_btn:
+                        target_url = urls[0]
+                        msg_age_m = int((now_utc - m.date.replace(tzinfo=timezone.utc)).total_seconds() // 60)
+                        self._log("info", f"[CATCHUP] Naydeno aktivnoe zadaniye (vozrast {msg_age_m}m): {target_url}")
+                        await self.task_queue.put((m, target_url))
+                        found_any = True
+                        break
 
             if not found_any and self.task_queue.empty():
                 self._log("info", f"Zaprashivayu zadaniya: '{BOT_REQUEST_CMD}'...")
