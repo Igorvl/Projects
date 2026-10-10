@@ -125,14 +125,24 @@ class BehanceLiker:
         proxy_config = None
         if self.browser_proxy:
             import socket
+            import urllib.parse
             try:
-                clean = self.browser_proxy.split("://")[-1]
-                host, port_str = clean.split(":")
-                with socket.create_connection((host, int(port_str)), timeout=0.3):
-                    logger.info(f"[{self.account_id}] [PROXY] Podklyuchayu brauzer k {self.browser_proxy}")
-                    proxy_config = {"server": self.browser_proxy}
-            except Exception:
-                logger.info(f"[{self.account_id}] [PROXY] Ukazanny proksi nedostupen, probuyu obshiy.")
+                parsed = urllib.parse.urlparse(self.browser_proxy)
+                host = parsed.hostname
+                port = parsed.port
+                if host and port:
+                    with socket.create_connection((host, port), timeout=3.0):
+                        server_url = f"{parsed.scheme or 'socks5'}://{host}:{port}"
+                        logger.info(f"[{self.account_id}] [PROXY] Podklyuchayu brauzer k {server_url}")
+                        proxy_config = {"server": server_url}
+                        if parsed.username:
+                            proxy_config["username"] = parsed.username
+                        if parsed.password:
+                            proxy_config["password"] = parsed.password
+                else:
+                    logger.warning(f"[{self.account_id}] [PROXY] Nekorrektny format proksi: {self.browser_proxy}")
+            except Exception as e:
+                logger.info(f"[{self.account_id}] [PROXY] Proksi {self.browser_proxy} nedostupen ({e}), probuyu obshiy.")
                 proxy_config = _get_browser_proxy()
         else:
             proxy_config = _get_browser_proxy()

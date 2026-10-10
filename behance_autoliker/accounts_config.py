@@ -63,6 +63,7 @@ def get_account_config(account_id: str) -> AccountConfig:
     elif account_id == "ksar_be":
         session_dir = os.path.join(BASE_DIR, "sessions", "ksar_be")
         os.makedirs(session_dir, exist_ok=True)
+        be_proxy = os.getenv("KSAR_BE_PROXY", default_browser_proxy)
         return AccountConfig(
             account_id="ksar_be",
             name="Ksar Be (Ksar Tg)",
@@ -77,7 +78,7 @@ def get_account_config(account_id: str) -> AccountConfig:
             delay_min=default_delay_min,
             delay_max=default_delay_max,
             headless=default_headless,
-            browser_proxy=default_browser_proxy,
+            browser_proxy=be_proxy,
         )
     else:
         raise ValueError(f"Unknown account_id: {account_id}")
