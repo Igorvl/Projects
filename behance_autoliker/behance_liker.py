@@ -110,6 +110,10 @@ class BehanceLiker:
         self._context: BrowserContext | None = None
         self._page: Page | None = None
 
+    def _log(self, level: str, msg: str, **kwargs):
+        prefix = f"[{self.account_id}]"
+        getattr(logger, level)(f"{prefix} {msg}", **kwargs)
+
     async def init(self):
         """Zapustit Chromium s sohranennoy sessiey Behance."""
 
@@ -133,16 +137,16 @@ class BehanceLiker:
                 if host and port:
                     with socket.create_connection((host, port), timeout=3.0):
                         server_url = f"{parsed.scheme or 'socks5'}://{host}:{port}"
-                        logger.info(f"[{self.account_id}] [PROXY] Podklyuchayu brauzer k {server_url}")
+                        self._log("info", f"[{self.account_id}] [PROXY] Podklyuchayu brauzer k {server_url}")
                         proxy_config = {"server": server_url}
                         if parsed.username:
                             proxy_config["username"] = parsed.username
                         if parsed.password:
                             proxy_config["password"] = parsed.password
                 else:
-                    logger.warning(f"[{self.account_id}] [PROXY] Nekorrektny format proksi: {self.browser_proxy}")
+                    self._log("warning", f"[{self.account_id}] [PROXY] Nekorrektny format proksi: {self.browser_proxy}")
             except Exception as e:
-                logger.info(f"[{self.account_id}] [PROXY] Proksi {self.browser_proxy} nedostupen ({e}), probuyu obshiy.")
+                self._log("info", f"[{self.account_id}] [PROXY] Proksi {self.browser_proxy} nedostupen ({e}), probuyu obshiy.")
                 proxy_config = _get_browser_proxy()
         else:
             proxy_config = _get_browser_proxy()
@@ -180,8 +184,8 @@ class BehanceLiker:
         # Proveryaem chto sessiya rabotaet
         logged_in = await self._is_logged_in()
         if not logged_in:
-            logger.warning("[WARN] Sessiya istekla ili ne rabotaet.")
-            logger.warning("       Zapustite snova: python setup_session.py")
+            self._log("warning", "[WARN] Sessiya istekla ili ne rabotaet.")
+            self._log("warning", "       Zapustite snova: python setup_session.py")
             print()
             print("  PREDUPREZHDENIE: Sessiya istekla!")
             print("  Zaydite v Chrome -> Behance -> zalogintes")
@@ -197,7 +201,7 @@ class BehanceLiker:
           str  — нормализованный URL вида https://www.behance.net/gallery/...
           None — ссылка на Behance не найдена
         """
-        logger.info(f"[INTERMEDIARY] Perehozhu po ssylke sotsseti: {intermediary_url}")
+        self._log("info", f"[INTERMEDIARY] Perehozhu po ssylke sotsseti: {intermediary_url}")
         behance_gallery_re = re.compile(
             r"(?:https?://)?(?:www\.)?(?:behance\.net|be\.net)/gallery/([0-9]+(?:/[^/?#\s\"'>]+)?)",
             re.IGNORECASE
@@ -217,10 +221,10 @@ class BehanceLiker:
                         if m:
                             clean_path = _clean_behance_path(m.group(1))
                             behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                            logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance v X/Twitter ({endpoint}): {behance_url}")
+                            self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance v X/Twitter ({endpoint}): {behance_url}")
                             return behance_url
                 except Exception as xe:
-                    logger.warning(f"[INTERMEDIARY] Oshibka {endpoint} ({xe}), probuyu dalshe...")
+                    self._log("warning", f"[INTERMEDIARY] Oshibka {endpoint} ({xe}), probuyu dalshe...")
 
         try:
             # Открываем страницу соцсети в браузере
@@ -247,7 +251,7 @@ class BehanceLiker:
                     if m:
                         clean_path = _clean_behance_path(m.group(1))
                         behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                        logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance v tege <a>: {behance_url}")
+                        self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance v tege <a>: {behance_url}")
                         return behance_url
 
                     # Декодируем возможные редиректы (linkedin.com/safety/go?url=..., linkedin.com/redir/redirect?url=..., etc.)
@@ -257,7 +261,7 @@ class BehanceLiker:
                             if m:
                                 clean_path = _clean_behance_path(m.group(1))
                                 behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                                logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance v redirekte: {behance_url}")
+                                self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance v redirekte: {behance_url}")
                                 return behance_url
                     except Exception:
                         pass
@@ -274,7 +278,7 @@ class BehanceLiker:
                             if m:
                                 clean_path = _clean_behance_path(m.group(1))
                                 behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                                logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance cherez shortener redirect ({href}): {behance_url}")
+                                self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance cherez shortener redirect ({href}): {behance_url}")
                                 return behance_url
                     except Exception:
                         pass
@@ -285,7 +289,7 @@ class BehanceLiker:
             if m:
                 clean_path = _clean_behance_path(m.group(1))
                 behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance v tekste stranitsy: {behance_url}")
+                self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance v tekste stranitsy: {behance_url}")
                 return behance_url
 
             # Попытка 3: Дополнительное ожидание 3с для тяжелых динамических SPA и повторная проверка
@@ -300,7 +304,7 @@ class BehanceLiker:
                     if m:
                         clean_path = _clean_behance_path(m.group(1))
                         behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                        logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance posle dopolnitelnogo ozhidaniya: {behance_url}")
+                        self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance posle dopolnitelnogo ozhidaniya: {behance_url}")
                         return behance_url
 
             content = await self._page.content()
@@ -308,20 +312,20 @@ class BehanceLiker:
             if m:
                 clean_path = _clean_behance_path(m.group(1))
                 behance_url = f"https://www.behance.net/gallery/{clean_path}"
-                logger.info(f"[INTERMEDIARY] [OK] Naydena ssylka Behance v kontente stranitsy: {behance_url}")
+                self._log("info", f"[INTERMEDIARY] [OK] Naydena ssylka Behance v kontente stranitsy: {behance_url}")
                 return behance_url
 
-            logger.warning(f"[INTERMEDIARY] ❌ Behance-ssylka ne naydena na stranitse: {intermediary_url}")
+            self._log("warning", f"[INTERMEDIARY] ❌ Behance-ssylka ne naydena na stranitse: {intermediary_url}")
             return None
 
         except Exception as exc:
-            logger.error(f"[INTERMEDIARY] Oshibka pri perehode po {intermediary_url}: {exc}")
+            self._log("error", f"[INTERMEDIARY] Oshibka pri perehode po {intermediary_url}: {exc}")
             return None
 
     async def like_project(self, url: str) -> str:
         """Otkryvaet proekt, scrollit, stavit layk."""
         try:
-            logger.info(f"[WEB] Otkryvayu: {url}")
+            self._log("info", f"[WEB] Otkryvayu: {url}")
             await self._page.goto(url, wait_until="domcontentloaded", timeout=30_000)
             await asyncio.sleep(random.uniform(1.5, 3.0))
 
@@ -338,7 +342,7 @@ class BehanceLiker:
             return status
 
         except Exception as exc:
-            logger.error(f"Oshibka pri layke {url}: {exc}")
+            self._log("error", f"Oshibka pri layke {url}: {exc}")
             return "error"
 
     async def human_wait(self, total_seconds: float) -> None:
@@ -350,13 +354,13 @@ class BehanceLiker:
         freeze_sec = random.uniform(7, 17)
         browse_sec = max(total_seconds - freeze_sec, 3.0)
 
-        logger.info(
+        self._log("info", 
             f"[WAIT] Listаyu Behance {browse_sec:.0f}s, "
             f"zatem zamru {freeze_sec:.0f}s pered nazhatiyer..."
         )
         await self._browse_during_wait(browse_sec)
 
-        logger.info(f"[WAIT] Zamirayu {freeze_sec:.0f}s (otkryvayu Telegram)...")
+        self._log("info", f"[WAIT] Zamirayu {freeze_sec:.0f}s (otkryvayu Telegram)...")
         await asyncio.sleep(freeze_sec)
 
     async def verify_like(self, url: str) -> bool:
@@ -370,13 +374,13 @@ class BehanceLiker:
 
         При ошибках загрузки страницы возвращает True (чтобы не было ложной тревоги).
         """
-        logger.info("[VERIFY] Жду 3с, затем перезагружаю страницу для проверки лайка...")
+        self._log("info", "[VERIFY] Жду 3с, затем перезагружаю страницу для проверки лайка...")
         await asyncio.sleep(random.uniform(3.0, 5.0))
 
         try:
             await self._page.goto(url, wait_until="domcontentloaded", timeout=30_000)
         except Exception as exc:
-            logger.warning(f"[VERIFY] Не удалось перезагрузить страницу: {exc}. Пропускаю проверку.")
+            self._log("warning", f"[VERIFY] Не удалось перезагрузить страницу: {exc}. Пропускаю проверку.")
             return True  # не блокируем из-за сетевой ошибки
 
         # Ждём рендера кнопки
@@ -406,10 +410,10 @@ class BehanceLiker:
                 )
 
                 if liked:
-                    logger.info(f"[VERIFY] ✅ Лайк подтверждён ({selector[:45]})")
+                    self._log("info", f"[VERIFY] ✅ Лайк подтверждён ({selector[:45]})")
                     return True
                 else:
-                    logger.warning(
+                    self._log("warning", 
                         f"[VERIFY] ❌ Кнопка найдена ({selector[:45]}), "
                         f"НО лайк НЕ стоит! aria={aria_label!r} class={class_name[:40]!r}"
                     )
@@ -439,17 +443,17 @@ class BehanceLiker:
                 }
             """)
             if result is True:
-                logger.info("[VERIFY] ✅ JS: лайк подтверждён.")
+                self._log("info", "[VERIFY] ✅ JS: лайк подтверждён.")
                 return True
             elif result is False:
-                logger.warning("[VERIFY] ❌ JS: лайк НЕ сохранился после перезагрузки!")
+                self._log("warning", "[VERIFY] ❌ JS: лайк НЕ сохранился после перезагрузки!")
                 return False
             else:
                 # result is None — кнопка не найдена на странице (возможно другой макет)
-                logger.warning("[VERIFY] ⚠️ Кнопка Appreciate не найдена при проверке — пропускаю (не false-positive).")
+                self._log("warning", "[VERIFY] ⚠️ Кнопка Appreciate не найдена при проверке — пропускаю (не false-positive).")
                 return True
         except Exception as exc:
-            logger.warning(f"[VERIFY] JS-проверка не удалась: {exc}. Пропускаю.")
+            self._log("warning", f"[VERIFY] JS-проверка не удалась: {exc}. Пропускаю.")
             return True
 
     async def _browse_during_wait(self, seconds: float) -> None:
@@ -521,7 +525,7 @@ class BehanceLiker:
             except Exception as nav_err:
                 # Страница перешла на другой URL (SPA-навигация, редирект) —
                 # execution context уничтожен. Просто выходим из цикла.
-                logger.debug(f"[BROWSE] Navigatsiya vo vremya skrolla, vykhozhу: {nav_err}")
+                self._log("debug", f"[BROWSE] Navigatsiya vo vremya skrolla, vykhozhу: {nav_err}")
                 break
 
             await asyncio.sleep(random.uniform(0.08, 0.22))
@@ -545,10 +549,10 @@ class BehanceLiker:
                 '[class*="Avatar"], [data-testid="user-avatar"], [aria-label*="profile"], [aria-label*="Profile"]'
             )
             logged_in = (sign_in is None) or (avatar is not None)
-            logger.info(f"Behance: {'OK logged in' if logged_in else 'NOT logged in'}")
+            self._log("info", f"Behance: {'OK logged in' if logged_in else 'NOT logged in'}")
             return logged_in
         except Exception as exc:
-            logger.warning(f"Proverka vkhoda ne udalas: {exc}")
+            self._log("warning", f"Proverka vkhoda ne udalas: {exc}")
             return False
 
     async def _slow_scroll(self):
@@ -559,7 +563,7 @@ class BehanceLiker:
         - Dvizhenie myshi po stranitse
         - Peremenная skorost (bystree cherez tekst, medlenee cherez kartinki)
         """
-        logger.info("[SCROLL] Chitayu keys...")
+        self._log("info", "[SCROLL] Chitayu keys...")
 
         page_height: int   = await self._page.evaluate("document.body.scrollHeight")
         viewport_h: int    = await self._page.evaluate("window.innerHeight")
@@ -584,7 +588,7 @@ class BehanceLiker:
             # --- Pauza na "interesnom" meste ---
             if pause_idx < len(pause_points) and current_pos >= pause_points[pause_idx]:
                 pause_duration = random.uniform(1.0, 4.0)
-                logger.info(f"[SCROLL] Interesno, smotryu {pause_duration:.1f}s...")
+                self._log("info", f"[SCROLL] Interesno, smotryu {pause_duration:.1f}s...")
 
                 # Dvizhenie myshi po kartinke / bloku
                 for _ in range(random.randint(1, 3)):
@@ -600,7 +604,7 @@ class BehanceLiker:
                 # 30% shansy vvernut' nazad i posmotet eshche raz
                 if random.random() < 0.30:
                     back = random.randint(80, 250)
-                    logger.info("[SCROLL] Vozvrashachus, eshche razok glyanu...")
+                    self._log("info", "[SCROLL] Vozvrashachus, eshche razok glyanu...")
                     await self._page.evaluate(
                         f"window.scrollTo({{top: {max(current_pos - back, 0)}, behavior: 'smooth'}})"
                     )
@@ -625,7 +629,7 @@ class BehanceLiker:
 
         # Pauza vnizu -- "dosmatrivaem" posledniy blok
         await asyncio.sleep(random.uniform(1.5, 3.5))
-        logger.info("[SCROLL] Dokrutyl do kontsa.")
+        self._log("info", "[SCROLL] Dokrutyl do kontsa.")
 
     async def _natural_post_like_browsing(self):
         """
@@ -641,7 +645,7 @@ class BehanceLiker:
         page_height: int   = await self._page.evaluate("document.body.scrollHeight")
 
         # --- 1. Kommentarii ---
-        logger.info("[BROWSE] Chitayu kommentarii...")
+        self._log("info", "[BROWSE] Chitayu kommentarii...")
         for _ in range(random.randint(5, 11)):
             step = random.randint(35, 140)
             scroll_y = min(scroll_y + step, page_height)
@@ -659,7 +663,7 @@ class BehanceLiker:
         await asyncio.sleep(random.uniform(3.0, 6.0))
 
         # --- 2. Kontakty avtora (~5 sek) ---
-        logger.info("[BROWSE] Smotryu na kontakty avtora...")
+        self._log("info", "[BROWSE] Smotryu na kontakty avtora...")
         contacts_y = max(page_height - random.randint(250, 550), scroll_y - 150)
         await self._page.evaluate(
             f"window.scrollTo({{top: {contacts_y}, behavior: 'smooth'}})"
@@ -674,7 +678,7 @@ class BehanceLiker:
         await asyncio.sleep(random.uniform(1.5, 2.5))   # итого ~5 сек
 
         # --- 3. Lyubopytstvo: schetchik laykov ---
-        logger.info("[BROWSE] Smotryu na schetchik laykov...")
+        self._log("info", "[BROWSE] Smotryu na schetchik laykov...")
         # Ищем элемент со счётчиком и наводим мышь
         try:
             counter = await self._page.query_selector('[class*="Appreciate-count"]')
@@ -690,7 +694,7 @@ class BehanceLiker:
             pass
 
         # --- 4. Medlenno vverkh cherez rabotu ---
-        logger.info("[BROWSE] Medlenno listаyu vverkh cherez rabotu...")
+        self._log("info", "[BROWSE] Medlenno listаyu vverkh cherez rabotu...")
         scroll_y = contacts_y
         while scroll_y > 50:
             step = random.randint(90, 260)
@@ -706,7 +710,7 @@ class BehanceLiker:
                 )
             await asyncio.sleep(random.uniform(0.09, 0.25))
 
-        logger.info("[BROWSE] Prosmotr zavershen.")
+        self._log("info", "[BROWSE] Prosmotr zavershen.")
 
     async def _click_appreciate(self) -> str:
         """Ishchet i klikaet Appreciate (plavayushchaya knopka -- vsegda vidna)."""
@@ -740,10 +744,10 @@ class BehanceLiker:
                 )
 
                 if already:
-                    logger.info(f"[SKIP] Uzhe layknyt (class: {class_name[:60]})")
+                    self._log("info", f"[SKIP] Uzhe layknyt (class: {class_name[:60]})")
                     return "already_liked"
 
-                logger.info(f"[CLICK] Nashel knopku: {selector[:50]}, aria={aria_label!r}")
+                self._log("info", f"[CLICK] Nashel knopku: {selector[:50]}, aria={aria_label!r}")
 
                 # Navodim mysh na knopku (natural hover pered klikom)
                 await btn.scroll_into_view_if_needed()
@@ -768,7 +772,7 @@ class BehanceLiker:
                     )
                 await asyncio.sleep(random.uniform(0.3, 0.7))
 
-                logger.info("[LIKE] Appreciate nazhat!")
+                self._log("info", "[LIKE] Appreciate nazhat!")
                 return "liked"
 
 
@@ -800,10 +804,10 @@ class BehanceLiker:
                 }
             """)
             if result in ("liked", "already_liked"):
-                logger.info(f"[JS] Rezultat: {result}")
+                self._log("info", f"[JS] Rezultat: {result}")
                 return result
         except Exception as exc:
-            logger.error(f"JS fallback: {exc}")
+            self._log("error", f"JS fallback: {exc}")
 
         # Sokhranim screenshot dlya diagnostiki
         try:
@@ -811,7 +815,7 @@ class BehanceLiker:
             ts = datetime.now().strftime("%H%M%S")
             shot_path = os.path.join(DEBUG_DIR, f"no_button_{ts}.png")
             await self._page.screenshot(path=shot_path, full_page=False)
-            logger.error(f"[ERROR] Knopka ne naydena! Screenshot: {shot_path}")
+            self._log("error", f"[ERROR] Knopka ne naydena! Screenshot: {shot_path}")
 
             # Dump vsekh knopok na stranitse dlya diagnostiki
             buttons_info = await self._page.evaluate("""
@@ -822,12 +826,12 @@ class BehanceLiker:
                     testid: b.getAttribute('data-testid')
                 }))
             """)
-            logger.info(f"[DEBUG] Vse knopki na stranitse ({len(buttons_info)} sht):")
+            self._log("info", f"[DEBUG] Vse knopki na stranitse ({len(buttons_info)} sht):")
             for b in buttons_info[:20]:  # pervye 20
-                logger.info(f"  text={b['text']!r} aria={b['aria']!r} "
+                self._log("info", f"  text={b['text']!r} aria={b['aria']!r} "
                             f"cls={b['cls']!r} testid={b['testid']!r}")
         except Exception as se:
-            logger.error(f"Screenshot oshibka: {se}")
+            self._log("error", f"Screenshot oshibka: {se}")
 
         return "error"
 

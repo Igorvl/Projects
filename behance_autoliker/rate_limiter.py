@@ -62,6 +62,11 @@ class RateLimiter:
         self.check_day_rollover()
         self._refresh_session1_earliest()
 
+    def _log(self, level: str, msg: str, **kwargs):
+        prefix = f"[{self.account_id}]"
+        getattr(logger, level)(f"{prefix} {msg}", **kwargs)
+
+
     def check_day_rollover(self) -> bool:
         """
         Проверяет наступление 0:00 по Гринвичу (00:00 UTC = 03:00 МСК).
@@ -89,7 +94,7 @@ class RateLimiter:
         )
 
         if is_new_utc_day or is_stale_activity or is_stale_session:
-            logger.warning(
+            self._log("warning", 
                 f"[SCHEDULE] 0:00 UTC (Grinvich / 3:00 MSK) proydeno! "
                 f"Novye sutki {today_utc}. Sbros tsikla na Sessiyu 1 novogo dnya."
             )
@@ -103,6 +108,7 @@ class RateLimiter:
             if self.pause_until and self.pause_until <= datetime.now():
                 self.pause_until = None
             self._refresh_session1_earliest()
+
             self._save()
             return True
         return False
@@ -164,7 +170,7 @@ class RateLimiter:
         self.cycle_likes       = 0
         self.cycle_start       = None
         self.last_like_time    = None
-        logger.warning(
+        self._log("warning", 
             f"[SCHEDULE] Perekhod na sleduyushchiy den'. "
             f"S1 earliest: {next_s1.strftime('%d.%m %H:%M')} MSK"
         )
@@ -190,7 +196,7 @@ class RateLimiter:
         s = int(wait_sec % 60)
         reason = ("Sessiya 1 zavershena" if self.session_number == 1
                   else "Sutochny limit (58 laykov)")
-        logger.info(
+        self._log("info", 
             f"[PAUZA] {reason}. Prodolzhu v: "
             f"{self.pause_until.strftime('%d.%m %H:%M:%S')} "
             f"(ostalot: {h}h {m}m {s}s)"
@@ -208,7 +214,7 @@ class RateLimiter:
         """Зафиксировать лайк. При достижении лимита — ставит паузу."""
         if self.cycle_likes == 0 and self.session_number == 1:
             self.cycle_start = datetime.now()
-            logger.info(
+            self._log("info", 
                 f"[CYCLE] Start tsikla: {self.cycle_start.strftime('%d.%m %H:%M:%S')}"
             )
 
@@ -217,7 +223,7 @@ class RateLimiter:
         self.cycle_likes    += 1
         remaining = MAX_LIKES_PER_SESSION - self.session_likes
 
-        logger.info(
+        self._log("info", 
             f"[STATS] Sessiya {self.session_number}: "
             f"{self.session_likes}/{MAX_LIKES_PER_SESSION}  |  "
             f"Tsikl: {self.cycle_likes}  |  "
@@ -270,7 +276,7 @@ class RateLimiter:
         if (self.session1_earliest is None
                 or self.session1_earliest < day_start):
             self.session1_earliest = self._compute_session1_earliest()
-            logger.info(
+            self._log("info", 
                 f"[SCHEDULE] S1 earliest (segodnya): "
                 f"{self.session1_earliest.strftime('%d.%m %H:%M')} MSK"
             )
@@ -291,7 +297,7 @@ class RateLimiter:
 
             if candidate > deadline:
                 candidate = deadline
-                logger.warning(
+                self._log("warning", 
                     f"[SCHEDULE] Pereryv ukorocen: S2 dolzhna startovat "
                     f"do {deadline.strftime('%H:%M')} MSK "
                     f"(chtoby uspet do 0:00)"
@@ -302,7 +308,7 @@ class RateLimiter:
             if candidate < minimum:
                 # Минимальный перерыв уже превышает дедлайн — S2 не успевает
                 if minimum > deadline:
-                    logger.warning(
+                    self._log("warning", 
                         f"[SCHEDULE] S2 ne uspeet do 0:00 MSK — "
                         f"minimum pauzy ({minimum.strftime('%H:%M')}) > "
                         f"deadline ({deadline.strftime('%H:%M')}). "
@@ -323,7 +329,7 @@ class RateLimiter:
                     self.cycle_likes     = 0
                     self.cycle_start     = None
                     self.last_like_time  = None
-                    logger.warning(
+                    self._log("warning", 
                         f"[SCHEDULE] Novyy tsikl zavtra v "
                         f"{next_s1.strftime('%d.%m %H:%M')} MSK"
                     )
@@ -333,7 +339,7 @@ class RateLimiter:
 
             self.pause_until = candidate
             elapsed_h = (self.pause_until - now).total_seconds() / 3600
-            logger.info(
+            self._log("info", 
                 f"[LIMIT] 29 laykov (sessiya 1)! "
                 f"Pereryv {elapsed_h:.1f}ch → "
                 f"S2 startует ~{self.pause_until.strftime('%H:%M')} MSK"
@@ -348,7 +354,7 @@ class RateLimiter:
             self.session1_earliest = next_s1   # для нового дня
 
             elapsed_h = (self.pause_until - now).total_seconds() / 3600
-            logger.info(
+            self._log("info", 
                 f"[LIMIT] 58 laykov za sutki! "
                 f"Pauza {elapsed_h:.1f}ch → "
                 f"novy tsikl {self.pause_until.strftime('%d.%m %H:%M')} MSK"
@@ -363,7 +369,7 @@ class RateLimiter:
         if self.session_number == 1 and self.session_likes >= MAX_LIKES_PER_SESSION:
             self.session_number = 2
             self.session_likes  = 0
-            logger.info("[OK] Pereryv mezhdu sessiyami zakonchilsya! Nachinayu sessiyu 2.")
+            self._log("info", "[OK] Pereryv mezhdu sessiyami zakonchilsya! Nachinayu sessiyu 2.")
         else:
             # Ночной отдых или ожидание утра -> остаёмся на Сессии 1
             self.session_number  = 1
@@ -371,7 +377,7 @@ class RateLimiter:
             self.cycle_likes     = 0
             self.cycle_start     = None
             self.last_like_time  = None
-            logger.info("[OK] Pauza zakonchilas! Nachinayu sessiyu 1 novogo dnya.")
+            self._log("info", "[OK] Pauza zakonchilas! Nachinayu sessiyu 1 novogo dnya.")
 
         self.pause_until = None
         self._save()
@@ -395,28 +401,28 @@ class RateLimiter:
             s1e = d.get("session1_earliest")
             self.session1_earliest  = datetime.fromisoformat(s1e) if s1e else None
 
-            logger.info(
+            self._log("info", 
                 f"[STATE] Zagruzil: sessiya {self.session_number}, "
                 f"{self.session_likes} laykov v sessii, {self.cycle_likes} v tsikle"
             )
             if self.utc_date:
-                logger.info(f"[STATE] UTC-data: {self.utc_date} (0:00 Grinvich)")
+                self._log("info", f"[STATE] UTC-data: {self.utc_date} (0:00 Grinvich)")
             if self.cycle_start:
-                logger.info(
+                self._log("info", 
                     f"[STATE] Start tsikla: {self.cycle_start.strftime('%d.%m %H:%M')}"
                 )
             if self.last_like_time:
-                logger.info(
+                self._log("info", 
                     f"[STATE] Posledniy layk: "
                     f"{self.last_like_time.strftime('%d.%m %H:%M:%S')}"
                 )
             if self.pause_until:
-                logger.info(
+                self._log("info", 
                     f"[STATE] Pauza do: {self.pause_until.strftime('%d.%m %H:%M:%S')}"
                 )
 
         except Exception as e:
-            logger.warning(f"Ne udalos zagruzit state: {e}. Startuyem zanovo.")
+            self._log("warning", f"Ne udalos zagruzit state: {e}. Startuyem zanovo.")
 
     def _save(self):
         parent_dir = os.path.dirname(os.path.abspath(self.state_file))
