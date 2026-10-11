@@ -444,14 +444,32 @@ def check_is_mutual(page, username: str):
                     continue
 
             # Profile loaded successfully! Check mutual indicator
+            is_mutual = False
             indicator = page.locator('[data-testid="userFollowIndicator"]')
             if indicator.count() > 0 and indicator.first.is_visible():
-                return True
+                is_mutual = True
+            elif "Follows you" in page_text or "Читает вас" in page_text:
+                is_mutual = True
 
-            if "Follows you" in page_text or "Читает вас" in page_text:
-                return True
+            # Accurate Blue Checkmark verification & automatic DB sync
+            try:
+                is_verified = False
+                user_name_block = page.query_selector('div[data-testid="UserName"]')
+                if user_name_block:
+                    verified_badge = (
+                        user_name_block.query_selector('[data-testid="icon-verified"]') or
+                        user_name_block.query_selector('svg[data-testid="icon-verified"]') or
+                        user_name_block.query_selector('svg[aria-label*="Verified" i]') or
+                        user_name_block.query_selector('svg[aria-label*="Подтвержден" i]')
+                    )
+                    if verified_badge:
+                        is_verified = True
+                from database import update_candidate_verified
+                update_candidate_verified(clean_user, is_verified)
+            except Exception:
+                pass
 
-            return False
+            return is_mutual
 
         except Exception as e:
             print(f"  [Follower] ⚠️ Navigation error for @{clean_user}: {e}")
