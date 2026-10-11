@@ -308,7 +308,7 @@ class BehanceAccountWorker:
                 continue
 
             idle_secs = (now - self.last_activity_time).total_seconds()
-            if self.task_queue.empty() and idle_secs >= 1800:
+            if self.task_queue.empty() and idle_secs >= 7200:
                 self._log(
                     "info",
                     f"[WATCHDOG] Prostoy {idle_secs/60:.0f} min v rabochee vremya. "
@@ -392,7 +392,7 @@ class BehanceAccountWorker:
 
             # Proverka na otsutstvie zadaniy
             if "нет заданий" in text.lower() or "в боте временно нет" in text.lower():
-                wait_min = round(random.uniform(14.0, 18.0), 1)
+                wait_min = round(random.uniform(120.0, 180.0), 1)
                 self._log("warning", f"[BOT-EMPTY] V bote net zadaniy. Povtor cherez {wait_min} min...")
                 await asyncio.sleep(wait_min * 60)
                 try:
