@@ -475,6 +475,11 @@ def unfollow_user_on_current_page(page, clean_user: str):
         log_action(clean_user, "whitelist_protect", success=True)
         return True
 
+    gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
+    if gov["should_pause"]:
+        print(f"  [Follower] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Halting unfollow for @{clean_user}.")
+        return False
+
     try:
         page_text = ""
         try:
@@ -1073,6 +1078,11 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
         daily_unfollow_limit = stage_data["unfollows"]
 
         for u in suspects[:session_max_checks]:
+            gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
+            if gov["should_pause"]:
+                print(f"[Silent Hunter] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Halting audit.")
+                break
+
             _, unfollows_today = get_today_counts()
             if unfollows_today >= daily_unfollow_limit:
                 print(f"[Silent Hunter] Daily unfollow limit reached ({unfollows_today}/{daily_unfollow_limit}). Halting audit.")
