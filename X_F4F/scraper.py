@@ -1166,14 +1166,20 @@ def _evaluate_and_store_users(page, usernames_set, max_users: int, source_label:
                 'design', 'studio', 'type', 'foundry', 'art', 'brand', 'creative', 'visual', 'ui', 'ux',
                 'typography', 'graphics', 'motion', 'editorial', 'agency', 'lab'
             ]
-            if evaluation['score'] >= SNOWBALL_MIN_SCORE and profile.get("bio"):
+            if evaluation['status'] == 'queued' and evaluation['score'] >= SNOWBALL_MIN_SCORE and profile.get("bio"):
                 bio_text_lower = profile["bio"].lower()
                 # Strict domain verification: only accept studios if bio is design-focused
                 if any(dk in bio_text_lower for dk in DESIGN_DOMAIN_KEYWORDS):
                     bio_mentions = re.findall(r"(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_]{3,25})", profile["bio"])
                     for bm in bio_mentions:
                         clean_bm = bm.lower().strip()
-                        if clean_bm not in existing_users and clean_bm != username.lower() and clean_bm not in IGNORED_BIO_MENTIONS:
+                        # Reject bots, crypto handles, self-mentions and common platforms
+                        is_bot_or_crypto = (
+                            clean_bm.endswith('bot') or clean_bm.startswith('bot') or
+                            any(sp in clean_bm for sp in ['crypto', 'coin', 'pump', 'solana', 'token', 'nft', 'airdrop'])
+                        )
+                        if (clean_bm not in existing_users and clean_bm != username.lower() 
+                                and clean_bm not in IGNORED_BIO_MENTIONS and not is_bot_or_crypto):
                             add_dynamic_donor(clean_bm, discovered_from=username)
                             print(f"  [Snowball Graph] Discovered new potential donor studio @{clean_bm} from @{username}'s bio!")
 
