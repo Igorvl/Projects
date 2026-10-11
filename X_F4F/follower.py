@@ -973,13 +973,20 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
         
         # 1. Update target profile stats
         curr_stats = sync_target_profile_stats(page=page, account=TARGET_ACCOUNT)
-        curr_followers = curr_stats.get("followers_count", prev_followers)
-        
+        raw_followers = curr_stats.get("followers_count", 0)
+
+        # Guard: If page failed to load or follower count parsed as 0 while we previously had followers, ignore glitch!
+        if not curr_stats.get("success") or (raw_followers == 0 and prev_followers > 10):
+            print(f"[Silent Hunter] ⚠️ Target profile stats parsing lagged/failed (got {raw_followers}). Preserving prior count ({prev_followers}).")
+            curr_followers = prev_followers
+        else:
+            curr_followers = raw_followers
+
         churn_detected = max(0, prev_followers - curr_followers) if prev_followers > 0 else 0
         if churn_detected > 0:
             print(f"\n[Silent Hunter] 🚨 CHURN DETECTED: Followers dropped from {prev_followers} to {curr_followers} (-{churn_detected})!")
             print(f"[Silent Hunter] Initiating emergency silent-unfollower audit...")
-            session_max_checks = max(max_checks, churn_detected + 4)
+            session_max_checks = min(max_checks * 2, churn_detected + 4, 25)
         else:
             print(f"\n[Silent Hunter] 🔍 Routine Reciprocity Audit (Followers: {curr_followers}, Prior: {prev_followers})...")
             session_max_checks = max_checks
