@@ -993,7 +993,7 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
             print(f"[Silent Hunter] Initiating emergency silent-unfollower audit...")
             session_max_checks = min(max_checks * 2, churn_detected + 4, 25)
         else:
-            print(f"\n[Silent Hunter] 🔍 Routine Reciprocity Audit (Followers: {curr_followers}, Prior: {prev_followers})...")
+            print(f"\n[Silent Hunter] 🛡️ Continuous Reciprocity Patrol (Checking {session_max_checks} oldest mutuals, Followers: {curr_followers})...")
             session_max_checks = max_checks
 
         # 2. Quick scan top recent followers (6-8 scrolls = ~120-160 users)

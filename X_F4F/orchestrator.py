@@ -199,11 +199,12 @@ def run_single_session(profile_name: str):
     if batch_target > 0:
         print(f"[Orchestrator] Session target: {batch_target} follows (Remaining today: {remaining_follows}, Likes left: {remaining_likes})")
 
-    # 0. ОХОТНИК ЗА ПРЕДАТЕЛЯМИ (Silent Unfollower / Traitor Hunter):
-    # Проверка в начале каждого цикла на отписавшихся втихую — отписываемся сразу и в первую очередь!
+    # 0. ОХОТНИК ЗА ПРЕДАТЕЛЯМИ (Continuous Reciprocity Patrol):
+    # Фоновая непрерывная ротация взаимных контактов (8-12 за сессию) с отловом тихушников
     try:
         from follower import hunt_and_retaliate_silent_unfollowers
-        retaliated = hunt_and_retaliate_silent_unfollowers(profile_name=profile_name, max_checks=6)
+        patrol_checks = random.randint(8, 12)
+        retaliated = hunt_and_retaliate_silent_unfollowers(profile_name=profile_name, max_checks=patrol_checks)
         if retaliated > 0:
             print(f"[Orchestrator] ⚔️ Traitor Hunter executed {retaliated} immediate retaliatory unfollow(s).")
             # Refresh unfollow count for current session
