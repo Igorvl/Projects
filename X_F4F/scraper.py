@@ -114,17 +114,19 @@ def inspect_user_profile(page, username: str) -> dict:
         if name_el:
             name = name_el.inner_text().split("\n")[0]
 
-        # Blue Checkmark Hunter: detect verified badge / X Premium
+        # Blue Checkmark Hunter: detect verified badge / X Premium (strictly inside UserName element)
         is_verified = False
         try:
-            verified_badge = (
-                page.query_selector('div[data-testid="UserName"] [data-testid="icon-verified"]') or
-                page.query_selector('div[data-testid="UserName"] svg[data-testid="icon-verified"]') or
-                page.query_selector('a[href$="/verified_followers" i]') or
-                page.query_selector('[data-testid="icon-verified"]')
-            )
-            if verified_badge:
-                is_verified = True
+            user_name_block = page.query_selector('div[data-testid="UserName"]')
+            if user_name_block:
+                verified_badge = (
+                    user_name_block.query_selector('[data-testid="icon-verified"]') or
+                    user_name_block.query_selector('svg[data-testid="icon-verified"]') or
+                    user_name_block.query_selector('svg[aria-label*="Verified" i]') or
+                    user_name_block.query_selector('svg[aria-label*="Подтвержден" i]')
+                )
+                if verified_badge:
+                    is_verified = True
         except Exception:
             pass
             
