@@ -476,7 +476,7 @@ def unfollow_user_on_current_page(page, clean_user: str):
         return True
 
     gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
-    if gov["should_pause"]:
+    if gov.get("triggered", False):
         print(f"  [Follower] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Halting unfollow for @{clean_user}.")
         return False
 
@@ -989,12 +989,12 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
 
         churn_detected = max(0, prev_followers - curr_followers) if prev_followers > 0 else 0
         if churn_detected > 0:
-            print(f"\n[Silent Hunter] 🚨 CHURN DETECTED: Followers dropped from {prev_followers} to {curr_followers} (-{churn_detected})!")
-            print(f"[Silent Hunter] Initiating emergency silent-unfollower audit...")
             session_max_checks = min(max_checks * 2, churn_detected + 4, 25)
+            print(f"\n[Silent Hunter] 🚨 CHURN DETECTED: Followers dropped from {prev_followers} to {curr_followers} (-{churn_detected})!")
+            print(f"[Silent Hunter] Initiating emergency silent-unfollower audit ({session_max_checks} checks)...")
         else:
-            print(f"\n[Silent Hunter] 🛡️ Continuous Reciprocity Patrol (Checking {session_max_checks} oldest mutuals, Followers: {curr_followers})...")
             session_max_checks = max_checks
+            print(f"\n[Silent Hunter] 🛡️ Continuous Reciprocity Patrol (Target: {session_max_checks} oldest mutuals, Followers: {curr_followers})...")
 
         # 2. Quick scan top recent followers (6-8 scrolls = ~120-160 users)
         url = f"https://x.com/{TARGET_ACCOUNT}/followers"
@@ -1079,7 +1079,7 @@ def hunt_and_retaliate_silent_unfollowers(page=None, profile_name="test_igorvl77
 
         for u in suspects[:session_max_checks]:
             gov = check_hourly_mutation_governor(limit=MAX_HOURLY_MUTATIONS, target_safe=28)
-            if gov["should_pause"]:
+            if gov.get("triggered", False):
                 print(f"[Silent Hunter] 🛑 Rolling 1-hour mutation limit reached ({gov['mutations']}/{MAX_HOURLY_MUTATIONS}). Halting audit.")
                 break
 
