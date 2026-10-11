@@ -181,7 +181,28 @@ class RateLimiter:
     # ──────────────────────────────────────────────────────────────────
 
     async def wait_if_needed(self):
-        """Ждёт если активна пауза (опрос каждые 60 сек)."""
+        """Ждёт если сейчас ночь (до Сессии 1) или если активна межсессионная пауза."""
+        # 1. Проверка на ночные часы до утреннего старта Сессии 1
+        if self.is_before_session1_start():
+            target = self.session1_earliest or self._compute_session1_earliest()
+            wait_sec = (target - datetime.now()).total_seconds()
+            if wait_sec > 0:
+                h = int(wait_sec // 3600)
+                m = int((wait_sec % 3600) // 60)
+                s = int(wait_sec % 60)
+                self._log("info",
+                    f"[NIGHT-SLEEP] 🌙 Noch! Zhdu utrennego starta Sessii 1 do "
+                    f"{target.strftime('%H:%M:%S')} MSK (ostalos: {h}h {m}m {s}s)..."
+                )
+                while self.is_before_session1_start():
+                    sleep_sec = min(60.0, (target - datetime.now()).total_seconds())
+                    if sleep_sec > 0:
+                        await asyncio.sleep(sleep_sec)
+                    else:
+                        break
+                self._log("info", "[NIGHT-SLEEP] ☀️ Dobroe utro! Sessiya 1 otkryta, nachinayu rabotu.")
+
+        # 2. Проверка на межсессионную паузу или суточный лимит
         if not self.pause_until:
             return
 

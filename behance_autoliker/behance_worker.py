@@ -93,6 +93,7 @@ class BehanceAccountWorker:
         self.resume_lock: asyncio.Lock = asyncio.Lock()
         self.last_activity_time: datetime = datetime.now()
         self.is_running: bool = False
+        self._morning_requested: bool = False
 
         self._worker_task: Optional[asyncio.Task] = None
         self._watchdog_task: Optional[asyncio.Task] = None
@@ -298,6 +299,17 @@ class BehanceAccountWorker:
                 continue
 
             if self.rate_limiter.is_before_session1_start():
+                self._morning_requested = False
+                continue
+
+            if self.rate_limiter.session_likes == 0 and not self._morning_requested and self.task_queue.empty():
+                self._morning_requested = True
+                self.last_activity_time = now
+                self._log("info", f"[WATCHDOG] ☀️ Nastupilo utro! Zaprashivayu pervye zadaniya dnya: '{BOT_REQUEST_CMD}'...")
+                try:
+                    await self.client.send_message(self.config.bot_username, BOT_REQUEST_CMD)
+                except Exception as e:
+                    self._log("error", f"[WATCHDOG] Oshibka utrennego zaprosa: {e}")
                 continue
 
             if self.rate_limiter.is_too_late_for_session2():
@@ -446,8 +458,12 @@ class BehanceAccountWorker:
                         break
 
             if not found_any and self.task_queue.empty():
-                self._log("info", f"Zaprashivayu zadaniya: '{BOT_REQUEST_CMD}'...")
-                await self.client.send_message(bot_username, BOT_REQUEST_CMD)
+                if self.rate_limiter.is_before_session1_start():
+                    target = self.rate_limiter.session1_earliest or self.rate_limiter._compute_session1_earliest()
+                    self._log("info", f"[NIGHT] Seychas noch. Zaprashivat zadaniya v bot budu utrom v {target.strftime('%H:%M')} MSK.")
+                else:
+                    self._log("info", f"Zaprashivayu zadaniya: '{BOT_REQUEST_CMD}'...")
+                    await self.client.send_message(bot_username, BOT_REQUEST_CMD)
         except Exception as e:
             self._log("warning", f"Oshibka catchup: {e}")
 
