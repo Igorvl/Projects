@@ -137,7 +137,7 @@ class RateLimiter:
 
     def is_before_session1_start(self) -> bool:
         """True — ещё слишком рано начинать Сессию 1 (до 6:00 МСК + рандом)."""
-        if self.session_number != 1 or self.cycle_likes > 0 or self.pause_until:
+        if self.session_number != 1 or self.pause_until:
             return False
         target = self.session1_earliest or self._compute_session1_earliest()
         return datetime.now() < target
